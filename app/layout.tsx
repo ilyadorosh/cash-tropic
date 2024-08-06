@@ -10,7 +10,7 @@ import { GoogleTagManager } from "@next/third-parties/google";
 const serverConfig = getServerSideConfig();
 
 export const metadata: Metadata = {
-  title: "CzatBoltzmanPlanck",
+  title: "CzatBoltzmannPlanck",
   description: "CzatGPT that cares.",
   appleWebApp: {
     title: "NextChat",
