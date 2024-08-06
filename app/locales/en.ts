@@ -440,7 +440,7 @@ const en: LocaleType = {
   },
   Store: {
     DefaultTopic: "New Conversation",
-    BotHello: "Hello! How can I assist you today?",
+    BotHello: "Hello! How can I change your life today?",
     Error: "Something went wrong, please try again later.",
     Prompt: {
       History: (content: string) =>
