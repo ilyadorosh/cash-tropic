@@ -4,8 +4,7 @@ import {
   ApiPath,
   DEFAULT_API_HOST,
   DEFAULT_MODELS,
-  OpenaiPath,
-  // Azure,
+  GroqPath,
   REQUEST_TIMEOUT_MS,
   ServiceProvider,
 } from "@/app/constant";
@@ -35,7 +34,7 @@ import {
   isVisionModel,
 } from "@/app/utils";
 
-export interface OpenAIListModelResponse {
+export interface GroqListModelResponse {
   object: string;
   data: Array<{
     id: string;
@@ -58,7 +57,7 @@ export interface RequestPayload {
   max_tokens?: number;
 }
 
-export class ChatGPTApi implements LLMApi {
+export class GroqApi implements LLMApi {
   private disableListModels = true;
 
   path(path: string): string {
@@ -70,16 +69,16 @@ export class ChatGPTApi implements LLMApi {
     if (accessStore.useCustomConfig) {
       if (isAzure && !accessStore.isValidAzure()) {
         throw Error(
-          "incomplete azure config, please check it in your settings page",
+          "incomplete groq! :] lol config, please check it in your settings page",
         );
       }
 
-      baseUrl = isAzure ? accessStore.azureUrl : accessStore.openaiUrl;
+      baseUrl = accessStore.groqUrl;
     }
 
     if (baseUrl.length === 0) {
       const isApp = !!getClientConfig()?.isApp;
-      const apiPath = isAzure ? ApiPath.Azure : ApiPath.OpenAI;
+      const apiPath = ApiPath.Groq;
       baseUrl = isApp ? DEFAULT_API_HOST + "/proxy" + apiPath : apiPath;
     }
 
@@ -89,7 +88,7 @@ export class ChatGPTApi implements LLMApi {
     if (
       !baseUrl.startsWith("http") &&
       !isAzure &&
-      !baseUrl.startsWith(ApiPath.OpenAI)
+      !baseUrl.startsWith(ApiPath.Groq)
     ) {
       baseUrl = "https://" + baseUrl;
     }
@@ -147,35 +146,8 @@ export class ChatGPTApi implements LLMApi {
     options.onController?.(controller);
 
     try {
-      let chatPath = "";
-      // if (modelConfig.providerName === ServiceProvider.Azure) {
-      //   // find model, and get displayName as deployName
-      //   const { models: configModels, customModels: configCustomModels } =
-      //     useAppConfig.getState();
-      //   const {
-      //     defaultModel,
-      //     customModels: accessCustomModels,
-      //     useCustomConfig,
-      //   } = useAccessStore.getState();
-      //   const models = collectModelsWithDefaultModel(
-      //     configModels,
-      //     [configCustomModels, accessCustomModels].join(","),
-      //     defaultModel,
-      //   );
-      //   const model = models.find(
-      //     (model) =>
-      //       model.name === modelConfig.model &&
-      //       model?.provider?.providerName === ServiceProvider.Azure,
-      //   );
-      //   chatPath = this.path(
-      //     Azure.ChatPath(
-      //       (model?.displayName ?? model?.name) as string,
-      //       useCustomConfig ? useAccessStore.getState().azureApiVersion : "",
-      //     ),
-      //   );
-      // } else {
-      chatPath = this.path(OpenaiPath.ChatPath);
-      // }
+      let chatPath = "GroqPath.ChatPath";
+      chatPath = this.path(GroqPath.ChatPath);
       const chatPayload = {
         method: "POST",
         body: JSON.stringify(requestPayload),
@@ -233,10 +205,7 @@ export class ChatGPTApi implements LLMApi {
           async onopen(res) {
             clearTimeout(requestTimeoutId);
             const contentType = res.headers.get("content-type");
-            console.log(
-              "[OpenAI] request response content type: ",
-              contentType,
-            );
+            console.log("[Groq] request response content type: ", contentType);
 
             if (contentType?.startsWith("text/plain")) {
               responseText = await res.clone().text();
@@ -340,14 +309,14 @@ export class ChatGPTApi implements LLMApi {
     const [used, subs] = await Promise.all([
       fetch(
         this.path(
-          `${OpenaiPath.UsagePath}?start_date=${startDate}&end_date=${endDate}`,
+          `${GroqPath.UsagePath}?start_date=${startDate}&end_date=${endDate}`,
         ),
         {
           method: "GET",
           headers: getHeaders(),
         },
       ),
-      fetch(this.path(OpenaiPath.SubsPath), {
+      fetch(this.path(GroqPath.SubsPath), {
         method: "GET",
         headers: getHeaders(),
       }),
@@ -396,14 +365,14 @@ export class ChatGPTApi implements LLMApi {
       return DEFAULT_MODELS.slice();
     }
 
-    const res = await fetch(this.path(OpenaiPath.ListModelPath), {
+    const res = await fetch(this.path(GroqPath.ListModelPath), {
       method: "GET",
       headers: {
         ...getHeaders(),
       },
     });
 
-    const resJson = (await res.json()) as OpenAIListModelResponse;
+    const resJson = (await res.json()) as GroqListModelResponse;
     const chatModels = resJson.data?.filter((m) => m.id.startsWith("gpt-"));
     console.log("[Models]", chatModels);
 
@@ -415,11 +384,11 @@ export class ChatGPTApi implements LLMApi {
       name: m.id,
       available: true,
       provider: {
-        id: "openai",
-        providerName: "OpenAI",
-        providerType: "openai",
+        id: "groq",
+        providerName: "Groq",
+        providerType: "groq",
       },
     }));
   }
 }
-export { OpenaiPath };
+export { GroqPath };

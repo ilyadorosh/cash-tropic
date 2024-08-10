@@ -19,6 +19,10 @@ const DEFAULT_OPENAI_URL = isApp
   ? DEFAULT_API_HOST + "/api/proxy/openai"
   : ApiPath.OpenAI;
 
+const DEFAULT_GROQ_URL = isApp
+  ? DEFAULT_API_HOST + "/api/proxy/groq"
+  : ApiPath.Groq;
+
 const DEFAULT_GOOGLE_URL = isApp
   ? DEFAULT_API_HOST + "/api/proxy/google"
   : ApiPath.Google;
@@ -47,11 +51,15 @@ const DEFAULT_ACCESS_STATE = {
   accessCode: "",
   useCustomConfig: false,
 
-  provider: ServiceProvider.OpenAI,
+  provider: ServiceProvider.Groq,
 
   // openai
   openaiUrl: DEFAULT_OPENAI_URL,
   openaiApiKey: "",
+
+  // groq
+  groqUrl: DEFAULT_GROQ_URL,
+  groqApiKey: "",
 
   // azure
   azureUrl: "",
@@ -108,6 +116,10 @@ export const useAccessStore = createPersistStore(
 
     isValidOpenAI() {
       return ensure(get(), ["openaiApiKey"]);
+    },
+
+    isValidGroq() {
+      return ensure(get(), ["groqApiKey"]);
     },
 
     isValidAzure() {

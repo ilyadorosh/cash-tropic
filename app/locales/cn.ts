@@ -300,6 +300,18 @@ const cn = {
           SubTitle: "除默认地址外，必须包含 http(s)://",
         },
       },
+      Groq: {
+        ApiKey: {
+          Title: "Groq API Key",
+          SubTitle: "User custom Groq Api Key",
+          Placeholder: "gsk-xxx",
+        },
+
+        Endpoint: {
+          Title: "Groq Endpoint",
+          SubTitle: "Must start with http(s):// or use /api/groq as default",
+        },
+      },
       Azure: {
         ApiKey: {
           Title: "接口密钥",
