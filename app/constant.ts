@@ -130,17 +130,17 @@ export enum ModelProvider {
   Qwen = "Qwen",
 }
 
-// export const Stability = {
-//   GeneratePath: "v2beta/stable-image/generate",
-//   ExampleEndpoint: "https://api.stability.ai",
-// };
+export const Stability = {
+  GeneratePath: "v2beta/stable-image/generate",
+  ExampleEndpoint: "https://api.stability.ai",
+};
 
-// export const Anthropic = {
-//   ChatPath: "v1/messages",
-//   ChatPath1: "v1/complete",
-//   ExampleEndpoint: "https://api.anthropic.com",
-//   Vision: "2023-06-01",
-// };
+export const Anthropic = {
+  ChatPath: "v1/messages",
+  ChatPath1: "v1/complete",
+  ExampleEndpoint: "https://api.anthropic.com",
+  Vision: "2023-06-01",
+};
 
 export const OpenaiPath = {
   ChatPath: "v1/chat/completions",
@@ -156,37 +156,37 @@ export const GroqPath = {
   ListModelPath: "v1/models",
 };
 
-// export const Azure = {
-//   ChatPath: (deployName: string, apiVersion: string) =>
-//     `deployments/${deployName}/chat/completions?api-version=${apiVersion}`,
-//   ExampleEndpoint: "https://{resource-url}/openai/deployments/{deploy-id}",
-// };
+export const Azure = {
+  ChatPath: (deployName: string, apiVersion: string) =>
+    `deployments/${deployName}/chat/completions?api-version=${apiVersion}`,
+  ExampleEndpoint: "https://{resource-url}/openai/deployments/{deploy-id}",
+};
 
-// export const Google = {
-//   ExampleEndpoint: "https://generativelanguage.googleapis.com/",
-//   ChatPath: (modelName: string) =>
-//     `v1beta/models/${modelName}:streamGenerateContent`,
-// };
+export const Google = {
+  ExampleEndpoint: "https://generativelanguage.googleapis.com/",
+  ChatPath: (modelName: string) =>
+    `v1beta/models/${modelName}:streamGenerateContent`,
+};
 
-// export const Baidu = {
-//   ExampleEndpoint: BAIDU_BASE_URL,
-//   ChatPath: (modelName: string) => {
-//     let endpoint = modelName;
-//     if (modelName === "ernie-4.0-8k") {
-//       endpoint = "completions_pro";
-//     }
-//     if (modelName === "ernie-4.0-8k-preview-0518") {
-//       endpoint = "completions_adv_pro";
-//     }
-//     if (modelName === "ernie-3.5-8k") {
-//       endpoint = "completions";
-//     }
-//     if (modelName === "ernie-speed-8k") {
-//       endpoint = "ernie_speed";
-//     }
-//     return `rpc/2.0/ai_custom/v1/wenxinworkshop/chat/${endpoint}`;
-//   },
-// };
+export const Baidu = {
+  ExampleEndpoint: BAIDU_BASE_URL,
+  ChatPath: (modelName: string) => {
+    let endpoint = modelName;
+    if (modelName === "ernie-4.0-8k") {
+      endpoint = "completions_pro";
+    }
+    if (modelName === "ernie-4.0-8k-preview-0518") {
+      endpoint = "completions_adv_pro";
+    }
+    if (modelName === "ernie-3.5-8k") {
+      endpoint = "completions";
+    }
+    if (modelName === "ernie-speed-8k") {
+      endpoint = "ernie_speed";
+    }
+    return `rpc/2.0/ai_custom/v1/wenxinworkshop/chat/${endpoint}`;
+  },
+};
 
 export const ByteDance = {
   ExampleEndpoint: "https://ark.cn-beijing.volces.com/api/",
