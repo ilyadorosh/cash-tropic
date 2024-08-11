@@ -4,7 +4,7 @@ import { ModelProvider, OpenaiPath, GroqPath } from "@/app/constant";
 import { prettyObject } from "@/app/utils/format";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../auth";
-import { requestOpenai } from "../../common";
+import { requestGroq } from "../../common";
 
 const ALLOWD_PATH = new Set(Object.values(OpenaiPath)); // no idea
 const extended_ALLOWD_PATH_Set = new Set([
@@ -64,7 +64,7 @@ async function handle(
   }
 
   try {
-    const response = await requestOpenai(req);
+    const response = await requestGroq(req);
 
     // list models
     if (subpath === OpenaiPath.ListModelPath && response.status === 200) {
