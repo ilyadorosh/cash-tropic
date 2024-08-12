@@ -1,12 +1,13 @@
 import { getClientConfig } from "../config/client";
 import {
   ACCESS_CODE_PREFIX,
-  Azure,
+  // Azure,
   ModelProvider,
   ServiceProvider,
 } from "../constant";
 import { ChatMessage, ModelType, useAccessStore, useChatStore } from "../store";
 import { ChatGPTApi } from "./platforms/openai";
+import { GroqApi } from "./platforms/groq";
 import { GeminiProApi } from "./platforms/google";
 import { ClaudeApi } from "./platforms/anthropic";
 import { ErnieApi } from "./platforms/baidu";
@@ -76,7 +77,7 @@ export abstract class LLMApi {
   abstract models(): Promise<LLMModel[]>;
 }
 
-type ProviderName = "openai" | "azure" | "claude" | "palm";
+type ProviderName = "openai" | "groq" | "azure" | "claude" | "palm";
 
 interface Model {
   name: string;
@@ -116,6 +117,9 @@ export class ClientApi {
         break;
       case ModelProvider.Qwen:
         this.llm = new QwenApi();
+        break;
+      case ModelProvider.Groq:
+        this.llm = new GroqApi();
         break;
       default:
         this.llm = new ChatGPTApi();
@@ -195,6 +199,7 @@ export function getHeaders() {
     const modelConfig = chatStore.currentSession().mask.modelConfig;
     const isGoogle = modelConfig.providerName == ServiceProvider.Google;
     const isAzure = modelConfig.providerName === ServiceProvider.Azure;
+    const isGroq = modelConfig.providerName === ServiceProvider.Groq;
     const isAnthropic = modelConfig.providerName === ServiceProvider.Anthropic;
     const isBaidu = modelConfig.providerName == ServiceProvider.Baidu;
     const isByteDance = modelConfig.providerName === ServiceProvider.ByteDance;
@@ -210,10 +215,13 @@ export function getHeaders() {
       ? accessStore.bytedanceApiKey
       : isAlibaba
       ? accessStore.alibabaApiKey
+      : isGroq
+      ? accessStore.groqApiKey
       : accessStore.openaiApiKey;
     return {
       isGoogle,
       isAzure,
+      isGroq,
       isAnthropic,
       isBaidu,
       isByteDance,
@@ -230,6 +238,7 @@ export function getHeaders() {
   const {
     isGoogle,
     isAzure,
+    isGroq,
     isAnthropic,
     isBaidu,
     apiKey,
@@ -239,6 +248,7 @@ export function getHeaders() {
   if (isGoogle && clientConfig?.isApp) return headers;
   // when using baidu api in app, not set auth header
   if (isBaidu && clientConfig?.isApp) return headers;
+  // if (isGroq && clientConfig?.isApp) return headers;
 
   const authHeader = getAuthHeader();
 
@@ -267,6 +277,8 @@ export function getClientApi(provider: ServiceProvider): ClientApi {
       return new ClientApi(ModelProvider.Doubao);
     case ServiceProvider.Alibaba:
       return new ClientApi(ModelProvider.Qwen);
+    case ServiceProvider.Groq:
+      return new ClientApi(ModelProvider.Groq);
     default:
       return new ClientApi(ModelProvider.GPT);
   }

@@ -11,7 +11,12 @@ export const RUNTIME_CONFIG_DOM = "danger-runtime-config";
 export const STABILITY_BASE_URL = "https://api.stability.ai";
 
 export const DEFAULT_API_HOST = "https://api.nextchat.dev";
+
+// AI STUFF!
 export const OPENAI_BASE_URL = "https://api.openai.com";
+export const GROQ_BASE_URL = "https://api.groq.com/openai";
+
+// OTHER PROVIDERS
 export const ANTHROPIC_BASE_URL = "https://api.anthropic.com";
 
 export const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/";
@@ -42,6 +47,7 @@ export enum ApiPath {
   Cors = "",
   Azure = "/api/azure",
   OpenAI = "/api/openai",
+  Groq = "/api/groq",
   Anthropic = "/api/anthropic",
   Google = "/api/google",
   Baidu = "/api/baidu",
@@ -94,6 +100,7 @@ export const EXPORT_MESSAGE_CLASS_NAME = "export-markdown";
 
 export enum ServiceProvider {
   OpenAI = "OpenAI",
+  Groq = "Groq",
   Azure = "Azure",
   Google = "Google",
   Anthropic = "Anthropic",
@@ -115,6 +122,7 @@ export enum GoogleSafetySettingsThreshold {
 export enum ModelProvider {
   Stability = "Stability",
   GPT = "GPT",
+  Groq = "Groq",
   GeminiPro = "GeminiPro",
   Claude = "Claude",
   Ernie = "Ernie",
@@ -136,6 +144,13 @@ export const Anthropic = {
 
 export const OpenaiPath = {
   ChatPath: "v1/chat/completions",
+  UsagePath: "dashboard/billing/usage",
+  SubsPath: "dashboard/billing/subscription",
+  ListModelPath: "v1/models",
+};
+
+export const GroqPath = {
+  ChatPath: "v1/chat/completions", //"openai/v1/chat/completions",
   UsagePath: "dashboard/billing/usage",
   SubsPath: "dashboard/billing/subscription",
   ListModelPath: "v1/models",
@@ -221,22 +236,31 @@ export const KnowledgeCutOffDate: Record<string, string> = {
 };
 
 const openaiModels = [
-  "gpt-3.5-turbo",
-  "gpt-3.5-turbo-1106",
-  "gpt-3.5-turbo-0125",
-  "gpt-4",
-  "gpt-4-0613",
-  "gpt-4-32k",
-  "gpt-4-32k-0613",
-  "gpt-4-turbo",
-  "gpt-4-turbo-preview",
-  "gpt-4o",
+  // "gpt-3.5-turbo",
   "gpt-4o-2024-05-13",
-  "gpt-4o-mini",
+  // "gpt-3.5-turbo-1106",
+  // "gpt-3.5-turbo-0125",
+  // "gpt-4",
+  // "gpt-4-0613",
+  // "gpt-4-32k",
+  // "gpt-4-32k-0613",
+  // "gpt-4-turbo",
+  // "gpt-4-turbo-preview",
+  // "gpt-4o",
+  // "gpt-4o-mini",
   "gpt-4o-mini-2024-07-18",
   "gpt-4-vision-preview",
   "gpt-4-turbo-2024-04-09",
-  "gpt-4-1106-preview",
+  // "gpt-4-1106-preview",
+];
+
+const groqModels = [
+  "llama3-8b-8192",
+  "gemma2-9b-it",
+  "llama-3.1-70b-versatile",
+  "mixtral-8x7b-32768",
+  "llama-3.1-8b-instant",
+  "llama3-groq-70b-8192-tool-use-preview",
 ];
 
 const googleModels = [
@@ -299,60 +323,70 @@ export const DEFAULT_MODELS = [
       providerType: "openai",
     },
   })),
-  ...openaiModels.map((name) => ({
+
+  // ...openaiModels.map((name) => ({
+  //   name,
+  //   available: true,
+  //   provider: {
+  //     id: "azure",
+  //     providerName: "Azure",
+  //     providerType: "azure",
+  //   },
+  // })),
+  ...groqModels.map((name) => ({
     name,
     available: true,
     provider: {
-      id: "azure",
-      providerName: "Azure",
-      providerType: "azure",
+      id: "groq",
+      providerName: "Groq",
+      providerType: "groq",
     },
   })),
-  ...googleModels.map((name) => ({
-    name,
-    available: true,
-    provider: {
-      id: "google",
-      providerName: "Google",
-      providerType: "google",
-    },
-  })),
-  ...anthropicModels.map((name) => ({
-    name,
-    available: true,
-    provider: {
-      id: "anthropic",
-      providerName: "Anthropic",
-      providerType: "anthropic",
-    },
-  })),
-  ...baiduModels.map((name) => ({
-    name,
-    available: true,
-    provider: {
-      id: "baidu",
-      providerName: "Baidu",
-      providerType: "baidu",
-    },
-  })),
-  ...bytedanceModels.map((name) => ({
-    name,
-    available: true,
-    provider: {
-      id: "bytedance",
-      providerName: "ByteDance",
-      providerType: "bytedance",
-    },
-  })),
-  ...alibabaModes.map((name) => ({
-    name,
-    available: true,
-    provider: {
-      id: "alibaba",
-      providerName: "Alibaba",
-      providerType: "alibaba",
-    },
-  })),
+  // ...googleModels.map((name) => ({
+  //   name,
+  //   available: true,
+  //   provider: {
+  //     id: "google",
+  //     providerName: "Google",
+  //     providerType: "google",
+  //   },
+  // })),
+  // ...anthropicModels.map((name) => ({
+  //   name,
+  //   available: true,
+  //   provider: {
+  //     id: "anthropic",
+  //     providerName: "Anthropic",
+  //     providerType: "anthropic",
+  //   },
+  // })),
+  // ...baiduModels.map((name) => ({
+  //   name,
+  //   available: true,
+  //   provider: {
+  //     id: "baidu",
+  //     providerName: "Baidu",
+  //     providerType: "baidu",
+  //   },
+  // })),
+  // ...bytedanceModels.map((name) => ({
+  //   name,
+  //   available: true,
+  //   provider: {
+  //     id: "bytedance",
+  //     providerName: "ByteDance",
+  //     providerType: "bytedance",
+  //   },
+  // })),
+  // ...alibabaModes.map((name) => ({
+  //   name,
+  //   available: true,
+  //   provider: {
+  //     id: "alibaba",
+  //     providerName: "Alibaba",
+  //     providerType: "alibaba",
+  //   },
+  // })),
 ] as const;
 
 export const CHAT_PAGE_SIZE = 15;

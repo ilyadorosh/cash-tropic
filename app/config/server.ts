@@ -7,6 +7,7 @@ declare global {
       PROXY_URL?: string; // docker only
 
       OPENAI_API_KEY?: string;
+      GROQ_API_KEY?: string;
       CODE?: string;
 
       BASE_URL?: string;
@@ -114,6 +115,7 @@ export const getServerSideConfig = () => {
   const isStability = !!process.env.STABILITY_API_KEY;
 
   const isAzure = !!process.env.AZURE_URL;
+  const isGroq = !!process.env.GROQ_API_KEY;
   const isGoogle = !!process.env.GOOGLE_API_KEY;
   const isAnthropic = !!process.env.ANTHROPIC_API_KEY;
 
@@ -145,6 +147,10 @@ export const getServerSideConfig = () => {
     azureUrl: process.env.AZURE_URL,
     azureApiKey: getApiKey(process.env.AZURE_API_KEY),
     azureApiVersion: process.env.AZURE_API_VERSION,
+
+    isGroq,
+    groqUrl: process.env.GROQ_URL,
+    groqApiKey: getApiKey(process.env.GROQ_API_KEY),
 
     isGoogle,
     googleApiKey: getApiKey(process.env.GOOGLE_API_KEY),

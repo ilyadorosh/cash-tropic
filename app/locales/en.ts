@@ -303,6 +303,18 @@ const en: LocaleType = {
           SubTitle: "Must start with http(s):// or use /api/openai as default",
         },
       },
+      Groq: {
+        ApiKey: {
+          Title: "Groq API Key",
+          SubTitle: "User custom Groq Api Key",
+          Placeholder: "gsk-xxx",
+        },
+
+        Endpoint: {
+          Title: "Groq Endpoint",
+          SubTitle: "Must start with http(s):// or use /api/groq as default",
+        },
+      },
       Azure: {
         ApiKey: {
           Title: "Azure Api Key",
