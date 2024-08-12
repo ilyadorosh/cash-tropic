@@ -247,14 +247,21 @@ const openaiModels = [
   // "gpt-4-turbo",
   // "gpt-4-turbo-preview",
   // "gpt-4o",
-  "gpt-4o-mini",
+  // "gpt-4o-mini",
   "gpt-4o-mini-2024-07-18",
   "gpt-4-vision-preview",
   "gpt-4-turbo-2024-04-09",
-  "gpt-4-1106-preview",
+  // "gpt-4-1106-preview",
 ];
 
-const groqModels = ["llama3-8b-8192", "gemma2-9b-it"];
+const groqModels = [
+  "llama3-8b-8192",
+  "gemma2-9b-it",
+  "llama-3.1-70b-versatile",
+  "mixtral-8x7b-32768",
+  "llama-3.1-8b-instant",
+  "llama3-groq-70b-8192-tool-use-preview",
+];
 
 const googleModels = [
   "gemini-1.0-pro",
@@ -307,15 +314,15 @@ const alibabaModes = [
 ];
 
 export const DEFAULT_MODELS = [
-  // ...openaiModels.map((name) => ({
-  //   name,
-  //   available: true,
-  //   provider: {
-  //     id: "openai",
-  //     providerName: "OpenAI",
-  //     providerType: "openai",
-  //   },
-  // })),
+  ...openaiModels.map((name) => ({
+    name,
+    available: true,
+    provider: {
+      id: "openai",
+      providerName: "OpenAI",
+      providerType: "openai",
+    },
+  })),
 
   // ...openaiModels.map((name) => ({
   //   name,
