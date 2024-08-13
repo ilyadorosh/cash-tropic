@@ -48,8 +48,10 @@ export const DEFAULT_CONFIG = {
   models: DEFAULT_MODELS as any as LLMModel[],
 
   modelConfig: {
-    model: "gpt-4o-mini" as ModelType,
-    providerName: "OpenAI" as ServiceProvider,
+    model: "gemma2-9b-it" as ModelType,
+    // model: "gpt-4o-mini" as ModelType,
+    providerName: "Groq" as ServiceProvider,
+    // providerName: "OpenAI" as ServiceProvider,
     temperature: 0.6,
     top_p: 1,
     max_tokens: 4000,

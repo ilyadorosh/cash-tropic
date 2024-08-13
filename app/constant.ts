@@ -314,16 +314,6 @@ const alibabaModes = [
 ];
 
 export const DEFAULT_MODELS = [
-  ...openaiModels.map((name) => ({
-    name,
-    available: true,
-    provider: {
-      id: "openai",
-      providerName: "OpenAI",
-      providerType: "openai",
-    },
-  })),
-
   // ...openaiModels.map((name) => ({
   //   name,
   //   available: true,
@@ -342,6 +332,17 @@ export const DEFAULT_MODELS = [
       providerType: "groq",
     },
   })),
+
+  // ...openaiModels.map((name) => ({
+  //   name,
+  //   available: true,
+  //   provider: {
+  //     id: "openai",
+  //     providerName: "OpenAI",
+  //     providerType: "openai",
+  //   },
+  // })),
+
   // ...googleModels.map((name) => ({
   //   name,
   //   available: true,
