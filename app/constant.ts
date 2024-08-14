@@ -255,7 +255,7 @@ const openaiModels = [
 ];
 
 const groqModels = [
-  "llama3-8b-8192",
+  // "llama3-8b-8192",
   "gemma2-9b-it",
   "llama-3.1-70b-versatile",
   "mixtral-8x7b-32768",
@@ -314,15 +314,6 @@ const alibabaModes = [
 ];
 
 export const DEFAULT_MODELS = [
-  // ...openaiModels.map((name) => ({
-  //   name,
-  //   available: true,
-  //   provider: {
-  //     id: "azure",
-  //     providerName: "Azure",
-  //     providerType: "azure",
-  //   },
-  // })),
   ...groqModels.map((name) => ({
     name,
     available: true,
@@ -333,16 +324,24 @@ export const DEFAULT_MODELS = [
     },
   })),
 
+  ...openaiModels.map((name) => ({
+    name,
+    available: true,
+    provider: {
+      id: "openai",
+      providerName: "OpenAI",
+      providerType: "openai",
+    },
+  })),
   // ...openaiModels.map((name) => ({
   //   name,
   //   available: true,
   //   provider: {
-  //     id: "openai",
-  //     providerName: "OpenAI",
-  //     providerType: "openai",
+  //     id: "azure",
+  //     providerName: "Azure",
+  //     providerType: "azure",
   //   },
   // })),
-
   // ...googleModels.map((name) => ({
   //   name,
   //   available: true,
