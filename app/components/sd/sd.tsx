@@ -148,6 +148,12 @@ export function Sd() {
             </div>
           </div>
           <div className={chatStyles["chat-body"]} ref={scrollRef}>
+            <iframe
+              src={
+                "https://www.udio.com/embed/g5LSrPQc5SdycKc3kfdynk?embedVariant=default"
+              }
+              style={{ width: "700px", height: "228px" }}
+            ></iframe>
             <div className={styles["sd-img-list"]}>
               {sdImages.length > 0 ? (
                 sdImages.map((item: any) => {

@@ -480,3 +480,35 @@ If you want to add a new translation, read this [document](./docs/translation.md
 ## LICENSE
 
 [MIT](https://opensource.org/license/mit/)
+
+
+Utopiła moje serce w benzynie i podpaliła je-e
+Piję drinka przy ognisku, żeby zapomnieć o Tobie
+Dzwoni do mnie ziomal, że tu na mnie czeka 1000 kobiet
+Na nogach mam ramony, ty to Ricky i Owens
+Ja nikomu nie ufam, w Żabce kupuje kondomy
+Poza kontrolą będę K.O w tym mieście
+Moi ziomale ostrzegali mnie wcześniej
+Nadal P.P.P. - papier ponad pussy
+Ale jak wrócę znów, gapię się na ten sufit
+Utopiła moje serce w benzynie i podpaliła je-e
+Utopiła moje serce w benzynie i podpaliła je-е
+Utopiła moje serce w bеnzynie (i podpaliła je-e)
+Utopiła moje serce w benzynie i podpaliła je-e
+Ona chce zrobić z Ciebie simp, zapomniał o ziomalach
+Mam abnormalny rizz, następna już wybrana
+Jestem G. O. A. T., przysięgam to na mamę
+Wchodzę tak jak Halland na tą pierwszą bazę
+Najlepszy lek, aby zapomnieć to jest iść na jakiś melanż
+Dzwoni do mnie Ania, potem dzwoni do mnie Ela
+Po tych ciotach nic nie widzę
+Oczy jak zepsuty ekran
+Mówię na nią "speed", bo ciągle na mnie szczeka
+Poza kontrolą, będę K.O w tym mieście
+Moi ziomale ostrzegali mnie wcześniej
+Nadal P.P.P. - papier ponad pussy
+Ale jak wrócę znów, gapię się na ten sufit
+Utopiła moje serce w benzynie i podpaliła je-e
+Utopiła moje serce w benzynie i podpaliła je-e
+Utopiła moje serce w benzynie (i podpaliła je-e)
+Utopiła moje serce w benzynie i podpaliła je-e
