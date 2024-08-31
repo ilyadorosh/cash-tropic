@@ -452,7 +452,8 @@ const en: LocaleType = {
   },
   Store: {
     DefaultTopic: "New Conversation",
-    BotHello: "Hello! How can I change your life today?",
+    BotHello:
+      "Hello, welcome to your Intelligent fund! We will change your life today, ok?",
     Error: "Something went wrong, please try again later.",
     Prompt: {
       History: (content: string) =>

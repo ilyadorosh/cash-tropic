@@ -324,15 +324,15 @@ export const DEFAULT_MODELS = [
     },
   })),
 
-  ...openaiModels.map((name) => ({
-    name,
-    available: true,
-    provider: {
-      id: "openai",
-      providerName: "OpenAI",
-      providerType: "openai",
-    },
-  })),
+  // ...openaiModels.map((name) => ({
+  //   name,
+  //   available: true,
+  //   provider: {
+  //     id: "openai",
+  //     providerName: "OpenAI",
+  //     providerType: "openai",
+  //   },
+  // })),
   // ...openaiModels.map((name) => ({
   //   name,
   //   available: true,
