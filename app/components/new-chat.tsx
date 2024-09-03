@@ -179,6 +179,7 @@ export function NewChat() {
           </div>
         ))}
       </div>
+      <div>Split personality coming soon...</div>
     </div>
   );
 }
