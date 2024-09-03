@@ -1578,23 +1578,6 @@ function _Chat() {
               fontSize: config.fontSize,
             }}
           />
-          <textarea
-            id="chat-input-2"
-            ref={inputRef}
-            className={styles["chat-input"]}
-            placeholder={Locale.Chat.Input(submitKey)}
-            onInput={(e) => onInput(e.currentTarget.value)}
-            value={userInput}
-            onKeyDown={onInputKeyDown}
-            onFocus={scrollToBottom}
-            onClick={scrollToBottom}
-            onPaste={handlePaste}
-            rows={inputRows}
-            autoFocus={autoFocus}
-            style={{
-              fontSize: config.fontSize,
-            }}
-          />
           {attachImages.length != 0 && (
             <div className={styles["attach-images"]}>
               {attachImages.map((image, index) => {
