@@ -222,7 +222,11 @@ export function SideBar(props: { className?: string }) {
       shouldNarrow={shouldNarrow}
       {...props}
     >
-      <SideBarHeader title="CzatGPT" subTitle="SlowerAI" logo={<ChatGptIcon />}>
+      <SideBarHeader
+        title="ReStoryFunctionalFunFund"
+        subTitle="ChaseGPTIntelligentSlowerAI"
+        logo={<ChatGptIcon />}
+      >
         <div className={styles["sidebar-header-bar"]}>
           <IconButton
             icon={<MaskIcon />}
