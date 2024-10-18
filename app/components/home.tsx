@@ -217,6 +217,25 @@ export function Home() {
   useEffect(() => {
     console.log("[Config] got config from build time", getClientConfig());
     useAccessStore.getState().fetch();
+
+    // When drag starts in the iframe
+    const handleDragStart = () => {
+      window.parent.postMessage({ type: "dragstart" }, "*");
+    };
+
+    // When drag ends in the iframe
+    const handleDragEnd = () => {
+      window.parent.postMessage({ type: "dragend" }, "*");
+    };
+
+    document.addEventListener("dragstart", handleDragStart);
+    document.addEventListener("dragend", handleDragEnd);
+
+    // Cleanup event listeners on component unmount
+    return () => {
+      document.removeEventListener("dragstart", handleDragStart);
+      document.removeEventListener("dragend", handleDragEnd);
+    };
   }, []);
 
   if (!useHasHydrated()) {
