@@ -20,11 +20,17 @@ export function About() {
   return (
     <div>
       <h1>About</h1>
-      <p>Welcome to the Cash Tropic app!</p>
+      <p>Welcome to the Intelligent Fund cash-tropic app! </p>
+      <p>Here you will be launching a dumpster into an orbit!</p>
       <p>
         This app is a fork of NextChat, developed by Illia Dorosh. You can find
         the source code on <a href={REPO_URL}>GitHub</a> and fork it to
         contribute.
+      </p>
+      <p>
+        By using it you agree to some terms and conditions.<br></br>
+        Русская версия активируется только в Москве, при триумфальной встрече с
+        высшими лицами всей этой вакханалии
       </p>
       <div className={styles["sidebar-action"]}>
         <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
