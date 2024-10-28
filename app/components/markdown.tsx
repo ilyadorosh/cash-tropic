@@ -96,6 +96,10 @@ export function PreCode(props: { children: any }) {
     [plugins],
   );
 
+  const handleDragStart = (e: React.DragEvent, data: string) => {
+    e.dataTransfer.setData("text/plain", data);
+  };
+
   return (
     <>
       <pre ref={ref}>
@@ -108,6 +112,24 @@ export function PreCode(props: { children: any }) {
             }
           }}
         ></span>
+        <span
+          className="drag-code-handle"
+          draggable
+          onDragStart={(e) => {
+            if (ref.current) {
+              const codeSample = ref.current.innerText;
+              handleDragStart(
+                e,
+                `data:text/plain;charset=utf-8,${encodeURIComponent(
+                  codeSample,
+                )}`,
+              );
+            }
+          }}
+        >
+          drag
+        </span>
+
         {props.children}
       </pre>
       {mermaidCode.length > 0 && (
