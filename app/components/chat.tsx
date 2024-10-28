@@ -624,11 +624,11 @@ export function ChatActions(props: {
         />
       )}
 
-      <ChatAction
+      {/* <ChatAction
         onClick={() => setShowPluginSelector(true)}
         text={Locale.Plugin.Name}
         icon={<PluginIcon />}
-      />
+      /> */}
       {showPluginSelector && (
         <Selector
           multiple
@@ -892,6 +892,11 @@ function _Chat() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    const payload = decodeURIComponent(window.location.hash.split("#", 3)[2]);
+    const theInput = document.querySelector("textarea#chat-input");
+    if (theInput && payload) {
+      (theInput as HTMLTextAreaElement).value = payload;
+    }
   }, []);
 
   // check if should send message
@@ -1448,6 +1453,16 @@ function _Chat() {
                                 icon={<PinIcon />}
                                 onClick={() => onPinMessage(message)}
                               />
+                              <ChatAction
+                                icon={<EditIcon />}
+                                text={"Locale.Chat.Actions.ChatList"}
+                                onClick={() => {
+                                  console.log(
+                                    "Jackpot $200 000 Calculate energy in Joules",
+                                  );
+                                }}
+                              />
+
                               <ChatAction
                                 text={Locale.Chat.Actions.Copy}
                                 icon={<CopyIcon />}
