@@ -27,6 +27,7 @@ import SettingsIcon from "../icons/chat-settings.svg";
 import DeleteIcon from "../icons/clear.svg";
 import PinIcon from "../icons/pin.svg";
 import EditIcon from "../icons/rename.svg";
+import UploadIcon from "../icons/upload.svg";
 import ConfirmIcon from "../icons/confirm.svg";
 import CancelIcon from "../icons/cancel.svg";
 import ImageIcon from "../icons/image.svg";
@@ -892,7 +893,7 @@ function _Chat() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    const payload = decodeURIComponent(window.location.hash.split("#", 3)[2]);
+    const payload = decodeURIComponent(window.location.hash.split("~", 3)[1]);
     const theInput = document.querySelector("textarea#chat-input");
     if (theInput && payload) {
       (theInput as HTMLTextAreaElement).value = payload;
@@ -1454,11 +1455,11 @@ function _Chat() {
                                 onClick={() => onPinMessage(message)}
                               />
                               <ChatAction
-                                icon={<EditIcon />}
-                                text={"Locale.Chat.Actions.ChatList"}
+                                icon={<UploadIcon />}
+                                text={"Save"}
                                 onClick={() => {
                                   console.log(
-                                    "Jackpot $200 000 Calculate energy in Joules",
+                                    "Will save. also, Jackpot $200 000 Calculate energy in Joules",
                                   );
                                 }}
                               />
