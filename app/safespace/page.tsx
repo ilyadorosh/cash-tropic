@@ -1,35 +1,27 @@
-// import type { NextApiRequest, NextApiResponse } from 'next'
-
-// type ResponseData = {
-//   message: string
-// }
-
-// export async function GET(
-//   req: NextApiRequest,
-//   res: NextApiResponse<ResponseData>
-// ) {
-//   res.status(200).json({ message: 'Hello from Next.js!' })
-// }
 "use client";
 
 import React from "react";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 function MyPage() {
   const [queryParam, setQueryParam] = useState("");
 
+  const searchParams = useSearchParams();
+
+  const search = searchParams.get("search");
+
   return (
     <div>
-      <h1>&quot; I am not a professional manager &quot;</h1>
+      <h1>&quot; Любовь - опасная женщина &quot;</h1>
       <ul>
-        <li>business paid community</li>
-        <li>job descriptions</li>
+        <li>Она там просила меня документацию написать... </li>
+        <li>This: {search}</li>
       </ul>
-      <h2>Slides</h2>
+      <h2>Бизнесс-план:</h2>
       <ul>
-        <li>big vision</li>
-        <li>Brands logos</li>
-        <li>demo</li>
+        <li>Инвестирование:</li>
+        <li>Первый канал, Газпром, РЖД, РПЦ, Москвич</li>
       </ul>
       <textarea defaultValue={"i LOVE U " + queryParam} />
     </div>

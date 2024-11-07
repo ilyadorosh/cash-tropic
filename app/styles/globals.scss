@@ -7,10 +7,9 @@
   /* color */
   --white: white;
   --black: rgb(48, 48, 48);
-  --gray:  linear-gradient(to right, rgba(0, 0, 0, 0), rgb(177 30 30), rgba(0, 0, 0, 0));
-  ;
+  --gray:  rgb(127, 202, 211);
   --primary: rgb(171, 29, 114);
-  --second: rgb(88, 135, 48);
+  --second: rgb(48, 135, 129);
   --hover-color: #f3f3f3;
   --bar-color: rgba(63, 17, 17, 0.411);
   --theme-color: var(--gray);
@@ -29,9 +28,9 @@
   /* color */
   --white: rgb(30, 30, 30);
   --black: rgb(210, 210, 210);
-  --gray: rgb(5, 80, 0);
+  --gray: rgb(16, 98, 11);
   --primary: rgb(171, 29, 110);
-  --second: rgb(88, 23, 53);
+  --second: rgb(128, 13, 66);
   --hover-color: #323232;
 
   --bar-color: rgba(255, 255, 255, 0.1);
@@ -91,7 +90,7 @@
 html {
   height: var(--full-height);
 
-  font-family: "Noto Sans", "SF Pro SC", "SF Pro Text", "SF Pro Icons",
+  font-family: "Dancing Script", "Doto", "Noto Sans", "SF Pro SC", "SF Pro Text", "SF Pro Icons",
     "PingFang SC", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
 }
 
