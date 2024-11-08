@@ -127,7 +127,9 @@ const loadAsyncGoogleFont = () => {
   linkEl.href =
     googleFontUrl +
     "/css2?family=" +
-    encodeURIComponent("Noto Sans:wght@300;400;700;900") +
+    encodeURIComponent(
+      "Dancing+Script:wght@400..700&family=Doto:wght,ROND@100..900,75&family=Noto Sans:wght@300;400;700;900",
+    ) + //"Noto Sans:wght@300;400;700;900") +
     "&display=swap";
   document.head.appendChild(linkEl);
 };
@@ -178,6 +180,7 @@ function Screen() {
             <Route path={Path.Masks} element={<MaskPage />} />
             <Route path={Path.Chat} element={<Chat />} />
             <Route path={Path.Settings} element={<Settings />} />
+            <Route path={Path.Experimental} element={<About />} />
           </Routes>
         </WindowContent>
       </>
