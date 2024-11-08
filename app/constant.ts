@@ -41,6 +41,7 @@ export enum Path {
   Sd = "/sd",
   SdNew = "/sd-new",
   Artifacts = "/artifacts",
+  Experimental = "/safespace",
 }
 
 export enum ApiPath {
