@@ -18,16 +18,16 @@ function MyPage() {
 
   return (
     <div>
-      <h1>&quot; Любовь - опасная женщина &quot;</h1>
+      <h1>&quot; Любовь опасная &quot;</h1>
       <ul>
         <li>Она там просила меня документацию написать... </li>
         <Suspense>
           <ParamsMy />
         </Suspense>
       </ul>
-      <h2>Бизнесс-план:</h2>
+      <h2>Бизнеss-план:</h2>
       <ul>
-        <li>Инвестирование:</li>
+        <li>Инвестирование from:</li>
         <li>Первый канал, Газпром, РЖД, РПЦ, Москвич</li>
       </ul>
       <textarea defaultValue={"i LOVE U " + queryParam} />
