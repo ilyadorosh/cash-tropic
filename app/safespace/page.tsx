@@ -21,7 +21,9 @@ function MyPage() {
       <h1>&quot; Любовь - опасная женщина &quot;</h1>
       <ul>
         <li>Она там просила меня документацию написать... </li>
-        <Suspense></Suspense>
+        <Suspense>
+          <ParamsMy />
+        </Suspense>
       </ul>
       <h2>Бизнесс-план:</h2>
       <ul>
