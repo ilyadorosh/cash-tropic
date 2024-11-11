@@ -823,6 +823,12 @@ function _Chat() {
     }
   };
 
+  const speakAloud = (message: ChatMessage) => {
+    var msg = new SpeechSynthesisUtterance();
+    msg.text = getMessageTextContent(message);
+    window.speechSynthesis.speak(msg);
+  };
+
   const doSubmit = (userInput: string) => {
     if (userInput.trim() === "") return;
     const matchCommand = chatCommands.match(userInput);
@@ -893,11 +899,6 @@ function _Chat() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    const payload = decodeURIComponent(window.location.hash.split("~", 3)[1]);
-    const theInput = document.querySelector("textarea#chat-input");
-    if (theInput && payload) {
-      (theInput as HTMLTextAreaElement).value = payload;
-    }
   }, []);
 
   // check if should send message
@@ -1461,6 +1462,14 @@ function _Chat() {
                                   console.log(
                                     "Will save. also, Jackpot $200 000 Calculate energy in Joules",
                                   );
+                                }}
+                              />
+                              <ChatAction
+                                icon={<ResetIcon />}
+                                text={"Translate 🇩🇪"}
+                                onClick={() => {
+                                  speakAloud(message);
+                                  console.log("🇩🇪");
                                 }}
                               />
 
