@@ -128,7 +128,7 @@ const loadAsyncGoogleFont = () => {
     googleFontUrl +
     "/css2?family=" +
     encodeURIComponent(
-      "Dancing+Script:wght@400..700&family=Doto:wght,ROND@100..900,75&family=Noto Sans:wght@300;400;700;900",
+      "Dancing Script:wght@400..700&family=Doto:wght,ROND@100..900,75&family=Noto Sans:wght@300;400;700;900",
     ) + //"Noto Sans:wght@300;400;700;900") +
     "&display=swap";
   document.head.appendChild(linkEl);

@@ -7,7 +7,7 @@ export async function GET(req: Request, context: any) {
   // res.end(`Posts: ${pid}`)
 
   return NextResponse.json({
-    message: "Hello, Shawn, please go to illige.fun/safespace/prompt!",
+    message: "Hello, Shawn, please go to illigen.fun/safespace/prompt!",
     input: pid,
   });
 }
