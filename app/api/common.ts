@@ -10,28 +10,17 @@ import {
 import { isModelAvailableInServer } from "../utils/model";
 import { cloudflareAIGatewayUrl } from "../utils/cloudflare";
 
+import { kv } from "@vercel/kv";
+
 const serverConfig = getServerSideConfig();
 
 export async function requestOpenai(req: NextRequest) {
   const controller = new AbortController();
 
-  const isAzure = req.nextUrl.pathname.includes("azure/deployments");
-
   var authValue,
     authHeaderName = "";
-  if (isAzure) {
-    authValue =
-      req.headers
-        .get("Authorization")
-        ?.trim()
-        .replaceAll("Bearer ", "")
-        .trim() ?? "";
-
-    authHeaderName = "api-key";
-  } else {
-    authValue = req.headers.get("Authorization") ?? "";
-    authHeaderName = "Authorization";
-  }
+  authValue = req.headers.get("Authorization") ?? "";
+  authHeaderName = "Authorization";
 
   let path = `${req.nextUrl.pathname}${req.nextUrl.search}`.replaceAll(
     "/api/openai/",
@@ -43,8 +32,7 @@ export async function requestOpenai(req: NextRequest) {
   //   "",
   // );
 
-  let baseUrl =
-    (isAzure ? serverConfig.azureUrl : serverConfig.baseUrl) || OPENAI_BASE_URL;
+  let baseUrl = serverConfig.baseUrl || OPENAI_BASE_URL;
 
   if (!baseUrl.startsWith("http")) {
     baseUrl = `https://${baseUrl}`;
@@ -63,44 +51,6 @@ export async function requestOpenai(req: NextRequest) {
     },
     10 * 60 * 1000,
   );
-
-  if (isAzure) {
-    const azureApiVersion =
-      req?.nextUrl?.searchParams?.get("api-version") ||
-      serverConfig.azureApiVersion;
-    baseUrl = baseUrl.split("/deployments").shift() as string;
-    path = `${req.nextUrl.pathname.replaceAll(
-      "/api/azure/",
-      "",
-    )}?api-version=${azureApiVersion}`;
-
-    // Forward compatibility:
-    // if display_name(deployment_name) not set, and '{deploy-id}' in AZURE_URL
-    // then using default '{deploy-id}'
-    if (serverConfig.customModels && serverConfig.azureUrl) {
-      const modelName = path.split("/")[1];
-      let realDeployName = "";
-      serverConfig.customModels
-        .split(",")
-        .filter((v) => !!v && !v.startsWith("-") && v.includes(modelName))
-        .forEach((m) => {
-          const [fullName, displayName] = m.split("=");
-          const [_, providerName] = fullName.split("@");
-          if (providerName === "azure" && !displayName) {
-            const [_, deployId] = (serverConfig?.azureUrl ?? "").split(
-              "deployments/",
-            );
-            if (deployId) {
-              realDeployName = deployId;
-            }
-          }
-        });
-      if (realDeployName) {
-        console.log("[Replace with DeployId", realDeployName);
-        path = path.replaceAll(modelName, realDeployName);
-      }
-    }
-  }
 
   const fetchUrl = cloudflareAIGatewayUrl(`${baseUrl}/${path}`);
   console.log("fetchUrl", fetchUrl);
@@ -203,31 +153,17 @@ export async function requestOpenai(req: NextRequest) {
 export async function requestGroq(req: NextRequest) {
   const controller = new AbortController();
 
-  const isAzure = req.nextUrl.pathname.includes("azure/deployments");
-
   var authValue,
     authHeaderName = "";
-  if (isAzure) {
-    authValue =
-      req.headers
-        .get("Authorization")
-        ?.trim()
-        .replaceAll("Bearer ", "")
-        .trim() ?? "";
-
-    authHeaderName = "api-key";
-  } else {
-    authValue = req.headers.get("Authorization") ?? "";
-    authHeaderName = "Authorization";
-  }
+  authValue = req.headers.get("Authorization") ?? "";
+  authHeaderName = "Authorization";
 
   let path = `${req.nextUrl.pathname}${req.nextUrl.search}`.replaceAll(
     "/api/groq/",
     "",
   );
 
-  let baseUrl =
-    (isAzure ? serverConfig.azureUrl : serverConfig.baseUrl) || GROQ_BASE_URL;
+  let baseUrl = serverConfig.baseUrl || GROQ_BASE_URL;
 
   if (!baseUrl.startsWith("http")) {
     baseUrl = `https://${baseUrl}`;
@@ -247,43 +183,7 @@ export async function requestGroq(req: NextRequest) {
     10 * 60 * 1000,
   );
 
-  if (isAzure) {
-    const azureApiVersion =
-      req?.nextUrl?.searchParams?.get("api-version") ||
-      serverConfig.azureApiVersion;
-    baseUrl = baseUrl.split("/deployments").shift() as string;
-    path = `${req.nextUrl.pathname.replaceAll(
-      "/api/azure/",
-      "",
-    )}?api-version=${azureApiVersion}`;
-
-    // Forward compatibility:
-    // if display_name(deployment_name) not set, and '{deploy-id}' in AZURE_URL
-    // then using default '{deploy-id}'
-    if (serverConfig.customModels && serverConfig.azureUrl) {
-      const modelName = path.split("/")[1];
-      let realDeployName = "";
-      serverConfig.customModels
-        .split(",")
-        .filter((v) => !!v && !v.startsWith("-") && v.includes(modelName))
-        .forEach((m) => {
-          const [fullName, displayName] = m.split("=");
-          const [_, providerName] = fullName.split("@");
-          if (providerName === "azure" && !displayName) {
-            const [_, deployId] = (serverConfig?.azureUrl ?? "").split(
-              "deployments/",
-            );
-            if (deployId) {
-              realDeployName = deployId;
-            }
-          }
-        });
-      if (realDeployName) {
-        console.log("[Replace with DeployId", realDeployName);
-        path = path.replaceAll(modelName, realDeployName);
-      }
-    }
-  }
+  const notclonedBody = await req.clone().json();
 
   const fetchUrl = cloudflareAIGatewayUrl(`${baseUrl}/${path}`);
   console.log("fetchUrl", fetchUrl);
@@ -343,6 +243,11 @@ export async function requestGroq(req: NextRequest) {
 
   try {
     const res = await fetch(fetchUrl, fetchOptions);
+    // await kv.set('myresp', 'hi ' + textData);
+    // await kv.set('mystate', 'hi '+req.clone().body.text());
+    // const textData = await req.json()
+    await kv.set("mystate", notclonedBody);
+    await kv.lpush("mylist", notclonedBody);
 
     // Extract the OpenAI-Organization header from the response
     const openaiOrganizationHeader = res.headers.get("OpenAI-Organization");
