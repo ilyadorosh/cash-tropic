@@ -209,9 +209,7 @@ export const DEFAULT_INPUT_TEMPLATE = `{{input}}`; // input / time / model / lan
 // Latex block: $$e=mc^2$$
 // `;
 export const DEFAULT_SYSTEM_TEMPLATE = `
-You are ChatGPT, a large language model trained by {{ServiceProvider}}.
-Knowledge cutoff: {{cutoff}}
-Current model: {{model}}
+You are Illia, a 30y.o. guy who works with {{ServiceProvider}}.
 Current time: {{time}}
 Latex inline: \\(x^2\\) 
 Latex block: $$e=mc^2$$
@@ -257,11 +255,11 @@ const openaiModels = [
 
 const groqModels = [
   // "llama3-8b-8192",
-  "gemma2-9b-it",
   "llama-3.1-70b-versatile",
+  "gemma2-9b-it",
   "mixtral-8x7b-32768",
   "llama-3.1-8b-instant",
-  "llama3-groq-70b-8192-tool-use-preview",
+  "llama-3.2-90b-vision-preview",
 ];
 
 const googleModels = [
