@@ -2,22 +2,15 @@ import { kv } from "@vercel/kv";
 import React from "react";
 
 import styles from "@/app/components/chat.module.scss";
-import {
-  List,
-  ListItem,
-  Modal,
-  Select,
-  showImageModal,
-  showModal,
-  showToast,
-} from "@/app/components/ui-lib";
 
-import { ChatMessage, useAppConfig, useChatStore } from "../store";
+import { ChatMessage, ModelType, useAppConfig, useChatStore } from "../store";
+import { ClientApi, RequestMessage, getClientApi } from "../client/api";
+import { DEFAULT_INPUT_TEMPLATE, ServiceProvider } from "../constant";
 
 // import { doSave } from "@/app/store/sync";
 
 export default async function Cart() {
-  const pid = await kv.lrange("mylist", 0, 100000);
+  const pid = await kv.lrange("mylist", 0, 100);
 
   const conversations = pid
     .map((item) => {
@@ -33,6 +26,37 @@ export default async function Cart() {
   // Log the pid array to debug
   console.log("PID Array:", pid.length, " : len : ", pid);
   // const messages = Array(pid[0])
+  // const config = useAppConfig.getState();
+  // const modelConfig =
+  //  {
+  //   model: "gemma2-9b-it" as ModelType,
+  //   // model: "gpt-4o-mini" as ModelType,
+  //   providerName: "Groq" as ServiceProvider,
+  //   // providerName: "OpenAI" as ServiceProvider,
+  //   temperature: 0.6,
+  //   top_p: 1,
+  //   max_tokens: 4000,
+  //   presence_penalty: 0,
+  //   frequency_penalty: 0,
+  //   sendMemory: true,
+  //   historyMessageCount: 4,
+  //   compressMessageLengthThreshold: 1000,
+  //   enableInjectSystemPrompts: true,
+  //   template: DEFAULT_INPUT_TEMPLATE,
+  // };
+
+  // const api: ClientApi = getClientApi("Groq" as ServiceProvider);
+
+  // api.llm.chat({
+  //   messages: [{role: "user", content: "Hello"}] as RequestMessage[],
+  //   config: {
+  //     model: "gemma2-9b-it",
+  //     stream: false,
+  //   },
+  //   onFinish(message) {
+  //     console.log("onFinish", message);
+  //   },
+  // });
 
   //Parse each string in the pid array into an object, with error handling
   // const messages = pid.map((item) => {
@@ -64,6 +88,21 @@ export default async function Cart() {
     <div className={styles.chat}>
       <div className={styles["chat-body"]}>
         {/* {pid[0].messages[0].content} */}
+        {conversations.slice(0, 3).map((conversation, index) => (
+          <div className={styles["chat-message-container"]} key={index}>
+            <div className={styles["chat-message-item"]}>
+              {conversation.messages.map((message: ChatMessage, i: number) => {
+                return (
+                  <div className={styles["chat-message-item"]} key={i}>
+                    {message.content && <>{message.content}</>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        <div>====</div>
+
         {conversations.map((conversation, index) => (
           <div className={styles["chat-message-container"]} key={index}>
             <div className={styles["chat-message-item"]}>
