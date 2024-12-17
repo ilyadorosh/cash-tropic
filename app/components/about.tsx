@@ -27,11 +27,21 @@ export function About() {
         the source code on <a href={REPO_URL}>GitHub</a> and fork it to
         contribute.
       </p>
+      <h2>Terms and Conditions (Zustimmung)</h2>
       <p>
         By using it you agree to some terms and conditions.<br></br>
         Русская версия активируется только в Москве, при триумфальной встрече с
         высшими лицами всей этой вакханалии
       </p>
+      <h2>Privacy Policy (Datenschutzerklaerung)</h2>
+      <p>
+        We do store your data unless you agree. We use cookies to track your
+        session and store your preferences. We do share your data with anyone.
+      </p>
+      <h2>Impressum</h2>
+      <p>RiddleTiger Corneliusstr.</p>
+      <h2>AGB</h2>
+
       <div className={styles["sidebar-action"]}>
         <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
           <IconButton icon={<GithubIcon />} shadow />
