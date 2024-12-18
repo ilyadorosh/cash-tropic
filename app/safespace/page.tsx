@@ -22,7 +22,7 @@ import styles1 from "@/app/components/home.module.scss";
 import { SideBar } from "@/app/components/sidebar";
 import { Path, SlotID } from "../constant";
 
-export function Loading(props: { noLogo?: boolean }) {
+function Loading(props: { noLogo?: boolean }) {
   return (
     <div className={styles["loading-content"] + " no-dark"}>
       {!props.noLogo && <BotIcon />}
