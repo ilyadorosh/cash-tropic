@@ -71,7 +71,7 @@ const getRandomIcon = () => {
   return ICONS[randomIndex];
 };
 
-export function WindowContent(props: { children: React.ReactNode }) {
+function WindowContent(props: { children: React.ReactNode }) {
   return (
     <div className={styles1["window-content"]} id={SlotID.AppBody}>
       {props?.children}
