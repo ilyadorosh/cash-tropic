@@ -34,12 +34,14 @@ function Loading(props: { noLogo?: boolean }) {
 
 const Chat = dynamic(async () => (await import("@/app/components/chat")).Chat, {
   loading: () => <Loading noLogo />,
+  ssr: false,
 });
 
 const NewChat = dynamic(
   async () => (await import("@/app/components/new-chat")).NewChat,
   {
     loading: () => <Loading noLogo />,
+    ssr: false,
   },
 );
 
@@ -47,6 +49,7 @@ const MaskPage = dynamic(
   async () => (await import("@/app/components/mask")).MaskPage,
   {
     loading: () => <Loading noLogo />,
+    ssr: false,
   },
 );
 
