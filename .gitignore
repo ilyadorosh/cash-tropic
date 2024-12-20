@@ -46,3 +46,6 @@ dev
 *.key.pub
 
 masks.json
+package-lock.json
+yarn.lock
+public/masks.json
