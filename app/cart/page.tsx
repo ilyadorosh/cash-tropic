@@ -10,7 +10,7 @@ import { DEFAULT_INPUT_TEMPLATE, ServiceProvider } from "../constant";
 // import { doSave } from "@/app/store/sync";
 
 export default async function Cart() {
-  const pid = await kv.lrange("mylist", 0, 100);
+  const pid = await kv.lrange("mylist", 0, 10);
 
   const conversations = pid
     .map((item) => {
@@ -88,7 +88,7 @@ export default async function Cart() {
     <div className={styles.chat}>
       <div className={styles["chat-body"]}>
         {/* {pid[0].messages[0].content} */}
-        {conversations.slice(0, 3).map((conversation, index) => (
+        {/* {conversations.slice(0, 3).map((conversation, index) => (
           <div className={styles["chat-message-container"]} key={index}>
             <div className={styles["chat-message-item"]}>
               {conversation.messages.map((message: ChatMessage, i: number) => {
@@ -100,10 +100,10 @@ export default async function Cart() {
               })}
             </div>
           </div>
-        ))}
+        ))} */}
         <div>====</div>
 
-        {conversations.map((conversation, index) => (
+        {/* {conversations.map((conversation, index) => (
           <div className={styles["chat-message-container"]} key={index}>
             <div className={styles["chat-message-item"]}>
               {conversation.messages
@@ -117,7 +117,7 @@ export default async function Cart() {
                 })}
             </div>
           </div>
-        ))}
+        ))} */}
       </div>
     </div>
   );

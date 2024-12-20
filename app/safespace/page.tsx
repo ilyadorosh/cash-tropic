@@ -1,16 +1,10 @@
 "use client";
 
 import React from "react";
-import {
-  HashRouter as Router,
-  Routes,
-  Route,
-  useLocation,
-} from "react-router-dom";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 
 import { Suspense } from "react";
 import About from "@/app/components/about";
@@ -19,23 +13,18 @@ import BotIcon from "@/app/icons/bot.svg";
 import styles from "@/app/components/chat.module.scss";
 
 import styles1 from "@/app/components/home.module.scss";
-import { SideBar } from "@/app/components/sidebar";
+import { SideBar } from "@/app/components-next/sidebar-next";
 import { Path, SlotID } from "../constant";
 
-function Loading(props: { noLogo?: boolean }) {
-  return (
-    <div className={styles["loading-content"] + " no-dark"}>
-      {!props.noLogo && <BotIcon />}
-      I am kinda loading...
-      <About />
-    </div>
-  );
-}
+import Loading from "./loading"; // Import Loading from a separate file
 
-const Chat = dynamic(async () => (await import("@/app/components/chat")).Chat, {
-  loading: () => <Loading noLogo />,
-  ssr: false,
-});
+const Chat = dynamic(
+  async () => (await import("@/app/components-next/chat-next")).Chat,
+  {
+    loading: () => <Loading noLogo />,
+    ssr: false,
+  },
+);
 
 const NewChat = dynamic(
   async () => (await import("@/app/components/new-chat")).NewChat,
@@ -87,56 +76,46 @@ function MyPage() {
 
   return (
     <div className={`${styles1.container}`}>
-      <Router>
-        <SideBar className={styles1["sidebar-show"]} />
-        <div className="scroll">
-          <style jsx>{`
-            .scroll {
-              overflow-y: auto;
-            }
-          `}</style>
-          <div className={styles.iconGrid}>
-            {[...Array(n)].map((_, rowIndex) => (
-              <div className={styles.row} key={rowIndex}>
-                {[...Array(n)].map((_, colIndex) => {
-                  const IconComponent = getRandomIcon();
-                  return (
-                    <span
-                      className={styles.cell}
-                      key={`${rowIndex}-${colIndex}`}
-                    >
-                      <IconComponent />
-                    </span>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-          <h1>&quot; Любовь опасная &quot;</h1>
-          <ul>
-            <li>Она там просила меня документацию написать... </li>
-            <Suspense>
-              <ParamsMy />
-            </Suspense>
-          </ul>
-          <h2>Бизнеss-план:</h2>
-          <ul>
-            <li>Инвестирование from:</li>
-            <li>Первый канал, Газпром, РЖД, РПЦ, Москвич</li>
-          </ul>
-          <textarea defaultValue={"i LOVE U " + queryParam} />
-          <About />
+      <SideBar className={styles1["sidebar-show"]} />
+      <div className="scroll">
+        <style jsx>{`
+          .scroll {
+            overflow-y: auto;
+          }
+        `}</style>
+        <div className={styles.iconGrid}>
+          {[...Array(n)].map((_, rowIndex) => (
+            <div className={styles.row} key={rowIndex}>
+              {[...Array(n)].map((_, colIndex) => {
+                const IconComponent = getRandomIcon();
+                return (
+                  <span className={styles.cell} key={`${rowIndex}-${colIndex}`}>
+                    <IconComponent />
+                  </span>
+                );
+              })}
+            </div>
+          ))}
         </div>
+        <h1>&quot; Любовь опасная &quot;</h1>
+        <ul>
+          <li>Она там просила меня документацию написать... </li>
+          <Suspense>
+            <ParamsMy />
+          </Suspense>
+        </ul>
+        <h2>Бизнеss-план:</h2>
+        <ul>
+          <li>Инвестирование from:</li>
+          <li>Первый канал, Газпром, РЖД, РПЦ, Москвич</li>
+        </ul>
+        <textarea defaultValue={"i LOVE U " + queryParam} />
+        <About />
+      </div>
 
-        <WindowContent>
-          <Routes>
-            <Route path={Path.Home} element={<Chat />} />
-            <Route path={Path.NewChat} element={<NewChat />} />
-            <Route path={Path.Masks} element={<MaskPage />} />
-            <Route path={Path.Chat} element={<Chat />} />
-          </Routes>
-        </WindowContent>
-      </Router>
+      {/* Use Next.js routing without react-router-dom */}
+      {/* Render your components directly */}
+      <Chat />
     </div>
   );
 }
