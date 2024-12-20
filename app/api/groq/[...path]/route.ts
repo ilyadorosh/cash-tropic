@@ -15,12 +15,6 @@ const extended_ALLOWD_PATH_Set = new Set([
 function getModels(remoteModelRes: OpenAIListModelResponse) {
   const config = getServerSideConfig();
 
-  if (config.disableGPT4) {
-    remoteModelRes.data = remoteModelRes.data.filter(
-      (m) => !m.id.startsWith("gpt-4"),
-    );
-  }
-
   return remoteModelRes;
 }
 
