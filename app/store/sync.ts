@@ -2,6 +2,7 @@ import { getClientConfig } from "../config/client";
 import { Updater } from "../typing";
 import { ApiPath, STORAGE_KEY, StoreKey } from "../constant";
 import { createPersistStore } from "../utils/store";
+import { kv } from "@vercel/kv";
 import {
   AppState,
   getLocalAppState,
@@ -14,6 +15,17 @@ import { showToast } from "../components/ui-lib";
 import Locale from "../locales";
 import { createSyncClient, ProviderType } from "../utils/cloud";
 import { corsPath } from "../utils/cors";
+
+export async function doSave(userInput: string) {
+  await kv.set("key", "єбать эти все ваши вещи");
+  try {
+    await kv.lpush(userInput);
+    console.log("Saved");
+  } catch (error) {
+    // Handle errors
+  }
+  //throw new Error("Function not implemented.");
+}
 
 export interface WebDavConfig {
   server: string;
@@ -100,15 +112,17 @@ export const useSyncStore = createPersistStore(
         const remoteState = await client.get(config.username);
         if (!remoteState || remoteState === "") {
           await client.set(config.username, JSON.stringify(localState));
-          console.log("[Sync] Remote state is empty, using local state instead.");
-          return
+          console.log(
+            "[Sync] Remote state is empty, using local state instead.",
+          );
+          return;
         } else {
           const parsedRemoteState = JSON.parse(
             await client.get(config.username),
           ) as AppState;
           mergeAppState(localState, parsedRemoteState);
           setLocalAppState(localState);
-       } 
+        }
       } catch (e) {
         console.log("[Sync] failed to get remote state", e);
         throw e;

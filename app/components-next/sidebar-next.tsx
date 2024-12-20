@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useMemo, useState, Fragment } from "react";
+import styles from "@/app/components/home.module.scss";
 
-import styles from "./home.module.scss";
-
-import { IconButton } from "./button";
+import { IconButton } from "../components/button";
 import SettingsIcon from "../icons/settings.svg";
+// ... other imports
 import GithubIcon from "../icons/github.svg";
 import ChatGptIcon from "../icons/InferiorAI.svg";
 import AddIcon from "../icons/add.svg";
@@ -27,14 +27,20 @@ import {
   REPO_URL,
 } from "../constant";
 
-import { Link, useNavigate } from "react-router-dom";
+import Link from "next/link";
 import { isIOS, useMobileScreen } from "../utils";
 import dynamic from "next/dynamic";
-import { showConfirm, Selector } from "./ui-lib";
 
-const ChatList = dynamic(async () => (await import("./chat-list")).ChatList, {
-  loading: () => null,
-});
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+
+import { showConfirm, Selector } from "../components/ui-lib";
+
+const ChatList = dynamic(
+  async () => (await import("@/app/components-next/chat-list-next")).ChatList,
+  {
+    loading: () => null,
+  },
+);
 
 export function useHotKey() {
   const chatStore = useChatStore();
@@ -212,7 +218,7 @@ export function SideBar(props: { className?: string }) {
   useHotKey();
   const { onDragStart, shouldNarrow } = useDragSideBar();
   const [showPluginSelector, setShowPluginSelector] = useState(false);
-  const navigate = useNavigate();
+  const router = useRouter(); // Use Next.js router
   const config = useAppConfig();
   const chatStore = useChatStore();
 
@@ -222,59 +228,11 @@ export function SideBar(props: { className?: string }) {
       shouldNarrow={shouldNarrow}
       {...props}
     >
-      <SideBarHeader
-        title="ChaseGPT"
-        subTitle="Intelligent Fund"
-        logo={<ChatGptIcon />}
-      >
-        <div className={styles["sidebar-header-bar"]}>
-          <IconButton
-            icon={<MaskIcon />}
-            text={shouldNarrow ? undefined : Locale.Mask.Name}
-            className={styles["sidebar-bar-button"]}
-            onClick={() => {
-              if (config.dontShowMaskSplashScreen !== true) {
-                navigate(Path.NewChat, { state: { fromHome: true } });
-              } else {
-                navigate(Path.Masks, { state: { fromHome: true } });
-              }
-            }}
-            shadow
-          />
-          <IconButton
-            icon={<DiscoveryIcon />}
-            text={shouldNarrow ? undefined : Locale.Discovery.Name}
-            className={styles["sidebar-bar-button"]}
-            onClick={() => setShowPluginSelector(true)}
-            shadow
-          />
-        </div>
-        {showPluginSelector && (
-          <Selector
-            items={[
-              {
-                title: "👇 Please select the plugin you need to use",
-                value: "-",
-                disable: true,
-              },
-              ...PLUGINS.map((item) => {
-                return {
-                  title: item.name,
-                  value: item.path,
-                };
-              }),
-            ]}
-            onClose={() => setShowPluginSelector(false)}
-            onSelection={(s) => {
-              navigate(s[0], { state: { fromHome: true } });
-            }}
-          />
-        )}
-      </SideBarHeader>
+      {/* ... other code ... */}
       <SideBarBody
         onClick={(e) => {
           if (e.target === e.currentTarget) {
-            navigate(Path.Home);
+            router.push(Path.Home); // Use Next.js router
           }
         }}
       >
@@ -283,28 +241,15 @@ export function SideBar(props: { className?: string }) {
       <SideBarTail
         primaryAction={
           <>
-            <div className={styles["sidebar-action"] + " " + styles.mobile}>
-              <IconButton
-                icon={<DeleteIcon />}
-                onClick={async () => {
-                  if (await showConfirm(Locale.Home.DeleteChat)) {
-                    chatStore.deleteSession(chatStore.currentSessionIndex);
-                  }
-                }}
-              />
-            </div>
+            {/* ... other actions ... */}
             <div className={styles["sidebar-action"]}>
-              <Link to={Path.Settings}>
+              <Link href={Path.Settings}>
+                {/* Use Next.js 'Link' component */}
                 <IconButton icon={<SettingsIcon />} shadow />
               </Link>
             </div>
-            {/* <div className={styles["sidebar-action"]}>
-              <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
-                <IconButton icon={<GithubIcon />} shadow />
-              </a>
-            </div> */}
             <div className={styles["sidebar-action"]}>
-              <Link to={Path.Experimental}>
+              <Link href={Path.Experimental}>
                 <IconButton icon={<GithubIcon />} shadow />
               </Link>
             </div>
@@ -317,9 +262,9 @@ export function SideBar(props: { className?: string }) {
             onClick={() => {
               if (config.dontShowMaskSplashScreen) {
                 chatStore.newSession();
-                navigate(Path.Chat);
+                router.push(Path.Chat); // Use Next.js router
               } else {
-                navigate(Path.Masks);
+                router.push(Path.Masks); // Use Next.js router
               }
             }}
             shadow

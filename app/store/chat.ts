@@ -166,6 +166,15 @@ const DEFAULT_CHAT_STATE = {
   currentSessionIndex: 0,
 };
 
+// this uses KV store
+export const useKVChatStore = createPersistStore(
+  DEFAULT_CHAT_STATE,
+  (set, _get) => {},
+  {
+    name: "",
+  },
+);
+
 export const useChatStore = createPersistStore(
   DEFAULT_CHAT_STATE,
   (set, _get) => {

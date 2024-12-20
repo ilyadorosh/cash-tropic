@@ -155,6 +155,7 @@ export class GroqApi implements LLMApi {
         headers: getHeaders(),
       };
 
+      console.log(chatPayload);
       // make a fetch request
       const requestTimeoutId = setTimeout(
         () => controller.abort(),
