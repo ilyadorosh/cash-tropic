@@ -45,7 +45,7 @@ const MaskPage = dynamic(
 function ParamsMy() {
   const searchParams = useSearchParams();
   const search = searchParams.get("search");
-  const fetchedChat = fetch("/api/shawn/" + search);
+  // const fetchedChat = fetch("/api/shawn/" + search);
   return (
     <li>
       This: {search} was supposed to be a param input. anyways, the user diagram
@@ -53,8 +53,6 @@ function ParamsMy() {
     </li>
   );
 }
-
-const n = 8; // Or something else
 
 const ICONS = [BotIcon, ChatGptIcon];
 
@@ -73,6 +71,8 @@ function WindowContent(props: { children: React.ReactNode }) {
 
 function MyPage() {
   const [queryParam, setQueryParam] = useState("");
+  const number = useSearchParams().get("search");
+  const n = number ? number : 8; // Or something else
 
   return (
     <div className={`${styles1.container}`}>

@@ -39,8 +39,12 @@ export function About() {
         session and store your preferences. We do share your data with anyone.
       </p>
       <h2>Impressum</h2>
-      <p>RiddleTiger Corneliusstr.</p>
+      <p>
+        RiddleTiger Liubov Abdullina Cornerliusstr 1a 90455 Nuremberg Germany
+      </p>
+
       <h2>AGB</h2>
+      <link href="https://www.riddletiger.com/legal-details" />
 
       <div className={styles["sidebar-action"]}>
         <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
