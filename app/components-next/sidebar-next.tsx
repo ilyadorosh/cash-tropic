@@ -28,7 +28,6 @@ import {
 } from "../constant";
 
 import Link from "next/link";
-import { isIOS, useMobileScreen } from "../utils";
 import dynamic from "next/dynamic";
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
@@ -117,21 +116,14 @@ export function useDragSideBar() {
     window.addEventListener("pointerup", handleDragEnd);
   };
 
-  const isMobileScreen = useMobileScreen();
-  const shouldNarrow =
-    !isMobileScreen && config.sidebarWidth < MIN_SIDEBAR_WIDTH;
-
   useEffect(() => {
-    const barWidth = shouldNarrow
-      ? NARROW_SIDEBAR_WIDTH
-      : limit(config.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH);
-    const sideBarWidth = isMobileScreen ? "100vw" : `${barWidth}px`;
+    const barWidth = limit(config.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH);
+    const sideBarWidth = `${barWidth}px`;
     document.documentElement.style.setProperty("--sidebar-width", sideBarWidth);
-  }, [config.sidebarWidth, isMobileScreen, shouldNarrow]);
+  }, [config.sidebarWidth]);
 
   return {
     onDragStart,
-    shouldNarrow,
   };
 }
 export function SideBarContainer(props: {
@@ -140,11 +132,6 @@ export function SideBarContainer(props: {
   shouldNarrow: boolean;
   className?: string;
 }) {
-  const isMobileScreen = useMobileScreen();
-  const isIOSMobile = useMemo(
-    () => isIOS() && isMobileScreen,
-    [isMobileScreen],
-  );
   const { children, className, onDragStart, shouldNarrow } = props;
   return (
     <div
@@ -153,7 +140,7 @@ export function SideBarContainer(props: {
       }`}
       style={{
         // #3016 disable transition on ios mobile screen
-        transition: isMobileScreen && isIOSMobile ? "none" : undefined,
+        transition: "none",
       }}
     >
       {children}
@@ -216,18 +203,15 @@ export function SideBarTail(props: {
 
 export function SideBar(props: { className?: string }) {
   useHotKey();
-  const { onDragStart, shouldNarrow } = useDragSideBar();
+  const { onDragStart } = useDragSideBar();
   const [showPluginSelector, setShowPluginSelector] = useState(false);
   const router = useRouter(); // Use Next.js router
   const config = useAppConfig();
   const chatStore = useChatStore();
+  const shouldNarrow = config.sidebarWidth === NARROW_SIDEBAR_WIDTH;
 
   return (
-    <SideBarContainer
-      onDragStart={onDragStart}
-      shouldNarrow={shouldNarrow}
-      {...props}
-    >
+    <SideBarContainer onDragStart={onDragStart} shouldNarrow={false} {...props}>
       {/* ... other code ... */}
       <SideBarBody
         onClick={(e) => {
