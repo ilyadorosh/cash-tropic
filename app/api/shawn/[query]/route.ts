@@ -1,13 +1,70 @@
+import { GROQ_BASE_URL, GroqPath } from "@/app/constant";
+import { createMessage } from "@/app/store/chat";
 import { kv } from "@vercel/kv";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request, context: any) {
   const { params } = context;
 
-  const p_output = "this will be a returned response from the api here";
+  let baseUrl = GROQ_BASE_URL;
+  let chatPath = GroqPath.ChatPath;
+  const fetchUrl = `${baseUrl}/${chatPath}`;
+  console.log("fetchUrl", fetchUrl);
+  let authValue = process.env.GROQ_API_KEY?.toString() ?? "";
+  const controller = new AbortController();
 
-  await kv.set("user_1_session", "session_token_value");
-  const session = await kv.get("user_1_session");
+  const mybody = {
+    messages: [
+      {
+        role: "system",
+        content: "you are deeply philosophical and uses emojis.",
+      },
+      {
+        role: "user",
+        content: params.query,
+      },
+    ],
+    model: "llama3-8b-8192",
+    max_tokens: 1000,
+    temperature: 0.6,
+    top_p: 1,
+    presence_penalty: 0,
+    frequency_penalty: 0,
+    stream: false,
+  };
+
+  const authHeaderName = "Authorization"; // Define the authHeaderName variable and provide a value for it
+
+  const fetchOptions: RequestInit = {
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+      [authHeaderName]: "Bearer " + authValue,
+    },
+    method: "POST",
+    body: JSON.stringify(mybody), // Convert mybody object to JSON string
+    // to fix #2485: https://stackoverflow.com/questions/55920957/cloudflare-worker-typeerror-one-time-use-body
+    redirect: "manual",
+    // @ts-ignore
+    duplex: "half",
+    signal: controller.signal,
+  };
+  console.log("fetchOptions", fetchOptions);
+
+  const res = await fetch(fetchUrl, fetchOptions);
+  console.log("res", res);
+  if (!res.ok) {
+    throw new Error(`Error: ${res.status} ${res.statusText}`);
+  }
+
+  const responseData = await res.json();
+
+  console.log("Response Data:", responseData);
+
+  const p_output = responseData.choices[0].message; //"this will be a returned response from the api here";
+
+  //await kv.set("user_1_session", "session_token_value");
+  //const session = await kv.get("user_1_session");
 
   // string
   await kv.set("key", "value");
