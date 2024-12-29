@@ -10,20 +10,6 @@ import { GROQ_BASE_URL, GroqPath } from "@/app/constant";
 import React from "react";
 import dynamic from "next/dynamic";
 
-const ChatList = dynamic(
-  async () => (await import("@/app/components-next/chat-list-next")).ChatList,
-  {
-    loading: () => null,
-  },
-);
-
-const ChatWTF = dynamic(
-  async () => (await import("@/app/components-next/chat-list-next")).ChatWTF,
-  {
-    loading: () => null,
-  },
-);
-
 const ChatWTFElement = dynamic(
   async () =>
     (await import("@/app/components-next/chat-list-next")).ChatWTFElement,
