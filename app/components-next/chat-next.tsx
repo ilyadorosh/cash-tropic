@@ -1662,3 +1662,16 @@ export function Chat() {
   const sessionIndex = chatStore.currentSessionIndex;
   return <_Chat key={sessionIndex}></_Chat>;
 }
+
+// export function ChatWTFElement(props: {
+//   chats: { id: string; title: string }[];
+// }){
+//   return(
+//         <div className={styles.chat}>
+//               <div className={styles["chat-body"]}>
+//               <ChatWTF chats={props.chats}/>
+//               </div>
+//             </div>
+//       )
+
+//       }

@@ -5,10 +5,27 @@ import {
   getMessagesByChatId,
   getUser,
 } from "@/app/lib/drizzle";
+import Locale from "@/app/locales";
 import React from "react";
 import dynamic from "next/dynamic";
+
 const ChatList = dynamic(
   async () => (await import("@/app/components-next/chat-list-next")).ChatList,
+  {
+    loading: () => null,
+  },
+);
+
+const ChatWTF = dynamic(
+  async () => (await import("@/app/components-next/chat-list-next")).ChatWTF,
+  {
+    loading: () => null,
+  },
+);
+
+const ChatWTFElement = dynamic(
+  async () =>
+    (await import("@/app/components-next/chat-list-next")).ChatWTFElement,
   {
     loading: () => null,
   },
@@ -33,14 +50,20 @@ export default async function Cart({ params }: { params: { user: string } }) {
   const email = "ilyadorosh@gmail.com";
   let users = await getUser(email);
   let chats = await getChatsByUserId({ id: users[0].id });
+  let shouldNarrow = false;
+
+  let allthechats = [];
 
   return (
-    <div>
+    <>
       {data}
       <p>I will not stop. How about you, {params.user}?</p>
       <textarea value={data} />
       <button>Save</button>
+      <ChatWTFElement chats={chats} />
+      {/* <ChatList narrow={shouldNarrow} /> */}
 
+      {/* <ChatWTF chats={chats}/> */}
       <iframe
         width="425"
         height="350"
@@ -52,6 +75,6 @@ export default async function Cart({ params }: { params: { user: string } }) {
           View Larger Map
         </a>
       </small>
-    </div>
+    </>
   );
 }

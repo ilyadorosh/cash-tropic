@@ -39,9 +39,7 @@ export function About() {
         session and store your preferences. We do share your data with anyone.
       </p>
       <h2>Impressum</h2>
-      <p>
-        RiddleTiger Liubov Abdullina Cornerliusstr 1a 90455 Nuremberg Germany
-      </p>
+      <p>Illigen Illia Dorosh Findelwiesenstr. 34 90478 Nuremberg Germany</p>
 
       <h2>AGB</h2>
       <link href="https://www.riddletiger.com/legal-details" />

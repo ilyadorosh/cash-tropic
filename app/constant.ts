@@ -235,6 +235,7 @@ export const KnowledgeCutOffDate: Record<string, string> = {
 };
 
 const openaiModels = [
+  "o1-preview-2024-09-12",
   // "gpt-3.5-turbo",
   "gpt-4o-2024-05-13",
   // "gpt-3.5-turbo-1106",
@@ -325,15 +326,15 @@ export const DEFAULT_MODELS = [
     },
   })),
 
-  // ...openaiModels.map((name) => ({
-  //   name,
-  //   available: true,
-  //   provider: {
-  //     id: "openai",
-  //     providerName: "OpenAI",
-  //     providerType: "openai",
-  //   },
-  // })),
+  ...openaiModels.map((name) => ({
+    name,
+    available: true,
+    provider: {
+      id: "openai",
+      providerName: "OpenAI",
+      providerType: "openai",
+    },
+  })),
   // ...openaiModels.map((name) => ({
   //   name,
   //   available: true,

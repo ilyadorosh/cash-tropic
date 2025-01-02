@@ -100,9 +100,9 @@ function MyPage() {
         <h1>&quot; Любовь опасная &quot;</h1>
         <ul>
           <li>Она там просила меня документацию написать... </li>
-          <Suspense>
+          {/* <Suspense>
             <ParamsMy />
-          </Suspense>
+          </Suspense> */}
         </ul>
         <h2>Бизнеss-план:</h2>
         <ul>
