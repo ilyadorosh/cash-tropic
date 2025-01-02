@@ -32,7 +32,7 @@ export async function requestOpenai(req: NextRequest) {
   //   "",
   // );
 
-  let baseUrl = serverConfig.baseUrl || OPENAI_BASE_URL;
+  let baseUrl = OPENAI_BASE_URL;
 
   if (!baseUrl.startsWith("http")) {
     baseUrl = `https://${baseUrl}`;
@@ -43,7 +43,7 @@ export async function requestOpenai(req: NextRequest) {
   }
 
   console.log("[Proxy] ", path);
-  console.log("[Base Url]", baseUrl);
+  console.log("[Base Url OpenAI?]", baseUrl);
 
   const timeoutId = setTimeout(
     () => {
@@ -173,8 +173,8 @@ export async function requestGroq(req: NextRequest) {
     baseUrl = baseUrl.slice(0, -1);
   }
 
-  console.log("[Proxy] ", path);
-  console.log("[Base Url]", baseUrl);
+  console.log("[Proxy -  Groq] ", path);
+  console.log("[Base Url -  Groq]", baseUrl);
 
   const timeoutId = setTimeout(
     () => {
@@ -246,8 +246,8 @@ export async function requestGroq(req: NextRequest) {
     // await kv.set('myresp', 'hi ' + textData);
     // await kv.set('mystate', 'hi '+req.clone().body.text());
     // const textData = await req.json()
-    await kv.set("mystate", notclonedBody);
-    await kv.lpush("mylist", notclonedBody);
+    // await kv.set("mystate", notclonedBody);
+    // await kv.lpush("mylist", notclonedBody);
 
     // Extract the OpenAI-Organization header from the response
     const openaiOrganizationHeader = res.headers.get("OpenAI-Organization");
