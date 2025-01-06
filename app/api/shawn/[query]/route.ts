@@ -17,15 +17,15 @@ export async function GET(req: Request, context: any) {
     messages: [
       {
         role: "system",
-        content: "you are deeply philosophical and uses emojis.",
+        content: "you are responding with the most useful info, then being deeply philosophical in the end and uses emojis.",
       },
       {
         role: "user",
         content: params.query,
       },
     ],
-    model: "llama3-8b-8192",
-    max_tokens: 1000,
+    model: "llama3.3-70b-versatile",
+    max_tokens: 4000,
     temperature: 0.6,
     top_p: 1,
     presence_penalty: 0,
