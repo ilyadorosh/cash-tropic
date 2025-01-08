@@ -24,7 +24,7 @@ export async function GET(req: Request, context: any) {
         content: params.query,
       },
     ],
-    model: "llama3.3-70b-versatile",
+    model: "llama-3.3-70b-versatile",
     max_tokens: 4000,
     temperature: 0.6,
     top_p: 1,
@@ -67,7 +67,7 @@ export async function GET(req: Request, context: any) {
   //const session = await kv.get("user_1_session");
 
   // string
-  await kv.set("key", "value");
+  await kv.rpush("loveQueries", params.query);
   let data = await kv.get("key");
   console.log(data); // 'value' US: +1-650-503-4034 Customer support
 
