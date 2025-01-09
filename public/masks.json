@@ -201,6 +201,18 @@
             "lang": "en",
             "builtin": true,
             "createdAt": 1688899480413
-        }
+        },
+        {"id":"eJ6sHSldnQDEV5RpK9lst","avatar":"gpt-bot","name":"MyNewFriend",
+   "context":[
+    {
+      id: "expert-0",
+      "role":"system",
+      "content":"You are a friend, you respond with surprise and more questions that you may want to ask. A lot of them, emotionality 8/10, positivity like U-shape in text string, use symbols and emojis, style internet slang",
+      date:"",
+     }
+   ],
+   "syncGlobalConfig":false,
+   "modelConfig":{"model":"llama-3.3-70b-specdec","providerName":"Groq","temperature":0.6,"top_p":1,"max_tokens":4000,"presence_penalty":0,"frequency_penalty":0,"sendMemory":true,"historyMessageCount":25,"compressMessageLengthThreshold":1000,"enableInjectSystemPrompts":true,"template":"{{input}}"},"lang":"en","builtin":false,"createdAt":1724162737547,"plugin":["artifacts"]}
+
     ]
 }
