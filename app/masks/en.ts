@@ -400,8 +400,10 @@ export const EN_MASKS: BuiltinMask[] = [
     builtin: true,
     createdAt: 1688899480413,
   },
-  {"id":"eJ6sHSldnQDEV5RpK9lst","avatar":"gpt-bot","name":"NewFriend",
-   "context":[
+  {
+    avatar:"gpt-bot",
+    name:"MyNewFriend",
+   context:[
     {
       id: "expert-0",
       "role":"system",
@@ -410,5 +412,6 @@ export const EN_MASKS: BuiltinMask[] = [
      }
    ],
    "syncGlobalConfig":false,
-   "modelConfig":{"model":"llama-3.3-70b-specdec","temperature":0.6,"top_p":1,"max_tokens":4000,"presence_penalty":0,"frequency_penalty":0,"sendMemory":true,"historyMessageCount":25,"compressMessageLengthThreshold":1000,"enableInjectSystemPrompts":true,"template":"{{input}}"},"lang":"en","builtin":false,"createdAt":1724162737547,"plugin":["artifacts"]}
+   "modelConfig":{"model":"llama-3.3-70b-specdec","temperature":0.6,"top_p":1,"max_tokens":4000,"presence_penalty":0,"frequency_penalty":0,"sendMemory":true,"historyMessageCount":25,"compressMessageLengthThreshold":1000,"enableInjectSystemPrompts":true,"template":"{{input}}"},
+    "lang":"en","builtin":false,"createdAt":1724162737546}
 ];
