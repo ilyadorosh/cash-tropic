@@ -21,9 +21,13 @@ export default async function Cart({ params }: { params: { query: string } }) {
 
   // await kv.hset("userSession", { user: params.user });
 
-  await kv.set(
-    "userCache:" + "shawn",
-    "thank you for being a customer support agent!",
+  // await kv.set(
+  //   "userCache:" + "shawn",
+  //   "you translate into or from portugese and german and use emojis."
+  // );
+  await kv.rpush(
+    "userCacheMessages:" + "shawn",
+    params.query + " " + new Date().toISOString(),
   );
   let data = (await kv.get("userCache:" + "shawn")) as string;
   // doSave(params.user)
@@ -43,7 +47,7 @@ export default async function Cart({ params }: { params: { query: string } }) {
     messages: [
       {
         role: "system",
-        content: "you are deeply philosophical and uses emojis.",
+        content: data,
       },
       {
         role: "user",
@@ -94,7 +98,7 @@ export default async function Cart({ params }: { params: { query: string } }) {
   return (
     <>
       <div>
-        I will not stop. How about you, Shawn? {data}
+        {/* I will not stop. How about you, Shawn? {data} */}
         <b>{p_output.content}</b>
         <textarea value={params.query} />
         <button>Save</button>
@@ -104,18 +108,6 @@ export default async function Cart({ params }: { params: { query: string } }) {
       {/* <ChatList narrow={shouldNarrow} /> */}
 
       {/* <ChatWTF chats={chats}/> */}
-      <div>
-        <iframe
-          width="425"
-          height="350"
-          src="https://www.openstreetmap.org/export/embed.html?bbox=-1.9775390625000002%2C44.449467536006935%2C27.026367187500004%2C57.3146573557333&amp;layer=mapnik"
-        ></iframe>
-        <small>
-          <a href="https://www.openstreetmap.org/#map=6/51.33/12.52">
-            View Larger Map
-          </a>
-        </small>
-      </div>
     </>
   );
 }
