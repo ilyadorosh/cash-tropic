@@ -302,6 +302,30 @@ pre {
       opacity: 1;
     }
   }
+
+  .drag-code-handle{
+    position: absolute;
+    left: 10px;
+    top: 1em;
+    cursor: grab;
+    padding: 0px 5px;
+    background-color: var(--black);
+    color: var(--white);
+    border: var(--border-in-light);
+    border-radius: 10px;
+    transform: translateX(10px);
+    pointer-events: none;
+    opacity: 0;
+    transition: all ease 0.3s;
+
+    &:after {
+      content: "drag";
+    }
+
+    &:hover {
+      opacity: 1;
+    }
+  }
 }
 
 .clickable {

@@ -319,7 +319,7 @@ export function SideBar(props: { className?: string }) {
                 chatStore.newSession();
                 navigate(Path.Chat);
               } else {
-                navigate(Path.Masks);
+                navigate(Path.NewChat, { state: { fromHome: true } });
               }
             }}
             shadow

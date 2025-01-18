@@ -126,9 +126,7 @@ export function PreCode(props: { children: any }) {
               );
             }
           }}
-        >
-          drag
-        </span>
+        ></span>
 
         {props.children}
       </pre>
