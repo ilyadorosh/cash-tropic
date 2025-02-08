@@ -245,12 +245,11 @@ const openaiModels = [
 ];
 
 const groqModels = [
+  "DeepSeek-R1-Distill-Llama-70B",
   // "llama3-8b-8192",
-  "llama-3.1-70b-versatile",
   "gemma2-9b-it",
   "mixtral-8x7b-32768",
   "llama-3.1-8b-instant",
-  "llama-3.2-90b-vision-preview",
   "llama-3.3-70b-specdec",
   "llama-3.3-70b-versatile",
 ];
