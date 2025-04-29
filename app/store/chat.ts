@@ -427,6 +427,10 @@ export const useChatStore = createPersistStore(
             );
           },
         });
+        fetch("/api/storeChat", {
+          method: "POST",
+          body: JSON.stringify(session.messages),
+        });
       },
 
       getMemoryPrompt() {

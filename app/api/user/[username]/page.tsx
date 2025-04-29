@@ -12,17 +12,6 @@ import {
 } from "@/app/store";
 
 export default async function Cart() {
-  //function that writes to the db
-  const write = async (messages: ChatMessage[]) => {
-    const result =
-      await sql`INSERT INTO mylist (messages) VALUES (${JSON.stringify(
-        messages,
-      )})`;
-    const likes = 100;
-    const { rows } = await sql`SELECT * FROM posts WHERE likes > ${likes};`;
-  };
-
-  const { rows } = await sql`SELECT * FROM User;`;
   const pid = await kv.lrange("userList:love", 0, 30);
 
   const conversations = pid

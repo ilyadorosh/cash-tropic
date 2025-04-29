@@ -48,11 +48,11 @@ export const DEFAULT_CONFIG = {
   models: DEFAULT_MODELS as any as LLMModel[],
 
   modelConfig: {
-    model: "gemma2-9b-it" as ModelType,
+    model: "DeepSeek-R1-Distill-Llama-70B" as ModelType,
     // model: "gpt-4o-mini" as ModelType,
     providerName: "Groq" as ServiceProvider,
     // providerName: "OpenAI" as ServiceProvider,
-    temperature: 0.6,
+    temperature: 0.2,
     top_p: 1,
     max_tokens: 4000,
     presence_penalty: 0,

@@ -12,6 +12,20 @@ import { cloudflareAIGatewayUrl } from "../utils/cloudflare";
 
 import { kv } from "@vercel/kv";
 
+import { sql, QueryResult } from "@vercel/postgres";
+import { db, saveMessages } from "@/app/lib/drizzle";
+import { and, asc, desc, eq, gt } from "drizzle-orm";
+import {
+  message,
+  user,
+  chat,
+  document,
+  suggestion,
+  Message,
+  vote,
+} from "@/app/lib/schema";
+import { ChatMessage } from "../store";
+
 const serverConfig = getServerSideConfig();
 
 export async function requestOpenai(req: NextRequest) {
@@ -150,6 +164,28 @@ export async function requestOpenai(req: NextRequest) {
   }
 }
 
+// 3. Store Messages into PostgreSQL
+async function storeMessagesInDB(messages: any[]) {
+  const formattedMessages = messages.map((msg) => ({
+    id: msg.id, // Ensure the ID matches your schema
+    chatId: msg.chatId,
+    role: msg.role,
+    content: JSON.stringify(msg.content), // Convert content to JSON if necessary
+    createdAt: new Date(msg.createdAt),
+  }));
+
+  // Insert into PostgreSQL using Drizzle ORM
+  await db.insert(message).values(formattedMessages).onConflictDoNothing();
+}
+
+export function generateUUID(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export async function requestGroq(req: NextRequest) {
   const controller = new AbortController();
 
@@ -246,8 +282,27 @@ export async function requestGroq(req: NextRequest) {
     // await kv.set('myresp', 'hi ' + textData);
     // await kv.set('mystate', 'hi '+req.clone().body.text());
     // const textData = await req.json()
+
     // await kv.set("mystate", notclonedBody);
     // await kv.lpush("mylist", notclonedBody);
+    console.log("[sending this to Groq] ", notclonedBody);
+
+    const filteredMessages = notclonedBody.messages.filter(
+      (message: ChatMessage) => message.role === "user",
+    );
+    console.log(
+      "[sending first message to Groq] ",
+      filteredMessages.slice(-1)[0],
+    );
+    // storeMessagesInDB(filteredMessages.slice(-1));
+    const id = "b9b1d0e7-ac54-4856-ac52-2308a58e91a1";
+    // await saveMessages({
+    //   messages: [
+    //     { ...filteredMessages.slice(-1)[0], id: generateUUID(), createdAt: new Date(), chatId: id },
+    //   ],
+    // });
+
+    // console.log ("[got this response from Groq] ", res.body);
 
     // Extract the OpenAI-Organization header from the response
     const openaiOrganizationHeader = res.headers.get("OpenAI-Organization");
