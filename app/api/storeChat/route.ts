@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
 
 import { sql, QueryResult } from "@vercel/postgres";
 import { db, saveMessages } from "@/app/lib/drizzle";

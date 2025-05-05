@@ -1,4 +1,4 @@
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
 import React from "react";
 
 import styles from "@/app/components/chat.module.scss";
@@ -10,6 +10,7 @@ import { DEFAULT_INPUT_TEMPLATE, ServiceProvider } from "../constant";
 // import { doSave } from "@/app/store/sync";
 
 export default async function Cart() {
+  const kv = Redis.fromEnv();
   const pid = await kv.lrange("mylist", 10, 13);
 
   const conversations = pid

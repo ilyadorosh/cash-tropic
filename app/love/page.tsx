@@ -1,4 +1,4 @@
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
 import { sql } from "@vercel/postgres";
 import React from "react";
 
@@ -7,6 +7,7 @@ import styles from "@/app/components/chat.module.scss";
 import { ChatMessage, ModelType, useAppConfig, useChatStore } from "../store";
 
 export default async function Cart() {
+  const kv = Redis.fromEnv();
   //function that writes to the db
   const write = async (messages: ChatMessage[]) => {
     const result =

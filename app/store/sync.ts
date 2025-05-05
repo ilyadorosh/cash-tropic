@@ -2,7 +2,7 @@ import { getClientConfig } from "../config/client";
 import { Updater } from "../typing";
 import { ApiPath, STORAGE_KEY, StoreKey } from "../constant";
 import { createPersistStore } from "../utils/store";
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
 import {
   AppState,
   getLocalAppState,
@@ -17,6 +17,7 @@ import { createSyncClient, ProviderType } from "../utils/cloud";
 import { corsPath } from "../utils/cors";
 
 export async function doSave(userInput: string) {
+  const kv = Redis.fromEnv();
   await kv.set("key", "єбать эти все ваши вещи");
   try {
     await kv.lpush(userInput);

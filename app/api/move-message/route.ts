@@ -1,14 +1,15 @@
 import { QueryResult, sql } from "@vercel/postgres";
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
 
 export async function POST(req: Request) {
+  const redis = Redis.fromEnv();
   try {
     const sourceList = "mylist";
     const destList = "userList:love";
     const index = 1; // 9th element (0-based index)
 
     // Get the 9th element
-    const element = await kv.lindex(sourceList, index);
+    const element = await redis.lindex(sourceList, index);
     if (!element) {
       return new Response(JSON.stringify({ error: "Element not found!" }), {
         status: 404,
@@ -16,10 +17,10 @@ export async function POST(req: Request) {
     }
 
     // Remove the 9th element
-    await kv.lrem(sourceList, 1, element);
+    await redis.lrem(sourceList, 1, element);
 
     // Add to the destination list
-    await kv.rpush(destList, element);
+    await redis.rpush(destList, element);
 
     // Save to PostgreSQL
     const query = sql<

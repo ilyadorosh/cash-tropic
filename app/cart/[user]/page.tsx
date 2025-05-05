@@ -1,4 +1,4 @@
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
 import {
   getChatById,
   getChatsByUserId,
@@ -34,6 +34,7 @@ const ChatWTFElement = dynamic(
 // import { doSave } from "@/app/store/sync";
 
 export default async function Cart({ params }: { params: { user: string } }) {
+  const kv = Redis.fromEnv();
   const onInput = (text: string) => {
     const n = text.trim().length;
   };

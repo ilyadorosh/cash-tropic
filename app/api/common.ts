@@ -10,8 +10,6 @@ import {
 import { isModelAvailableInServer } from "../utils/model";
 import { cloudflareAIGatewayUrl } from "../utils/cloudflare";
 
-import { kv } from "@vercel/kv";
-
 import { sql, QueryResult } from "@vercel/postgres";
 import { db, saveMessages } from "@/app/lib/drizzle";
 import { and, asc, desc, eq, gt } from "drizzle-orm";

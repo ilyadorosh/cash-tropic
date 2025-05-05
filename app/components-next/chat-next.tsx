@@ -104,7 +104,6 @@ import { getClientConfig } from "../config/client";
 import { useAllModels } from "../utils/hooks";
 import { MultimodalContent } from "../client/api";
 
-import { kv } from "@vercel/kv";
 import { useRouter } from "next/navigation";
 
 const Markdown = dynamic(

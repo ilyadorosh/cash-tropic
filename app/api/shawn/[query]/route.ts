@@ -1,9 +1,10 @@
 import { GROQ_BASE_URL, GroqPath } from "@/app/constant";
 import { createMessage } from "@/app/store/chat";
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request, context: any) {
+  const redis = Redis.fromEnv();
   const { params } = context;
 
   let baseUrl = GROQ_BASE_URL;
@@ -17,7 +18,8 @@ export async function GET(req: Request, context: any) {
     messages: [
       {
         role: "system",
-        content: "you are responding with the most useful info, then being deeply philosophical in the end and uses emojis.",
+        content:
+          "you are responding with the most useful info, then being deeply philosophical in the end and uses emojis.",
       },
       {
         role: "user",
@@ -67,8 +69,8 @@ export async function GET(req: Request, context: any) {
   //const session = await kv.get("user_1_session");
 
   // string
-  await kv.rpush("loveQueries", params.query);
-  let data = await kv.get("key");
+  await redis.rpush("loveQueries", params.query);
+  let data = await redis.get("key");
   console.log(data); // 'value' US: +1-650-503-4034 Customer support
 
   return NextResponse.json({
