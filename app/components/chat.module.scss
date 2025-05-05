@@ -292,6 +292,10 @@
   overscroll-behavior: none;
  }
 
+ .chat-body-text{
+  white-space: pre-wrap;
+ }
+ 
 .chat-body-main-title {
   cursor: pointer;
 
