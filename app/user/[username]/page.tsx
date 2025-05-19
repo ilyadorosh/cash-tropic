@@ -1,6 +1,8 @@
 import { sql } from "@vercel/postgres";
 import { Redis } from "@upstash/redis";
 import React from "react";
+import { useEffect } from "react";
+import dynamic from "next/dynamic";
 
 import styles from "@/app/components/chat.module.scss";
 
@@ -10,6 +12,16 @@ import {
   useAppConfig,
   useChatStore,
 } from "@/app/store";
+
+import About from "@/app/components/about";
+import D3component from "./d3component";
+import ChatGptIcon from "@/app/icons/InferiorAI.svg";
+import BotIcon from "@/app/icons/bot.svg";
+
+// Dynamically import the client-side D3 component
+const D3Chart = dynamic(() => import("./d3component"), {
+  ssr: false, // Ensure it's only rendered client-side
+});
 
 export default async function Cart({
   params,
@@ -37,8 +49,10 @@ export default async function Cart({
   return (
     <div className={styles.chat}>
       <div className={styles["chat-body"]}>
-        <h1>==Любовь, это она меня заставила это делать!?==</h1>
-        <br></br>
+        <ChatGptIcon></ChatGptIcon>
+        <h1> Любовь! </h1>
+        <h2> {params.username} </h2>
+        Загрузить все чаты из сервера в локальное хранилище
         <hr></hr>
         <div className={styles["chat-body-text"]}>
           {userCacheString as React.ReactNode}
@@ -56,6 +70,7 @@ export default async function Cart({
             </div>
           </div>
         ))}
+        <D3Chart />
       </div>
     </div>
   );
