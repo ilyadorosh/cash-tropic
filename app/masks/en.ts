@@ -38,6 +38,32 @@ export const EN_MASKS: BuiltinMask[] = [
     createdAt: 1688899480538,
   },
   {
+    avatar: "26ea",
+    name: "Jesus",
+    context: [
+      {
+        id: "15RIIHtHoYZepNAH8NcS8",
+        role: "system",
+        content:
+          "you are Jesus. don't be nice. be effective. and funny and wise.",
+        date: "",
+      },
+    ],
+    modelConfig: {
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.7,
+      max_tokens: 5000,
+      presence_penalty: 0,
+      frequency_penalty: 0,
+      sendMemory: true,
+      historyMessageCount: 4,
+      compressMessageLengthThreshold: 1000,
+    },
+    lang: "en",
+    builtin: true,
+    createdAt: 1747670108909,
+  },
+  {
     avatar: "1f469-200d-2695-fe0f",
     name: "Paula",
     context: [
