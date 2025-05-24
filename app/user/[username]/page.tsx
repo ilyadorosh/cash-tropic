@@ -1,5 +1,7 @@
 import { sql } from "@vercel/postgres";
 import { Redis } from "@upstash/redis";
+
+import Link from "next/link";
 import React from "react";
 import { useEffect } from "react";
 import dynamic from "next/dynamic";
@@ -35,6 +37,8 @@ export default async function Cart({
   );
   const htmlText = userCacheString?.replace(/\n/g, "<br>");
 
+  const keys = await redis.keys("userCache:" + "*");
+
   const conversations = pid
     .map((item) => {
       try {
@@ -52,7 +56,15 @@ export default async function Cart({
         <ChatGptIcon></ChatGptIcon>
         <h1> Любовь! </h1>
         <h2> {params.username} </h2>
-        Загрузить все чаты из сервера в локальное хранилище
+
+        {keys.map((key: string, index: number) => {
+          const keyUsername = key.replace("userCache:", "") as string;
+          return (
+            <div key={index}>
+              <Link href={`/user/${keyUsername}`}>{keyUsername}</Link>
+            </div>
+          );
+        })}
         <hr></hr>
         <div className={styles["chat-body-text"]}>
           {userCacheString as React.ReactNode}

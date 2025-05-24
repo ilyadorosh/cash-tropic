@@ -18,6 +18,7 @@ import { SideBar } from "@/app/components/sidebar";
 
 import SettingsIcon from "@/app/icons/settings.svg";
 import GithubIcon from "../icons/github.svg";
+import { AuthPage } from "@/app/components/auth";
 
 import dynamic from "next/dynamic";
 
@@ -48,6 +49,9 @@ const MaskPage = dynamic(
     loading: () => <Loading noLogo />,
   },
 );
+const Sd = dynamic(async () => (await import("@/app/components/sd")).Sd, {
+  loading: () => <Loading noLogo />,
+});
 
 export function D3component() {
   // const navigate = useNavigate();
@@ -62,6 +66,16 @@ export function D3component() {
   return (
     <div>
       <h1>I am AI</h1>
+      Загрузить все чаты из сервера в локальное хранилище
+      <button
+        className={styles["chat-button"]}
+        onClick={() => {
+          // useChatStore.getState().loadAllConversations();
+          console.log("Loading all conversations...");
+        }}
+      >
+        load
+      </button>
       <SettingsIcon />
       <div className={`${styles.container} ${styles["tight-container"]} `}>
         <Router>
@@ -76,6 +90,8 @@ export function D3component() {
               {/* <Route path={Path.Experimental} element={<About />} /> */}
             </Routes>
           </div>
+          <AuthPage />
+          <Sd />
         </Router>
       </div>
       <p>
@@ -83,7 +99,6 @@ export function D3component() {
         Русская версия активируется только в Москве, при триумфальной встрече с
         высшими лицами всей этой вакханалии
       </p>
-
       <link href="https://www.riddletiger.com/legal-details" />
     </div>
   );
