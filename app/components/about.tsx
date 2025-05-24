@@ -29,7 +29,8 @@ export function About() {
       </p>
       <h2>Terms and Conditions (Zustimmung)</h2>
       <p>
-        By using it you agree to some terms and conditions.<br></br>
+        By using it you agree to some terms and conditions.<br></br> Любовь, это
+        она меня заставила это делать!<br></br>
         Русская версия активируется только в Москве, при триумфальной встрече с
         высшими лицами всей этой вакханалии
       </p>
