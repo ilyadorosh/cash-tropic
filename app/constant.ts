@@ -246,7 +246,7 @@ const openaiModels = [
 
 const groqModels = [
     'openai/gpt-oss-120b',
-    'groq/compound'
+    'groq/compound',
   "DeepSeek-R1-Distill-Llama-70B",
   // "llama3-8b-8192",
   "gemma2-9b-it",
