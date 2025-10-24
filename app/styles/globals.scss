@@ -44,12 +44,38 @@
   }
 }
 
+@mixin mania {
+  --theme: mania;
+
+  /* color */
+  --white: rgb(0, 0, 0);
+  --black: rgb(255, 255, 255);
+  --gray: rgb(255, 0, 0);
+  --primary: rgb(17, 250, 5);
+  --second: rgb(255, 27, 133);
+  --hover-color: #323232;
+
+  --bar-color: rgba(255, 255, 255, 0.1);
+
+  --border-in-light: 1px solid rgba(255, 255, 255, 0.192);
+
+  --theme-color: var(--gray);
+
+  div:not(.no-dark) > svg {
+    filter: invert(0.5);
+  }
+}
+
 .light {
   @include light;
 }
 
 .dark {
   @include dark;
+}
+
+.mania {
+  @include mania;
 }
 
 .mask {
@@ -81,9 +107,9 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: mania) {
   :root {
-    @include dark;
+    @include mania;
   }
 }
 

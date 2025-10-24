@@ -23,6 +23,7 @@ export enum Theme {
   Auto = "auto",
   Dark = "dark",
   Light = "light",
+  Mania = "mania",
 }
 
 const config = getClientConfig();

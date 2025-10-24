@@ -34,6 +34,7 @@ import ImageIcon from "../icons/image.svg";
 
 import LightIcon from "../icons/light.svg";
 import DarkIcon from "../icons/dark.svg";
+import ManiaIcon from "../icons/chatgpt.svg";
 import AutoIcon from "../icons/auto.svg";
 import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
@@ -439,7 +440,7 @@ export function ChatActions(props: {
   // switch themes
   const theme = config.theme;
   function nextTheme() {
-    const themes = [Theme.Auto, Theme.Light, Theme.Dark];
+    const themes = [Theme.Auto, Theme.Light, Theme.Dark, Theme.Mania];
     const themeIndex = themes.indexOf(theme);
     const nextIndex = (themeIndex + 1) % themes.length;
     const nextTheme = themes[nextIndex];
@@ -547,6 +548,8 @@ export function ChatActions(props: {
           <>
             {theme === Theme.Auto ? (
               <AutoIcon />
+            ) : theme === Theme.Mania ? (
+              <ManiaIcon />
             ) : theme === Theme.Light ? (
               <LightIcon />
             ) : theme === Theme.Dark ? (
@@ -1150,14 +1153,14 @@ function _Chat() {
               `\n${JSON.stringify(payload, null, 4)}`,
           ).then((res) => {
             if (!res) return;
-            if (payload.key) {
-              accessStore.update(
-                (access) => (access.openaiApiKey = payload.key!),
-              );
-            }
-            if (payload.url) {
-              accessStore.update((access) => (access.openaiUrl = payload.url!));
-            }
+            // if (payload.key) {
+            //   accessStore.update(
+            //     (access) => (access.openaiApiKey = payload.key!),
+            //   );
+            // }
+            // if (payload.url) {
+            //   accessStore.update((access) => (access.openaiUrl = payload.url!));
+            // }
             accessStore.update((access) => (access.useCustomConfig = true));
           });
         }

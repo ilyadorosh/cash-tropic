@@ -71,11 +71,14 @@ export function useSwitchTheme() {
   useEffect(() => {
     document.body.classList.remove("light");
     document.body.classList.remove("dark");
+    document.body.classList.remove("mania");
 
     if (config.theme === "dark") {
       document.body.classList.add("dark");
     } else if (config.theme === "light") {
       document.body.classList.add("light");
+    } else if (config.theme === "mania") {
+      document.body.classList.add("mania");
     }
 
     const metaDescriptionDark = document.querySelector(
@@ -84,10 +87,14 @@ export function useSwitchTheme() {
     const metaDescriptionLight = document.querySelector(
       'meta[name="theme-color"][media*="light"]',
     );
+    const metaDescriptionMania = document.querySelector(
+      'meta[name="theme.color"][media*="light"]',
+    );
 
     if (config.theme === "auto") {
       metaDescriptionDark?.setAttribute("content", "#151515");
       metaDescriptionLight?.setAttribute("content", "#fafafa");
+      metaDescriptionMania?.setAttribute("content", "#ff0000");
     } else {
       const themeColor = getCSSVar("--theme-color");
       metaDescriptionDark?.setAttribute("content", themeColor);
