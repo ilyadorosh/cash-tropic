@@ -88,6 +88,9 @@ export function auth(req: NextRequest, modelProvider: ModelProvider) {
       case ModelProvider.Groq:
         systemApiKey = serverConfig.groqApiKey;
         break;
+      case ModelProvider.Sambanova:
+        systemApiKey = serverConfig.sambanovaApiKey;
+        break;
       case ModelProvider.GPT:
       default:
         if (req.nextUrl.pathname.includes("azure/deployments")) {

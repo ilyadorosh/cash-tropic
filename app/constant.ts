@@ -13,8 +13,10 @@ export const STABILITY_BASE_URL = "https://api.stability.ai";
 export const DEFAULT_API_HOST = "https://api.nextchat.dev";
 
 // AI STUFF!
-export const OPENAI_BASE_URL = "https://api.openai.com";
+// export const OPENAI_BASE_URL = "https://api.openai.com";
 export const GROQ_BASE_URL = "https://api.groq.com/openai";
+
+export const SAMBANOVA_BASE_URL = "https://api.sambanova.ai/v1";
 
 // OTHER PROVIDERS
 export const ANTHROPIC_BASE_URL = "https://api.anthropic.com";
@@ -47,8 +49,8 @@ export enum Path {
 export enum ApiPath {
   Cors = "",
   Azure = "/api/azure",
-  OpenAI = "/api/openai",
   Groq = "/api/groq",
+  Sambanova = "/api/sambanova",
   Anthropic = "/api/anthropic",
   Google = "/api/google",
   Baidu = "/api/baidu",
@@ -102,6 +104,7 @@ export const EXPORT_MESSAGE_CLASS_NAME = "export-markdown";
 export enum ServiceProvider {
   OpenAI = "OpenAI",
   Groq = "Groq",
+  Sambanova = "Sambanova",
   Azure = "Azure",
   Google = "Google",
   Anthropic = "Anthropic",
@@ -124,6 +127,7 @@ export enum ModelProvider {
   Stability = "Stability",
   GPT = "GPT",
   Groq = "Groq",
+  Sambanova = "Sambanova",
   GeminiPro = "GeminiPro",
   Claude = "Claude",
   Ernie = "Ernie",
@@ -156,7 +160,12 @@ export const GroqPath = {
   SubsPath: "dashboard/billing/subscription",
   ListModelPath: "v1/models",
 };
-
+export const SambanovaPath = {
+  ChatPath: "chat/completions", //"openai/v1/chat/completions",
+  UsagePath: "dashboard/billing/usage",
+  SubsPath: "dashboard/billing/subscription",
+  ListModelPath: "models",
+};
 export const Azure = {
   ChatPath: (deployName: string, apiVersion: string) =>
     `deployments/${deployName}/chat/completions?api-version=${apiVersion}`,
@@ -245,15 +254,23 @@ const openaiModels = [
 ];
 
 const groqModels = [
-    'openai/gpt-oss-120b',
-    'groq/compound',
-  "DeepSeek-R1-Distill-Llama-70B",
+  "openai/gpt-oss-120b",
+  "groq/compound",
+  "meta-llama/llama-4-scout-17b-16e-instruct",
+  // "DeepSeek-R1-Distill-Llama-70B",
   // "llama3-8b-8192",
-  "gemma2-9b-it",
+  "llama-3.1-8b-instant",
   // "mixtral-8x7b-32768",
   // "llama-3.1-8b-instant",
-  // "llama-3.3-70b-specdec",
+  "meta-llama/llama-4-scout-17b-16e-instruct",
   "llama-3.3-70b-versatile",
+];
+
+const sambanovaModels = [
+  "openai/gpt-oss-120b",
+  "llama-3.3-70b-versatile",
+  // "llama-3.3-70b-instruct",
+  "Qwen3-32B",
 ];
 
 const googleModels = [
@@ -314,6 +331,15 @@ export const DEFAULT_MODELS = [
       id: "groq",
       providerName: "Groq",
       providerType: "groq",
+    },
+  })),
+  ...sambanovaModels.map((name) => ({
+    name,
+    available: true,
+    provider: {
+      id: "sambanova",
+      providerName: "Sambanova",
+      providerType: "sambanova",
     },
   })),
 

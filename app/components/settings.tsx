@@ -58,7 +58,7 @@ import {
   Alibaba,
   // Google,
   GoogleSafetySettingsThreshold,
-  OPENAI_BASE_URL,
+  // OPENAI_BASE_URL,
   GROQ_BASE_URL,
   Path,
   RELEASE_URL,
@@ -590,18 +590,14 @@ export function Settings() {
 
   const accessStore = useAccessStore();
   const shouldHideBalanceQuery = useMemo(() => {
-    const isOpenAiUrl = accessStore.openaiUrl.includes(GROQ_BASE_URL);
+    const isGroqAiUrl = accessStore.groqUrl.includes(GROQ_BASE_URL);
 
     return (
       accessStore.hideBalanceQuery ||
-      isOpenAiUrl ||
+      isGroqAiUrl ||
       accessStore.provider === ServiceProvider.Azure
     );
-  }, [
-    accessStore.hideBalanceQuery,
-    accessStore.openaiUrl,
-    accessStore.provider,
-  ]);
+  }, [accessStore.hideBalanceQuery, accessStore.groqUrl, accessStore.provider]);
 
   const usage = {
     used: updateStore.used,
@@ -705,11 +701,11 @@ export function Settings() {
       >
         <input
           type="text"
-          value={accessStore.openaiUrl}
+          value={accessStore.groqUrl}
           placeholder={GROQ_BASE_URL}
           onChange={(e) =>
             accessStore.update(
-              (access) => (access.openaiUrl = e.currentTarget.value),
+              (access) => (access.groqUrl = e.currentTarget.value),
             )
           }
         ></input>
@@ -719,12 +715,12 @@ export function Settings() {
         subTitle={Locale.Settings.Access.OpenAI.ApiKey.SubTitle}
       >
         <PasswordInput
-          value={accessStore.openaiApiKey}
+          value={accessStore.groqApiKey}
           type="text"
           placeholder={Locale.Settings.Access.OpenAI.ApiKey.Placeholder}
           onChange={(e) => {
             accessStore.update(
-              (access) => (access.openaiApiKey = e.currentTarget.value),
+              (access) => (access.groqApiKey = e.currentTarget.value),
             );
           }}
         />

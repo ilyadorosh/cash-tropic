@@ -15,13 +15,17 @@ let fetchState = 0; // 0 not fetch, 1 fetching, 2 done
 
 const isApp = getClientConfig()?.buildMode === "export";
 
-const DEFAULT_OPENAI_URL = isApp
-  ? DEFAULT_API_HOST + "/api/proxy/openai"
-  : ApiPath.OpenAI;
+// const DEFAULT_OPENAI_URL = isApp
+//   ? DEFAULT_API_HOST + "/api/proxy/openai"
+//   : ApiPath.OpenAI;
 
 const DEFAULT_GROQ_URL = isApp
   ? DEFAULT_API_HOST + "/api/proxy/groq"
   : ApiPath.Groq;
+
+const DEFAULT_SAMBANOVA_URL = isApp
+  ? DEFAULT_API_HOST + "/api/proxy/sambanova"
+  : ApiPath.Sambanova;
 
 const DEFAULT_GOOGLE_URL = isApp
   ? DEFAULT_API_HOST + "/api/proxy/google"
@@ -53,13 +57,16 @@ const DEFAULT_ACCESS_STATE = {
 
   provider: ServiceProvider.Groq,
 
-  // openai
-  openaiUrl: DEFAULT_OPENAI_URL,
-  openaiApiKey: "",
+  // // openai
+  // openaiUrl: DEFAULT_OPENAI_URL,
+  // openaiApiKey: "",
 
   // groq
   groqUrl: DEFAULT_GROQ_URL,
   groqApiKey: "",
+
+  sambanovaUrl: DEFAULT_SAMBANOVA_URL,
+  sambanovaApiKey: "",
 
   // azure
   azureUrl: "",
@@ -114,12 +121,16 @@ export const useAccessStore = createPersistStore(
       return get().needCode;
     },
 
-    isValidOpenAI() {
-      return ensure(get(), ["openaiApiKey"]);
-    },
+    // isValidOpenAI() {
+    //   return ensure(get(), ["openaiApiKey"]);
+    // },
 
     isValidGroq() {
       return ensure(get(), ["groqApiKey"]);
+    },
+
+    isValidSambanova() {
+      return ensure(get(), ["sambanovaApiKey"]);
     },
 
     isValidAzure() {
@@ -151,7 +162,7 @@ export const useAccessStore = createPersistStore(
 
       // has token or has code or disabled access control
       return (
-        this.isValidOpenAI() ||
+        // this.isValidOpenAI() ||
         this.isValidAzure() ||
         this.isValidGoogle() ||
         this.isValidAnthropic() ||

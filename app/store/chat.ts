@@ -427,10 +427,10 @@ export const useChatStore = createPersistStore(
             );
           },
         });
-        fetch("/api/storeChat", {
-          method: "POST",
-          body: JSON.stringify(session.messages),
-        });
+        // fetch("/api/storeChat", {
+        //   method: "POST",
+        //   body: JSON.stringify(session.messages),
+        // });
       },
 
       getMemoryPrompt() {
@@ -598,12 +598,12 @@ export const useChatStore = createPersistStore(
 
         const historyMsgLength = countMessages(toBeSummarizedMsgs);
 
-        if (historyMsgLength > modelConfig?.max_tokens ?? 4000) {
-          const n = toBeSummarizedMsgs.length;
-          toBeSummarizedMsgs = toBeSummarizedMsgs.slice(
-            Math.max(0, n - modelConfig.historyMessageCount),
-          );
-        }
+        // if (historyMsgLength > modelConfig?.max_tokens ?? 4000) {
+        //   const n = toBeSummarizedMsgs.length;
+        //   toBeSummarizedMsgs = toBeSummarizedMsgs.slice(
+        //     Math.max(0, n - modelConfig.historyMessageCount),
+        //   );
+        // }
         const memoryPrompt = get().getMemoryPrompt();
         if (memoryPrompt) {
           // add memory prompt

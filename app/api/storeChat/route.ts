@@ -41,8 +41,8 @@ export async function POST(req: Request) {
       (message: ChatMessage) => message.role === "user",
     );
     console.log(
-      "[sending first message to Groq] ",
-      filteredMessages.slice(-1)[0],
+      "[hello from storeChat] ",
+      // filteredMessages.slice(-1)[0],
     );
     // storeMessagesInDB(filteredMessages.slice(-1));
 

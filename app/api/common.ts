@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSideConfig } from "../config/server";
 import {
   DEFAULT_MODELS,
-  OPENAI_BASE_URL,
+  // OPENAI_BASE_URL,
   GROQ_BASE_URL,
   GEMINI_BASE_URL,
   ServiceProvider,
+  SAMBANOVA_BASE_URL,
 } from "../constant";
 import { isModelAvailableInServer } from "../utils/model";
 import { cloudflareAIGatewayUrl } from "../utils/cloudflare";
@@ -25,142 +26,143 @@ import {
 import { ChatMessage } from "../store";
 
 const serverConfig = getServerSideConfig();
+console.log("configserver: ", serverConfig);
 
-export async function requestOpenai(req: NextRequest) {
-  const controller = new AbortController();
+// export async function requestOpenai(req: NextRequest) {
+//   const controller = new AbortController();
 
-  var authValue,
-    authHeaderName = "";
-  authValue = req.headers.get("Authorization") ?? "";
-  authHeaderName = "Authorization";
+//   var authValue,
+//     authHeaderName = "";
+//   authValue = req.headers.get("Authorization") ?? "";
+//   authHeaderName = "Authorization";
 
-  let path = `${req.nextUrl.pathname}${req.nextUrl.search}`.replaceAll(
-    "/api/openai/",
-    "",
-  );
+//   let path = `${req.nextUrl.pathname}${req.nextUrl.search}`.replaceAll(
+//     "/api/openai/",
+//     "",
+//   );
 
-  // let path = `${req.nextUrl.pathname}${req.nextUrl.search}`.replaceAll(
-  //   "/api/groq/",
-  //   "",
-  // );
+//   // let path = `${req.nextUrl.pathname}${req.nextUrl.search}`.replaceAll(
+//   //   "/api/groq/",
+//   //   "",
+//   // );
 
-  let baseUrl = OPENAI_BASE_URL;
+//   let baseUrl = OPENAI_BASE_URL;
 
-  if (!baseUrl.startsWith("http")) {
-    baseUrl = `https://${baseUrl}`;
-  }
+//   if (!baseUrl.startsWith("http")) {
+//     baseUrl = `https://${baseUrl}`;
+//   }
 
-  if (baseUrl.endsWith("/")) {
-    baseUrl = baseUrl.slice(0, -1);
-  }
+//   if (baseUrl.endsWith("/")) {
+//     baseUrl = baseUrl.slice(0, -1);
+//   }
 
-  console.log("[Proxy] ", path);
-  console.log("[Base Url OpenAI?]", baseUrl);
+//   console.log("[Proxy] ", path);
+//   console.log("[Base Url OpenAI?]", baseUrl);
 
-  const timeoutId = setTimeout(
-    () => {
-      controller.abort();
-    },
-    10 * 60 * 1000,
-  );
+//   const timeoutId = setTimeout(
+//     () => {
+//       controller.abort();
+//     },
+//     10 * 60 * 1000,
+//   );
 
-  const fetchUrl = cloudflareAIGatewayUrl(`${baseUrl}/${path}`);
-  console.log("fetchUrl", fetchUrl);
-  const fetchOptions: RequestInit = {
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store",
-      [authHeaderName]: authValue,
-      ...(serverConfig.openaiOrgId && {
-        "OpenAI-Organization": serverConfig.openaiOrgId,
-      }),
-    },
-    method: req.method,
-    body: req.body,
-    // to fix #2485: https://stackoverflow.com/questions/55920957/cloudflare-worker-typeerror-one-time-use-body
-    redirect: "manual",
-    // @ts-ignore
-    duplex: "half",
-    signal: controller.signal,
-  };
+//   const fetchUrl = cloudflareAIGatewayUrl(`${baseUrl}/${path}`);
+//   console.log("fetchUrl", fetchUrl);
+//   const fetchOptions: RequestInit = {
+//     headers: {
+//       "Content-Type": "application/json",
+//       "Cache-Control": "no-store",
+//       [authHeaderName]: authValue,
+//       ...(serverConfig.openaiOrgId && {
+//         "OpenAI-Organization": serverConfig.openaiOrgId,
+//       }),
+//     },
+//     method: req.method,
+//     body: req.body,
+//     // to fix #2485: https://stackoverflow.com/questions/55920957/cloudflare-worker-typeerror-one-time-use-body
+//     redirect: "manual",
+//     // @ts-ignore
+//     duplex: "half",
+//     signal: controller.signal,
+//   };
 
-  // #1815 try to refuse gpt4 request
-  if (serverConfig.customModels && req.body) {
-    try {
-      const clonedBody = await req.text();
-      fetchOptions.body = clonedBody;
+//   // #1815 try to refuse gpt4 request
+//   if (serverConfig.customModels && req.body) {
+//     try {
+//       const clonedBody = await req.text();
+//       fetchOptions.body = clonedBody;
 
-      const jsonBody = JSON.parse(clonedBody) as { model?: string };
+//       const jsonBody = JSON.parse(clonedBody) as { model?: string };
 
-      // not undefined and is false
-      if (
-        isModelAvailableInServer(
-          serverConfig.customModels,
-          jsonBody?.model as string,
-          ServiceProvider.OpenAI as string,
-        ) ||
-        isModelAvailableInServer(
-          serverConfig.customModels,
-          jsonBody?.model as string,
-          ServiceProvider.Azure as string,
-        )
-      ) {
-        return NextResponse.json(
-          {
-            error: true,
-            message: `you are not allowed to use ${jsonBody?.model} model`,
-          },
-          {
-            status: 403,
-          },
-        );
-      }
-    } catch (e) {
-      console.error("[OpenAI] gpt4 filter", e);
-    }
-  }
+//       // not undefined and is false
+//       if (
+//         isModelAvailableInServer(
+//           serverConfig.customModels,
+//           jsonBody?.model as string,
+//           ServiceProvider.OpenAI as string,
+//         ) ||
+//         isModelAvailableInServer(
+//           serverConfig.customModels,
+//           jsonBody?.model as string,
+//           ServiceProvider.Azure as string,
+//         )
+//       ) {
+//         return NextResponse.json(
+//           {
+//             error: true,
+//             message: `you are not allowed to use ${jsonBody?.model} model`,
+//           },
+//           {
+//             status: 403,
+//           },
+//         );
+//       }
+//     } catch (e) {
+//       console.error("[OpenAI] gpt4 filter", e);
+//     }
+//   }
 
-  try {
-    const res = await fetch(fetchUrl, fetchOptions);
+//   try {
+//     const res = await fetch(fetchUrl, fetchOptions);
 
-    // Extract the OpenAI-Organization header from the response
-    const openaiOrganizationHeader = res.headers.get("OpenAI-Organization");
+//     // Extract the OpenAI-Organization header from the response
+//     const openaiOrganizationHeader = res.headers.get("OpenAI-Organization");
 
-    // Check if serverConfig.openaiOrgId is defined and not an empty string
-    if (serverConfig.openaiOrgId && serverConfig.openaiOrgId.trim() !== "") {
-      // If openaiOrganizationHeader is present, log it; otherwise, log that the header is not present
-      console.log("[Org ID]", openaiOrganizationHeader);
-    } else {
-      console.log("[Org ID] is not set up.");
-    }
+//     // Check if serverConfig.openaiOrgId is defined and not an empty string
+//     if (serverConfig.openaiOrgId && serverConfig.openaiOrgId.trim() !== "") {
+//       // If openaiOrganizationHeader is present, log it; otherwise, log that the header is not present
+//       console.log("[Org ID]", openaiOrganizationHeader);
+//     } else {
+//       console.log("[Org ID] is not set up.");
+//     }
 
-    // to prevent browser prompt for credentials
-    const newHeaders = new Headers(res.headers);
-    newHeaders.delete("www-authenticate");
-    // to disable nginx buffering
-    newHeaders.set("X-Accel-Buffering", "no");
+//     // to prevent browser prompt for credentials
+//     const newHeaders = new Headers(res.headers);
+//     newHeaders.delete("www-authenticate");
+//     // to disable nginx buffering
+//     newHeaders.set("X-Accel-Buffering", "no");
 
-    // Conditionally delete the OpenAI-Organization header from the response if [Org ID] is undefined or empty (not setup in ENV)
-    // Also, this is to prevent the header from being sent to the client
-    if (!serverConfig.openaiOrgId || serverConfig.openaiOrgId.trim() === "") {
-      newHeaders.delete("OpenAI-Organization");
-    }
+//     // Conditionally delete the OpenAI-Organization header from the response if [Org ID] is undefined or empty (not setup in ENV)
+//     // Also, this is to prevent the header from being sent to the client
+//     if (!serverConfig.openaiOrgId || serverConfig.openaiOrgId.trim() === "") {
+//       newHeaders.delete("OpenAI-Organization");
+//     }
 
-    // The latest version of the OpenAI API forced the content-encoding to be "br" in json response
-    // So if the streaming is disabled, we need to remove the content-encoding header
-    // Because Vercel uses gzip to compress the response, if we don't remove the content-encoding header
-    // The browser will try to decode the response with brotli and fail
-    newHeaders.delete("content-encoding");
+//     // The latest version of the OpenAI API forced the content-encoding to be "br" in json response
+//     // So if the streaming is disabled, we need to remove the content-encoding header
+//     // Because Vercel uses gzip to compress the response, if we don't remove the content-encoding header
+//     // The browser will try to decode the response with brotli and fail
+//     newHeaders.delete("content-encoding");
 
-    return new Response(res.body, {
-      status: res.status,
-      statusText: res.statusText,
-      headers: newHeaders,
-    });
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
+//     return new Response(res.body, {
+//       status: res.status,
+//       statusText: res.statusText,
+//       headers: newHeaders,
+//     });
+//   } finally {
+//     clearTimeout(timeoutId);
+//   }
+// }
 
 // 3. Store Messages into PostgreSQL
 async function storeMessagesInDB(messages: any[]) {
@@ -324,6 +326,135 @@ export async function requestGroq(req: NextRequest) {
     if (!serverConfig.openaiOrgId || serverConfig.openaiOrgId.trim() === "") {
       newHeaders.delete("OpenAI-Organization");
     }
+
+    // The latest version of the OpenAI API forced the content-encoding to be "br" in json response
+    // So if the streaming is disabled, we need to remove the content-encoding header
+    // Because Vercel uses gzip to compress the response, if we don't remove the content-encoding header
+    // The browser will try to decode the response with brotli and fail
+    newHeaders.delete("content-encoding");
+
+    return new Response(res.body, {
+      status: res.status,
+      statusText: res.statusText,
+      headers: newHeaders,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+export async function requestSambanova(req: NextRequest) {
+  const controller = new AbortController();
+
+  var authValue,
+    authHeaderName = "";
+  authValue = req.headers.get("Authorization") ?? "";
+  authHeaderName = "Authorization";
+
+  let path = `${req.nextUrl.pathname}${req.nextUrl.search}`.replaceAll(
+    "/api/sambanova/",
+    "",
+  );
+
+  let baseUrl = serverConfig.baseUrl || SAMBANOVA_BASE_URL;
+
+  if (!baseUrl.startsWith("http")) {
+    baseUrl = `https://${baseUrl}`;
+  }
+
+  console.log("baseUrl: ", baseUrl);
+  if (baseUrl.endsWith("/")) {
+    baseUrl = baseUrl.slice(0, -1);
+  }
+
+  console.log("[Proxy -  Sambanova] ", path);
+  console.log("[Base Url -  Sambanova]", baseUrl);
+
+  const timeoutId = setTimeout(
+    () => {
+      controller.abort();
+    },
+    10 * 60 * 1000,
+  );
+
+  const notclonedBody = await req.clone().json();
+
+  const fetchUrl = cloudflareAIGatewayUrl(`${baseUrl}/${path}`);
+  console.log("fetchUrl", fetchUrl);
+  const fetchOptions: RequestInit = {
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+      [authHeaderName]: authValue,
+    },
+    method: req.method,
+    body: req.body,
+    // to fix #2485: https://stackoverflow.com/questions/55920957/cloudflare-worker-typeerror-one-time-use-body
+    redirect: "manual",
+    // @ts-ignore
+    duplex: "half",
+    signal: controller.signal,
+  };
+
+  // #1815 try to refuse gpt4 request
+  if (serverConfig.customModels && req.body) {
+    try {
+      const clonedBody = await req.text();
+      fetchOptions.body = clonedBody;
+
+      const jsonBody = JSON.parse(clonedBody) as { model?: string };
+
+      // not undefined and is false
+      if (
+        isModelAvailableInServer(
+          serverConfig.customModels,
+          jsonBody?.model as string,
+          ServiceProvider.OpenAI as string,
+        ) ||
+        isModelAvailableInServer(
+          serverConfig.customModels,
+          jsonBody?.model as string,
+          ServiceProvider.Azure as string,
+        )
+      ) {
+        return NextResponse.json(
+          {
+            error: true,
+            message: `you are not allowed to use ${jsonBody?.model} model`,
+          },
+          {
+            status: 403,
+          },
+        );
+      }
+    } catch (e) {
+      console.error("[OpenAI] gpt4 filter", e);
+    }
+  }
+
+  try {
+    const res = await fetch(fetchUrl, fetchOptions);
+    // await kv.set('myresp', 'hi ' + textData);
+    // await kv.set('mystate', 'hi '+req.clone().body.text());
+    // const textData = await req.json()
+
+    // await kv.set("mystate", notclonedBody);
+    // await kv.lpush("mylist", notclonedBody);
+    console.log("[sending this to Sambanova] ", notclonedBody);
+
+    const filteredMessages = notclonedBody.messages.filter(
+      (message: ChatMessage) => message.role === "user",
+    );
+    console.log(
+      "[sending first message to Sambanova] ",
+      filteredMessages.slice(-1)[0],
+    );
+
+    // to prevent browser prompt for credentials
+    const newHeaders = new Headers(res.headers);
+    newHeaders.delete("www-authenticate");
+    // to disable nginx buffering
+    newHeaders.set("X-Accel-Buffering", "no");
 
     // The latest version of the OpenAI API forced the content-encoding to be "br" in json response
     // So if the streaming is disabled, we need to remove the content-encoding header

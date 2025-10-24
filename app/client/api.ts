@@ -13,6 +13,7 @@ import { ClaudeApi } from "./platforms/anthropic";
 import { ErnieApi } from "./platforms/baidu";
 import { DoubaoApi } from "./platforms/bytedance";
 import { QwenApi } from "./platforms/alibaba";
+import { SambanovaApi } from "./platforms/sambanova";
 
 export const ROLES = ["system", "user", "assistant"] as const;
 export type MessageRole = (typeof ROLES)[number];
@@ -77,7 +78,13 @@ export abstract class LLMApi {
   abstract models(): Promise<LLMModel[]>;
 }
 
-type ProviderName = "openai" | "groq" | "azure" | "claude" | "palm";
+type ProviderName =
+  | "openai"
+  | "groq"
+  | "sambanova"
+  | "azure"
+  | "claude"
+  | "palm";
 
 interface Model {
   name: string;
@@ -120,6 +127,9 @@ export class ClientApi {
         break;
       case ModelProvider.Groq:
         this.llm = new GroqApi();
+        break;
+      case ModelProvider.Sambanova:
+        this.llm = new SambanovaApi();
         break;
       default:
         this.llm = new ChatGPTApi();
@@ -200,11 +210,13 @@ export function getHeaders() {
     const isGoogle = modelConfig.providerName == ServiceProvider.Google;
     const isAzure = modelConfig.providerName === ServiceProvider.Azure;
     const isGroq = modelConfig.providerName === ServiceProvider.Groq;
+    const isSambanova = modelConfig.providerName === ServiceProvider.Sambanova;
     const isAnthropic = modelConfig.providerName === ServiceProvider.Anthropic;
     const isBaidu = modelConfig.providerName == ServiceProvider.Baidu;
     const isByteDance = modelConfig.providerName === ServiceProvider.ByteDance;
     const isAlibaba = modelConfig.providerName === ServiceProvider.Alibaba;
     const isEnabledAccessControl = accessStore.enabledAccessControl();
+
     const apiKey = isGoogle
       ? accessStore.googleApiKey
       : isAzure
@@ -217,11 +229,17 @@ export function getHeaders() {
       ? accessStore.alibabaApiKey
       : isGroq
       ? accessStore.groqApiKey
-      : accessStore.openaiApiKey;
+      : isSambanova
+      ? accessStore.sambanovaApiKey
+      : "fuck me";
+    // : accessStore.openaiApiKey;
+    console.log("============", isSambanova, "is sambanova. API key: ", apiKey);
+    console.log(accessStore.groqApiKey, "key groq");
     return {
       isGoogle,
       isAzure,
       isGroq,
+      isSambanova,
       isAnthropic,
       isBaidu,
       isByteDance,
@@ -239,6 +257,7 @@ export function getHeaders() {
     isGoogle,
     isAzure,
     isGroq,
+    isSambanova,
     isAnthropic,
     isBaidu,
     apiKey,
@@ -279,6 +298,8 @@ export function getClientApi(provider: ServiceProvider): ClientApi {
       return new ClientApi(ModelProvider.Qwen);
     case ServiceProvider.Groq:
       return new ClientApi(ModelProvider.Groq);
+    case ServiceProvider.Sambanova:
+      return new ClientApi(ModelProvider.Sambanova);
     default:
       return new ClientApi(ModelProvider.GPT);
   }

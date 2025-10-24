@@ -1,21 +1,19 @@
 import { type OpenAIListModelResponse } from "@/app/client/platforms/openai";
 import { getServerSideConfig } from "@/app/config/server";
-import { ModelProvider, OpenaiPath } from "@/app/constant";
+import { ModelProvider, SambanovaPath } from "@/app/constant";
 import { prettyObject } from "@/app/utils/format";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../auth";
-import { requestOpenai } from "../../common";
+import { requestSambanova } from "../../common";
 
-const ALLOWD_PATH = new Set(Object.values(OpenaiPath));
+const ALLOWD_PATH = new Set(Object.values(SambanovaPath)); // no idea
+const extended_ALLOWD_PATH_Set = new Set([
+  ...ALLOWD_PATH,
+  ...Object.values(SambanovaPath),
+]);
 
 function getModels(remoteModelRes: OpenAIListModelResponse) {
   const config = getServerSideConfig();
-
-  if (config.disableGPT4) {
-    remoteModelRes.data = remoteModelRes.data.filter(
-      (m) => !m.id.startsWith("gpt-4"),
-    );
-  }
 
   return remoteModelRes;
 }
@@ -24,7 +22,7 @@ async function handle(
   req: NextRequest,
   { params }: { params: { path: string[] } },
 ) {
-  console.log("[OpenAI Route] params ", params);
+  console.log("[Sambanova Route] params ", params);
 
   if (req.method === "OPTIONS") {
     return NextResponse.json({ body: "OK" }, { status: 200 });
@@ -32,8 +30,8 @@ async function handle(
 
   const subpath = params.path.join("/");
 
-  if (!ALLOWD_PATH.has(subpath)) {
-    console.log("[OpenAI Route] forbidden path ", subpath);
+  if (!extended_ALLOWD_PATH_Set.has(subpath)) {
+    console.log("[Sambanova Route] forbidden path ", subpath);
     return NextResponse.json(
       {
         error: true,
@@ -44,8 +42,15 @@ async function handle(
       },
     );
   }
+  // workfromhomeMentalityAI
+  // genZ
+  // greatpersonalityAI
+  // HRAI
+  // HRChatbot
+  // HRChatbotAI
+  // more lazyAI
 
-  const authResult = auth(req, ModelProvider.GPT);
+  const authResult = auth(req, ModelProvider.Sambanova);
   if (authResult.error) {
     return NextResponse.json(authResult, {
       status: 401,
@@ -53,10 +58,10 @@ async function handle(
   }
 
   try {
-    const response = await requestOpenai(req);
+    const response = await requestSambanova(req);
 
     // list models
-    if (subpath === OpenaiPath.ListModelPath && response.status === 200) {
+    if (subpath === SambanovaPath.ListModelPath && response.status === 200) {
       const resJson = (await response.json()) as OpenAIListModelResponse;
       const availableModels = getModels(resJson);
       return NextResponse.json(availableModels, {
@@ -66,7 +71,7 @@ async function handle(
 
     return response;
   } catch (e) {
-    console.error("[OpenAI] ", e);
+    console.error("[Sambanova] ", e);
     return NextResponse.json(prettyObject(e));
   }
 }

@@ -8,6 +8,7 @@ declare global {
 
       OPENAI_API_KEY?: string;
       GROQ_API_KEY?: string;
+      SAMBANOVA_API_KEY?: string;
       CODE?: string;
 
       BASE_URL?: string;
@@ -116,6 +117,7 @@ export const getServerSideConfig = () => {
 
   const isAzure = !!process.env.AZURE_URL;
   const isGroq = !!process.env.GROQ_API_KEY;
+  const isSambanova = !!process.env.SAMBANOVA_API_KEY;
   const isGoogle = !!process.env.GOOGLE_API_KEY;
   const isAnthropic = !!process.env.ANTHROPIC_API_KEY;
 
@@ -151,6 +153,10 @@ export const getServerSideConfig = () => {
     isGroq,
     groqUrl: process.env.GROQ_URL,
     groqApiKey: getApiKey(process.env.GROQ_API_KEY),
+
+    isSambanova,
+    sambanovaUrl: process.env.SAMBANOVA_URL,
+    sambanovaApiKey: getApiKey(process.env.SAMBANOVA_API_KEY),
 
     isGoogle,
     googleApiKey: getApiKey(process.env.GOOGLE_API_KEY),
