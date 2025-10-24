@@ -3,7 +3,6 @@ import { ModelProvider } from "@/app/constant";
 import { prettyObject } from "@/app/utils/format";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../auth";
-import { requestOpenai } from "../../common";
 
 async function handle(
   req: NextRequest,
@@ -25,7 +24,6 @@ async function handle(
   }
 
   try {
-    return await requestOpenai(req);
   } catch (e) {
     console.error("[Azure] ", e);
     return NextResponse.json(prettyObject(e));
