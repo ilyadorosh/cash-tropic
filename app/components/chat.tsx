@@ -84,7 +84,7 @@ import {
   showPrompt,
   showToast,
 } from "./ui-lib";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   CHAT_PAGE_SIZE,
   LAST_INPUT_KEY,
@@ -757,6 +757,7 @@ function _Chat() {
   const [hitBottom, setHitBottom] = useState(true);
   const isMobileScreen = useMobileScreen();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [attachImages, setAttachImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
 
@@ -792,6 +793,21 @@ function _Chat() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(measure, [userInput]);
+
+  // Handle prompt query parameter from ChatMapSidebar navigation
+  useEffect(() => {
+    const promptFromUrl = searchParams.get('prompt');
+    if (promptFromUrl && !userInput) {
+      setUserInput(promptFromUrl);
+      // Clear the prompt parameter after using it
+      searchParams.delete('prompt');
+      setSearchParams(searchParams, { replace: true });
+      // Focus the input
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [searchParams, setSearchParams, userInput]);
 
   // chat commands shortcuts
   const chatCommands = useChatCommand({

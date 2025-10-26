@@ -68,24 +68,33 @@ The sidebar will now appear on the left side of the interface, before the existi
 
 ## Optional: Query Param Handling for Chat Page
 
-To pre-fill the textarea with the snippet when navigating to a chat, you can add this code to the Chat component:
+The query parameter handling for pre-filling the chat textarea has been **implemented** in the Chat component.
+
+**Implementation details** (in `/app/components/chat.tsx`):
 
 ```typescript
 import { useSearchParams } from 'react-router-dom';
 
-// Inside your Chat component:
-const [searchParams] = useSearchParams();
-const promptFromUrl = searchParams.get('prompt');
+// Inside the _Chat component:
+const [searchParams, setSearchParams] = useSearchParams();
 
-// In your useEffect or where you initialize the chat:
+// useEffect to handle the prompt parameter
 useEffect(() => {
-  if (promptFromUrl) {
-    // Set the prompt in your textarea/input
-    // Example: setUserInput(promptFromUrl);
-    // Or if using PromptContext: setPrompt(promptFromUrl);
+  const promptFromUrl = searchParams.get('prompt');
+  if (promptFromUrl && !userInput) {
+    setUserInput(promptFromUrl);
+    // Clear the prompt parameter after using it
+    searchParams.delete('prompt');
+    setSearchParams(searchParams, { replace: true });
+    // Focus the input
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
   }
-}, [promptFromUrl]);
+}, [searchParams, setSearchParams, userInput]);
 ```
+
+When a user clicks a chat in the ChatMapSidebar, they are navigated to `/chat/[id]?prompt=<snippet>`, and the snippet is automatically populated in the chat input field.
 
 ## Usage
 
@@ -130,6 +139,22 @@ The component uses inline styles for simplicity and portability. Key style featu
 - Each chat item has `aria-label="Open chat: {title}"`
 - All interactive elements are keyboard accessible (`tabIndex={0}`)
 - Supports Enter and Space key for activation
+
+## Testing & Demo
+
+### Demo Data Generator
+
+A utility file is provided to help test the ChatMapSidebar with sample data:
+
+**File**: `/app/lib/chatMapDemo.ts`
+
+**Usage**:
+1. Open browser console when the app is running
+2. Run: `generateSampleChats(10)` to create 10 sample chats
+3. Refresh the page to see the chats in the sidebar
+4. Run: `clearAllChats()` to remove all chat data
+
+This is helpful for testing and demonstrating the functionality without manually creating chats.
 
 ## Browser Compatibility
 
