@@ -1,0 +1,59 @@
+.gameContainer {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--white);
+  border: var(--border-in-light);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 20px;
+  z-index: 1000;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+
+  h2 {
+    margin: 0;
+    color: var(--black);
+    font-size: 18px;
+  }
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--black);
+  padding: 5px 10px;
+  
+  &:hover {
+    color: var(--primary);
+  }
+}
+
+.gameCanvas {
+  border: var(--border-in-light);
+  border-radius: 5px;
+  display: block;
+  background-color: var(--gray);
+  cursor: crosshair;
+}
+
+.instructions {
+  margin-top: 15px;
+  color: var(--black);
+  font-size: 14px;
+  
+  p {
+    margin: 5px 0;
+  }
+}
