@@ -1,12 +1,9 @@
 "use client";
 
-import React from "react";
-import { useEffect, useState, useRef } from "react";
-import dynamic from "next/dynamic";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import styles from "./nca.module.scss";
 import styles1 from "@/app/components/home.module.scss";
 import { SideBar } from "@/app/components-next/sidebar-next";
-import { SlotID } from "../constant";
 
 // Neural Cellular Automata Component
 function NCASimulation() {
@@ -17,16 +14,7 @@ function NCASimulation() {
   const animationRef = useRef<number>();
   const gridRef = useRef<number[][]>();
 
-  // Initialize grid
-  useEffect(() => {
-    const grid = Array(gridSize).fill(0).map(() => 
-      Array(gridSize).fill(0).map(() => Math.random() > 0.7 ? 1 : 0)
-    );
-    gridRef.current = grid;
-    drawGrid();
-  }, [gridSize]);
-
-  const drawGrid = () => {
+  const drawGrid = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -42,9 +30,18 @@ function NCASimulation() {
         ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
       });
     });
-  };
+  }, [gridSize]);
 
-  const updateGrid = () => {
+  // Initialize grid
+  useEffect(() => {
+    const grid = Array(gridSize).fill(0).map(() => 
+      Array(gridSize).fill(0).map(() => Math.random() > 0.7 ? 1 : 0)
+    );
+    gridRef.current = grid;
+    drawGrid();
+  }, [gridSize, drawGrid]);
+
+  const updateGrid = useCallback(() => {
     if (!gridRef.current) return;
 
     const newGrid = gridRef.current.map((row, i) =>
@@ -81,16 +78,16 @@ function NCASimulation() {
 
     gridRef.current = newGrid;
     drawGrid();
-  };
+  }, [gridSize, drawGrid]);
 
-  const animate = () => {
+  const animate = useCallback(() => {
     updateGrid();
     animationRef.current = setTimeout(() => {
       if (isRunning) {
         requestAnimationFrame(animate);
       }
     }, 100 / speed);
-  };
+  }, [updateGrid, isRunning, speed]);
 
   useEffect(() => {
     if (isRunning) {
@@ -101,7 +98,7 @@ function NCASimulation() {
     return () => {
       if (animationRef.current) clearTimeout(animationRef.current);
     };
-  }, [isRunning, speed]);
+  }, [isRunning, speed, animate]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
