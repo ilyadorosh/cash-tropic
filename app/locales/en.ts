@@ -61,6 +61,7 @@ const en: LocaleType = {
         light: "Light Theme",
         dark: "Dark Theme",
         mania: "Mania ThEmE",
+        nvidia: "Nvidia Theme",
       },
       Prompt: "Prompts",
       Masks: "Masks",

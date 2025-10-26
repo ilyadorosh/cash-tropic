@@ -66,6 +66,28 @@
   }
 }
 
+@mixin nvidia {
+  --theme: nvidia;
+
+  /* color - Nvidia brand colors */
+  --white: rgb(17, 17, 17);
+  --black: rgb(221, 221, 221);
+  --gray: rgb(25, 25, 25);
+  --primary: #76B900;
+  --second: rgb(30, 30, 30);
+  --hover-color: #1a1a1a;
+
+  --bar-color: rgba(118, 185, 0, 0.15);
+
+  --border-in-light: 1px solid rgba(118, 185, 0, 0.3);
+
+  --theme-color: var(--gray);
+
+  div:not(.no-dark) > svg {
+    filter: invert(0.5);
+  }
+}
+
 .light {
   @include light;
 }
@@ -76,6 +98,10 @@
 
 .mania {
   @include mania;
+}
+
+.nvidia {
+  @include nvidia;
 }
 
 .mask {
