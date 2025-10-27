@@ -24,6 +24,8 @@ import {
   useLocation,
 } from "react-router-dom";
 import { SideBar } from "./sidebar";
+// app/layout.tsx (or your main layout component)
+import ChatMapSidebar from "@/app/components/ChatMapSidebar"; // adjust path if using alias
 import { useAppConfig } from "../store/config";
 import { AuthPage } from "./auth";
 import { getClientConfig } from "../config/client";
@@ -63,6 +65,11 @@ const MaskPage = dynamic(async () => (await import("./mask")).MaskPage, {
 
 const Sd = dynamic(async () => (await import("./sd")).Sd, {
   loading: () => <Loading noLogo />,
+});
+
+// Dynamically import with SSR disabled (optional – the component itself is safe)
+const CryoMooreChart = dynamic(() => import("../components/CryoMooreChart"), {
+  ssr: false,
 });
 
 export function useSwitchTheme() {
@@ -177,6 +184,7 @@ function Screen() {
     if (isSdNew) return <Sd />;
     return (
       <>
+        <ChatMapSidebar />
         <SideBar className={isHome ? styles["sidebar-show"] : ""} />
         <WindowContent>
           <Routes>
@@ -185,7 +193,7 @@ function Screen() {
             <Route path={Path.Masks} element={<MaskPage />} />
             <Route path={Path.Chat} element={<Chat />} />
             <Route path={Path.Settings} element={<Settings />} />
-            <Route path={Path.Experimental} element={<About />} />
+            <Route path={Path.Experimental} element={<CryoMooreChart />} />
           </Routes>
         </WindowContent>
       </>
