@@ -32,8 +32,9 @@ export function GameChatNav({ onClose }: GameChatNavProps) {
     size: 20,
   });
 
-  const sessions = chatStore.getState().sessions;
-  const currentSessionIndex = chatStore.getState().currentSessionIndex;
+// The fix I am instructing the agent to implement:
+const sessions = useChatStore((state) => state.sessions);
+const currentSessionIndex = useChatStore((state) => state.currentSessionIndex);
 
   // Create chat boxes in a grid
   const chatBoxes: ChatBox[] = sessions.map((session, index) => {
