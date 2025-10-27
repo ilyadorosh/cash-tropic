@@ -155,7 +155,7 @@ For production:
 - Add rate limiting on routes
 - Consider authentication for sensitive use cases
 
-## �� Testing Strategy
+## 🧪 Testing Strategy
 
 ### Manual Testing
 
