@@ -54,11 +54,13 @@ const cn = {
     InputActions: {
       Stop: "停止响应",
       ToBottom: "滚到最新",
+      GameNav: "To the game!!!",
       Theme: {
         auto: "自动主题",
         light: "亮色模式",
         dark: "深色模式",
         mania: "mania!!!",
+        nvidia: "nvidia",
       },
       Prompt: "快捷指令",
       Masks: "所有面具",

@@ -36,6 +36,8 @@ import ImageIcon from "../icons/image.svg";
 
 import LightIcon from "../icons/light.svg";
 import DarkIcon from "../icons/dark.svg";
+import NvidiaIcon from "../icons/nvidia.svg";
+import ManiaIcon from "../icons/chatgpt.svg";
 import AutoIcon from "../icons/auto.svg";
 import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
@@ -445,7 +447,13 @@ export function ChatActions(props: {
   // switch themes
   const theme = config.theme;
   function nextTheme() {
-    const themes = [Theme.Auto, Theme.Light, Theme.Dark];
+    const themes = [
+      Theme.Auto,
+      Theme.Light,
+      Theme.Dark,
+      Theme.Mania,
+      Theme.Nvidia,
+    ];
     const themeIndex = themes.indexOf(theme);
     const nextIndex = (themeIndex + 1) % themes.length;
     const nextTheme = themes[nextIndex];
@@ -557,6 +565,10 @@ export function ChatActions(props: {
               <LightIcon />
             ) : theme === Theme.Dark ? (
               <DarkIcon />
+            ) : theme === Theme.Nvidia ? (
+              <NvidiaIcon />
+            ) : theme === Theme.Mania ? (
+              <ManiaIcon />
             ) : null}
           </>
         }

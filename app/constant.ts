@@ -44,6 +44,7 @@ export enum Path {
   SdNew = "/sd-new",
   Artifacts = "/artifacts",
   Experimental = "/safespace",
+  NCA = "/nca",
 }
 
 export enum ApiPath {
@@ -424,4 +425,7 @@ export const internalAllowedWebDavEndpoints = [
   "https://app.koofr.net/dav/Koofr",
 ];
 
-export const PLUGINS = [{ name: "Stable Diffusion", path: Path.Sd }];
+export const PLUGINS = [
+  { name: "Stable Diffusion", path: Path.Sd },
+  { name: "Neural Cellular Automata", path: Path.NCA },
+];

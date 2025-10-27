@@ -35,11 +35,13 @@ import ImageIcon from "../icons/image.svg";
 import LightIcon from "../icons/light.svg";
 import DarkIcon from "../icons/dark.svg";
 import ManiaIcon from "../icons/chatgpt.svg";
+import NvidiaIcon from "../icons/nvidia.svg";
 import AutoIcon from "../icons/auto.svg";
 import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
 import RobotIcon from "../icons/robot.svg";
 import PluginIcon from "../icons/plugin.svg";
+import GameIcon from "../icons/game.svg";
 
 import {
   ChatMessage,
@@ -103,6 +105,7 @@ import { ExportMessageModal } from "./exporter";
 import { getClientConfig } from "../config/client";
 import { useAllModels } from "../utils/hooks";
 import { MultimodalContent } from "../client/api";
+import { GameChatNav } from "./game-chat-nav";
 
 const Markdown = dynamic(async () => (await import("./markdown")).Markdown, {
   loading: () => <LoadingIcon />,
@@ -440,7 +443,13 @@ export function ChatActions(props: {
   // switch themes
   const theme = config.theme;
   function nextTheme() {
-    const themes = [Theme.Auto, Theme.Light, Theme.Dark, Theme.Mania];
+    const themes = [
+      Theme.Auto,
+      Theme.Light,
+      Theme.Dark,
+      Theme.Mania,
+      Theme.Nvidia,
+    ];
     const themeIndex = themes.indexOf(theme);
     const nextIndex = (themeIndex + 1) % themes.length;
     const nextTheme = themes[nextIndex];
@@ -482,6 +491,7 @@ export function ChatActions(props: {
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [showPluginSelector, setShowPluginSelector] = useState(false);
   const [showUploadImage, setShowUploadImage] = useState(false);
+  const [showGameNav, setShowGameNav] = useState(false);
 
   useEffect(() => {
     const show = isVisionModel(currentModel);
@@ -554,6 +564,8 @@ export function ChatActions(props: {
               <LightIcon />
             ) : theme === Theme.Dark ? (
               <DarkIcon />
+            ) : theme === Theme.Nvidia ? (
+              <NvidiaIcon />
             ) : null}
           </>
         }
@@ -571,6 +583,12 @@ export function ChatActions(props: {
         }}
         text={Locale.Chat.InputActions.Masks}
         icon={<MaskIcon />}
+      />
+
+      <ChatAction
+        onClick={() => setShowGameNav(true)}
+        text={Locale.Chat.InputActions.GameNav}
+        icon={<GameIcon />}
       />
 
       <ChatAction
@@ -655,6 +673,8 @@ export function ChatActions(props: {
           }}
         />
       )}
+
+      {showGameNav && <GameChatNav onClose={() => setShowGameNav(false)} />}
     </div>
   );
 }
