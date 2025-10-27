@@ -11,7 +11,7 @@ function NCASimulation() {
   const [isRunning, setIsRunning] = useState(false);
   const [speed, setSpeed] = useState(5);
   const [gridSize] = useState(64);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<NodeJS.Timeout | null>(null);
   const gridRef = useRef<number[][]>();
 
   const drawGrid = useCallback(() => {
