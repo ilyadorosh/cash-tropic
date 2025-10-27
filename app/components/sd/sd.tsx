@@ -87,6 +87,79 @@ function getSdTaskStatus(item: any) {
   );
 }
 
+function MyLiveEditCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Helper: set canvas size to match CSS size × devicePixelRatio
+  const resizeCanvas = (canvas: HTMLCanvasElement) => {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+
+    const ctx = canvas.getContext("2d");
+    if (ctx) ctx.scale(dpr, dpr);
+  };
+
+  // Draw something simple – a rotating square
+  const draw = (ctx: CanvasRenderingContext2D, time: number) => {
+    const { width, height } = ctx.canvas;
+    const size = Math.min(width, height) / 4;
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.save();
+    ctx.translate(width / 2, height / 2);
+    ctx.rotate(time / 1000);
+    ctx.fillStyle = "#ff6b6b";
+    ctx.fillRect(-size / 2, -size / 2, size, size);
+    ctx.restore();
+  };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // 1️⃣ Size it correctly
+    resizeCanvas(canvas);
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // 2️⃣ Animation loop
+    let animationFrame: number;
+    const render = (time: number) => {
+      draw(ctx, time);
+      animationFrame = requestAnimationFrame(render);
+    };
+    animationFrame = requestAnimationFrame(render);
+
+    // 3️⃣ Resize handling
+    const handleResize = () => resizeCanvas(canvas);
+    window.addEventListener("resize", handleResize);
+
+    // 4️⃣ Cleanup
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []); // empty deps → run once on client
+
+  return (
+    // The CSS size is what the user sees; the JS code above will upscale the buffer.
+    <canvas
+      ref={canvasRef}
+      style={{
+        width: "100%",
+        height: "400px",
+        border: "1px solid #ddd",
+        display: "block",
+        background: "#fafafa",
+      }}
+    />
+  );
+}
+
 export function Sd() {
   const isMobileScreen = useMobileScreen();
   const navigate = useNavigate();
@@ -144,10 +217,13 @@ export function Sd() {
                   />
                 </div>
               )}
-              {isMobileScreen && <SDIcon width={50} height={50} />}
+              {/* {isMobileScreen && <SDIcon width={50} height={50} />} */}
             </div>
           </div>
           <div className={chatStyles["chat-body"]} ref={scrollRef}>
+            <canvas id="mycanvas"> I can do this.</canvas>
+            <MyLiveEditCanvas />
+            <p>I can do this</p>
             <iframe
               src={
                 "https://www.udio.com/embed/g5LSrPQc5SdycKc3kfdynk?embedVariant=default"
