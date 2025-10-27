@@ -65,6 +65,10 @@ const Sd = dynamic(async () => (await import("./sd")).Sd, {
   loading: () => <Loading noLogo />,
 });
 
+const NCAPage = dynamic(async () => await import("@/app/nca/page"), {
+  loading: () => <Loading noLogo />,
+});
+
 export function useSwitchTheme() {
   const config = useAppConfig();
 
@@ -72,6 +76,7 @@ export function useSwitchTheme() {
     document.body.classList.remove("light");
     document.body.classList.remove("dark");
     document.body.classList.remove("mania");
+    document.body.classList.remove("nvidia");
 
     if (config.theme === "dark") {
       document.body.classList.add("dark");
@@ -79,6 +84,8 @@ export function useSwitchTheme() {
       document.body.classList.add("light");
     } else if (config.theme === "mania") {
       document.body.classList.add("mania");
+    } else if (config.theme === "nvidia") {
+      document.body.classList.add("nvidia");
     }
 
     const metaDescriptionDark = document.querySelector(
@@ -88,7 +95,10 @@ export function useSwitchTheme() {
       'meta[name="theme-color"][media*="light"]',
     );
     const metaDescriptionMania = document.querySelector(
-      'meta[name="theme.color"][media*="light"]',
+      'meta[name="theme.color"][media*="mania"]',
+    );
+    const metaDescriptionNvidia = document.querySelector(
+      'meta[name="theme.color"][media*="nvidia"]',
     );
 
     if (config.theme === "auto") {
@@ -99,6 +109,7 @@ export function useSwitchTheme() {
       const themeColor = getCSSVar("--theme-color");
       metaDescriptionDark?.setAttribute("content", themeColor);
       metaDescriptionLight?.setAttribute("content", themeColor);
+      metaDescriptionNvidia?.setAttribute("content", themeColor);
     }
   }, [config.theme]);
 }
@@ -154,6 +165,7 @@ function Screen() {
   const isHome = location.pathname === Path.Home;
   const isAuth = location.pathname === Path.Auth;
   const isSd = location.pathname === Path.Sd;
+  const isNCA = location.pathname === Path.NCA;
   const isSdNew = location.pathname === Path.SdNew;
 
   const isMobileScreen = useMobileScreen();
@@ -174,6 +186,7 @@ function Screen() {
   const renderContent = () => {
     if (isAuth) return <AuthPage />;
     if (isSd) return <Sd />;
+    if (isNCA) return <NCAPage />;
     if (isSdNew) return <Sd />;
     return (
       <>

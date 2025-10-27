@@ -136,6 +136,52 @@
   --color-danger-fg: #f85149;
 }
 
+@mixin nvidia {
+  color-scheme: nvidia;
+  --color-prettylights-syntax-comment: #76B900;
+  --color-prettylights-syntax-constant: #9EDB4A;
+  --color-prettylights-syntax-entity: #A8E05A;
+  --color-prettylights-syntax-storage-modifier-import: #c9d1d9;
+  --color-prettylights-syntax-entity-tag: #76B900;
+  --color-prettylights-syntax-keyword: #A8E05A;
+  --color-prettylights-syntax-string: #9EDB4A;
+  --color-prettylights-syntax-variable: #C4F070;
+  --color-prettylights-syntax-brackethighlighter-unmatched: #f85149;
+  --color-prettylights-syntax-invalid-illegal-text: #f0f6fc;
+  --color-prettylights-syntax-invalid-illegal-bg: #8e1519;
+  --color-prettylights-syntax-carriage-return-text: #f0f6fc;
+  --color-prettylights-syntax-carriage-return-bg: #b62324;
+  --color-prettylights-syntax-string-regexp: #76B900;
+  --color-prettylights-syntax-markup-list: #9EDB4A;
+  --color-prettylights-syntax-markup-heading: #76B900;
+  --color-prettylights-syntax-markup-italic: #c9d1d9;
+  --color-prettylights-syntax-markup-bold: #c9d1d9;
+  --color-prettylights-syntax-markup-deleted-text: #ffdcd7;
+  --color-prettylights-syntax-markup-deleted-bg: #67060c;
+  --color-prettylights-syntax-markup-inserted-text: #aff5b4;
+  --color-prettylights-syntax-markup-inserted-bg: #033a16;
+  --color-prettylights-syntax-markup-changed-text: #ffdfb6;
+  --color-prettylights-syntax-markup-changed-bg: #5a1e02;
+  --color-prettylights-syntax-markup-ignored-text: #c9d1d9;
+  --color-prettylights-syntax-markup-ignored-bg: #1158c7;
+  --color-prettylights-syntax-meta-diff-range: #A8E05A;
+  --color-prettylights-syntax-brackethighlighter-angle: #8b949e;
+  --color-prettylights-syntax-sublimelinter-gutter-mark: #484f58;
+  --color-prettylights-syntax-constant-other-reference-link: #9EDB4A;
+  --color-fg-default: #c9d1d9;
+  --color-fg-muted: #8b949e;
+  --color-fg-subtle: #6e7681;
+  --color-canvas-default: transparent;
+  --color-canvas-subtle: #1a1a1a;
+  --color-border-default: #76B900;
+  --color-border-muted: rgba(118, 185, 0, 0.3);
+  --color-neutral-muted: rgba(118, 185, 0, 0.2);
+  --color-accent-fg: #76B900;
+  --color-accent-emphasis: #76B900;
+  --color-attention-subtle: rgba(118, 185, 0, 0.15);
+  --color-danger-fg: #f85149;
+}
+
 .markdown-body {
   -ms-text-size-adjust: 100%;
   -webkit-text-size-adjust: 100%;
@@ -157,6 +203,10 @@
 
 .mania {
   @include mania;
+}
+
+.nvidia {
+  @include nvidia;
 }
 
 :root {

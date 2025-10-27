@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16">
+  <g opacity="1">
+    <path style="fill:#76B900;fill-opacity:1" d="M2 4 L8 2 L14 4 L14 12 L8 14 L2 12 Z M3 5 L8 3.5 L13 5 L13 11 L8 12.5 L3 11 Z"/>
+    <text x="8" y="10" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#76B900" text-anchor="middle">N</text>
+  </g>
+</svg>
