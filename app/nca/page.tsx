@@ -193,7 +193,7 @@ function NCASimulation() {
         <p className={styles.inspiration}>
           Inspired by research in differentiable cellular automata and self-organizing systems.
           Learn more at <a href="https://distill.pub/2020/growing-ca/" target="_blank" rel="noopener noreferrer">
-            Distill.pub's Growing Neural Cellular Automata
+            Distill.pub&lsquo;s Growing Neural Cellular Automata
           </a>
         </p>
       </div>
