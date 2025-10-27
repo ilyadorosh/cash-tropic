@@ -59,6 +59,7 @@ const cn = {
         light: "亮色模式",
         dark: "深色模式",
         mania: "mania!!!",
+        nvidia: "nvidia",
       },
       Prompt: "快捷指令",
       Masks: "所有面具",
