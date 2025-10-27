@@ -36,6 +36,8 @@ import ImageIcon from "../icons/image.svg";
 
 import LightIcon from "../icons/light.svg";
 import DarkIcon from "../icons/dark.svg";
+import NvidiaIcon from "../icons/nvidia.svg";
+import ManiaIcon from "../icons/chatgpt.svg";
 import AutoIcon from "../icons/auto.svg";
 import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
