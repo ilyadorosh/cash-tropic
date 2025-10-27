@@ -4,7 +4,7 @@ import { sql, QueryResult } from "@vercel/postgres";
 ("server-only");
 
 import { genSaltSync, hashSync } from "bcrypt-ts";
-import { and, asc, desc, eq, gt } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNull } from "drizzle-orm";
 // import { drizzle } from 'drizzle-orm/postgres-js';
 // import postgres from 'postgres';
 
@@ -417,7 +417,7 @@ export async function getGeneratedPage({
           eq(generatedPage.toProfileId, toProfile.id),
           customPrompt
             ? eq(generatedPage.customPrompt, customPrompt)
-            : eq(generatedPage.customPrompt, null),
+            : isNull(generatedPage.customPrompt),
         ),
       )
       .orderBy(desc(generatedPage.createdAt));
