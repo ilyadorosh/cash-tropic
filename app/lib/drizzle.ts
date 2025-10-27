@@ -18,6 +18,10 @@ import {
   Message,
   message,
   vote,
+  profile,
+  Profile,
+  generatedPage,
+  GeneratedPage,
 } from "./schema";
 
 import * as schema from "./schema";
@@ -282,6 +286,145 @@ export async function getSuggestionsByDocumentId({
     console.error(
       "Failed to get suggestions by document version from database",
     );
+    throw error;
+  }
+}
+
+// Profile Management Functions
+export async function getProfileByUsername({
+  username,
+}: {
+  username: string;
+}): Promise<Profile | undefined> {
+  try {
+    const [selectedProfile] = await db
+      .select()
+      .from(profile)
+      .where(eq(profile.username, username));
+    return selectedProfile;
+  } catch (error) {
+    console.error("Failed to get profile by username from database");
+    throw error;
+  }
+}
+
+export async function createProfile({
+  username,
+  context,
+}: {
+  username: string;
+  context?: string;
+}) {
+  try {
+    return await db.insert(profile).values({
+      username,
+      context: context || "",
+      createdAt: new Date(),
+    });
+  } catch (error) {
+    console.error("Failed to create profile in database");
+    throw error;
+  }
+}
+
+export async function updateProfile({
+  username,
+  context,
+}: {
+  username: string;
+  context: string;
+}) {
+  try {
+    return await db
+      .update(profile)
+      .set({ context })
+      .where(eq(profile.username, username));
+  } catch (error) {
+    console.error("Failed to update profile in database");
+    throw error;
+  }
+}
+
+export async function getAllProfiles(): Promise<Array<Profile>> {
+  try {
+    return await db.select().from(profile).orderBy(asc(profile.username));
+  } catch (error) {
+    console.error("Failed to get all profiles from database");
+    throw error;
+  }
+}
+
+export async function deleteProfile({ username }: { username: string }) {
+  try {
+    return await db.delete(profile).where(eq(profile.username, username));
+  } catch (error) {
+    console.error("Failed to delete profile from database");
+    throw error;
+  }
+}
+
+// Generated Page Functions
+export async function saveGeneratedPage({
+  fromProfileId,
+  toProfileId,
+  customPrompt,
+  generatedHtml,
+}: {
+  fromProfileId: string;
+  toProfileId: string;
+  customPrompt?: string;
+  generatedHtml: string;
+}) {
+  try {
+    return await db.insert(generatedPage).values({
+      fromProfileId,
+      toProfileId,
+      customPrompt: customPrompt || null,
+      generatedHtml,
+      createdAt: new Date(),
+    });
+  } catch (error) {
+    console.error("Failed to save generated page in database");
+    throw error;
+  }
+}
+
+export async function getGeneratedPage({
+  fromUsername,
+  toUsername,
+  customPrompt,
+}: {
+  fromUsername: string;
+  toUsername: string;
+  customPrompt?: string;
+}): Promise<GeneratedPage | undefined> {
+  try {
+    // First get the profile IDs
+    const fromProfile = await getProfileByUsername({ username: fromUsername });
+    const toProfile = await getProfileByUsername({ username: toUsername });
+
+    if (!fromProfile || !toProfile) {
+      return undefined;
+    }
+
+    // Find the generated page
+    const [page] = await db
+      .select()
+      .from(generatedPage)
+      .where(
+        and(
+          eq(generatedPage.fromProfileId, fromProfile.id),
+          eq(generatedPage.toProfileId, toProfile.id),
+          customPrompt
+            ? eq(generatedPage.customPrompt, customPrompt)
+            : eq(generatedPage.customPrompt, null),
+        ),
+      )
+      .orderBy(desc(generatedPage.createdAt));
+
+    return page;
+  } catch (error) {
+    console.error("Failed to get generated page from database");
     throw error;
   }
 }
