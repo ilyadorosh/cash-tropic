@@ -65,6 +65,10 @@ const Sd = dynamic(async () => (await import("./sd")).Sd, {
   loading: () => <Loading noLogo />,
 });
 
+const NCAPage = dynamic(async () => await import("@/app/nca/page"), {
+  loading: () => <Loading noLogo />,
+});
+
 export function useSwitchTheme() {
   const config = useAppConfig();
 
@@ -161,6 +165,7 @@ function Screen() {
   const isHome = location.pathname === Path.Home;
   const isAuth = location.pathname === Path.Auth;
   const isSd = location.pathname === Path.Sd;
+  const isNCA = location.pathname === Path.NCA;
   const isSdNew = location.pathname === Path.SdNew;
 
   const isMobileScreen = useMobileScreen();
@@ -181,6 +186,7 @@ function Screen() {
   const renderContent = () => {
     if (isAuth) return <AuthPage />;
     if (isSd) return <Sd />;
+    if (isNCA) return <NCAPage />;
     if (isSdNew) return <Sd />;
     return (
       <>
