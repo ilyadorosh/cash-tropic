@@ -56,6 +56,7 @@ const en: LocaleType = {
     InputActions: {
       Stop: "Stop",
       ToBottom: "To Latest",
+      GameNav: "To the game",
       Theme: {
         auto: "Auto",
         light: "Light Theme",
