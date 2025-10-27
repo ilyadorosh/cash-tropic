@@ -54,6 +54,7 @@ const cn = {
     InputActions: {
       Stop: "停止响应",
       ToBottom: "滚到最新",
+      GameNav: "To the game!!!",
       Theme: {
         auto: "自动主题",
         light: "亮色模式",
