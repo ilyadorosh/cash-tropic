@@ -1,0 +1,250 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+  background: var(--gray);
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: var(--black);
+}
+
+.subtitle {
+  color: var(--gray);
+  font-size: 1rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 4rem;
+  font-size: 1.2rem;
+  color: var(--gray);
+}
+
+.error {
+  background: #fee;
+  border: 1px solid #fcc;
+  color: #c33;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.newButton {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 2rem;
+  transition: background 0.2s;
+}
+
+.newButton:hover {
+  background: var(--primary-dark, #0056b3);
+}
+
+.form {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.form h2 {
+  margin-bottom: 1.5rem;
+  color: var(--black);
+}
+
+.formGroup {
+  margin-bottom: 1.5rem;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--black);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.input:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 150px;
+}
+
+.formActions {
+  display: flex;
+  gap: 1rem;
+}
+
+.saveButton,
+.cancelButton {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.saveButton {
+  background: var(--primary);
+  color: white;
+}
+
+.saveButton:hover {
+  background: var(--primary-dark, #0056b3);
+}
+
+.cancelButton {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.cancelButton:hover {
+  background: #d0d0d0;
+}
+
+.profileList {
+  margin-top: 2rem;
+}
+
+.profileList h2 {
+  margin-bottom: 1.5rem;
+  color: var(--black);
+}
+
+.emptyState {
+  text-align: center;
+  padding: 3rem;
+  color: var(--gray);
+  font-size: 1.1rem;
+}
+
+.profiles {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.profileCard {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s;
+}
+
+.profileCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.profileHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.profileHeader h3 {
+  margin: 0;
+  color: var(--black);
+  font-size: 1.3rem;
+}
+
+.profileActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.editButton,
+.deleteButton {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.editButton {
+  background: var(--primary);
+  color: white;
+}
+
+.editButton:hover {
+  background: var(--primary-dark, #0056b3);
+}
+
+.deleteButton {
+  background: #dc3545;
+  color: white;
+}
+
+.deleteButton:hover {
+  background: #c82333;
+}
+
+.profileContext {
+  color: #555;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.noContext {
+  color: #999;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .profileHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .formActions {
+    flex-direction: column;
+  }
+
+  .saveButton,
+  .cancelButton {
+    width: 100%;
+  }
+}
