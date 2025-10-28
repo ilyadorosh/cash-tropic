@@ -30,6 +30,7 @@ import { getClientConfig } from "../config/client";
 import { type ClientApi, getClientApi } from "../client/api";
 import { useAccessStore } from "../store";
 import About from "./about";
+import ChatMapSidebar from "../../components/ChatMapSidebar";
 
 export function Loading(props: { noLogo?: boolean }) {
   return (
@@ -190,6 +191,7 @@ function Screen() {
     if (isSdNew) return <Sd />;
     return (
       <>
+        <ChatMapSidebar />
         <SideBar className={isHome ? styles["sidebar-show"] : ""} />
         <WindowContent>
           <Routes>
