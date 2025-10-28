@@ -26,9 +26,6 @@ export default function ActInLovePage({ params }: PageParams) {
   useEffect(() => {
     const generatePage = async () => {
       try {
-        // Parse the URL parameters
-        // URL pattern: /from/{username}/to/{username} or /from/{username}/to/{username}/say/{message}
-        // params.params will be: [username, 'to', username] or [username, 'to', username, 'say', message]
         const urlParams = params.params || [];
 
         if (urlParams.length < 3) {
@@ -39,12 +36,6 @@ export default function ActInLovePage({ params }: PageParams) {
           return;
         }
 
-        // Extract from and to parameters
-        // urlParams[0] = fromUser
-        // urlParams[1] = 'to'
-        // urlParams[2] = toUser
-        // urlParams[3] = 'say' (optional)
-        // urlParams[4] = message (optional)
         if (urlParams[1] !== "to") {
           setError("Invalid URL format. Missing 'to' keyword.");
           setLoading(false);
@@ -53,14 +44,11 @@ export default function ActInLovePage({ params }: PageParams) {
 
         const fromUser = urlParams[0];
         const toUser = urlParams[2];
-
-        // Check if there's a custom message
         let customMessage: string | undefined;
         if (urlParams.length >= 5 && urlParams[3] === "say") {
           customMessage = urlParams[4];
         }
 
-        // Call the generate-page API
         const response = await fetch("/api/generate-page", {
           method: "POST",
           headers: {
@@ -91,7 +79,7 @@ export default function ActInLovePage({ params }: PageParams) {
     };
 
     generatePage();
-  }, [params]);
+  }, [params.params]); // ✅ FIX: Use params.params array instead of params object
 
   if (loading) {
     return (
@@ -100,7 +88,7 @@ export default function ActInLovePage({ params }: PageParams) {
           <div className={styles.spinner}></div>
           <h2 className={styles.loadingText}>Creating something special...</h2>
           <p className={styles.loadingSubtext}>
-            Generating a personalized page just for you
+            Generating a personalized page just for you. and me
           </p>
         </div>
       </div>
