@@ -115,3 +115,28 @@ export const suggestion = pgTable(
 );
 
 export type Suggestion = InferSelectModel<typeof suggestion>;
+
+// ActInLove Feature Tables
+export const profile = pgTable("Profile", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  username: varchar("username", { length: 64 }).notNull().unique(),
+  context: text("context"),
+  createdAt: timestamp("createdAt").notNull(),
+});
+
+export type Profile = InferSelectModel<typeof profile>;
+
+export const generatedPage = pgTable("GeneratedPage", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  fromProfileId: uuid("fromProfileId")
+    .notNull()
+    .references(() => profile.id),
+  toProfileId: uuid("toProfileId")
+    .notNull()
+    .references(() => profile.id),
+  customPrompt: text("customPrompt"),
+  generatedHtml: text("generatedHtml"),
+  createdAt: timestamp("createdAt").notNull(),
+});
+
+export type GeneratedPage = InferSelectModel<typeof generatedPage>;

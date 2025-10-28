@@ -50,7 +50,7 @@ export const DEFAULT_CONFIG = {
   models: DEFAULT_MODELS as any as LLMModel[],
 
   modelConfig: {
-    model: "DeepSeek-R1-Distill-Llama-70B" as ModelType,
+    model: "meta-llama/llama-4-scout-17b-16e-instruct" as ModelType,
     // model: "gpt-4o-mini" as ModelType,
     providerName: "Groq" as ServiceProvider,
     // providerName: "OpenAI" as ServiceProvider,
