@@ -5,6 +5,23 @@ import {
   getGeneratedPage,
 } from "@/app/lib/drizzle";
 
+import { getClientApi } from "@/app/client/api";
+
+import {
+  ChatMessage,
+  SubmitKey,
+  useChatStore,
+  BOT_HELLO,
+  createMessage,
+  useAccessStore,
+  Theme,
+  useAppConfig,
+  DEFAULT_TOPIC,
+  ModelType,
+} from "@/app/store";
+
+import { requestGroq } from "@/app/api/common";
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -110,7 +127,9 @@ Create a complete, self-contained HTML page that:
 2. Is responsive and works on mobile devices
 3. Expresses genuine emotion and connection between ${fromUsername} and ${toUsername}
 4. Incorporates the context about both people
-5. ${customMessage ? `Incorporates the special message: "${customMessage}"` : ""}
+5. ${
+    customMessage ? `Incorporates the special message: "${customMessage}"` : ""
+  }
 6. Includes no external dependencies (all CSS must be inline or in a <style> tag)
 
 Return ONLY the complete HTML code, starting with <!DOCTYPE html> and ending with </html>. Do not include any explanations or markdown code blocks.`;
@@ -119,47 +138,29 @@ Return ONLY the complete HTML code, starting with <!DOCTYPE html> and ending wit
 }
 
 async function generateWithLLM(prompt: string): Promise<string> {
-  // Get API key from environment
-  const apiKey = process.env.OPENAI_API_KEY;
+  // Create a NextRequest object with the prompt in the body
+  const requestBody = {
+    messages: [{ role: "user", content: prompt }],
+    model: "llama-3.3-70b-versatile",
+  };
 
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY not configured");
-  }
-
-  // Call OpenAI API
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+  const mockRequest = new NextRequest(
+    new URL("http://localhost:3000/api/groq/v1/chat/completions"),
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.GROQ_API_KEY || ""}`,
+      },
+      body: JSON.stringify(requestBody),
     },
-    body: JSON.stringify({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a creative web designer who creates beautiful, emotional HTML pages. You always return valid, complete HTML code.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-    }),
-  });
+  );
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(
-      `OpenAI API error: ${response.status} - ${JSON.stringify(errorData)}`,
-    );
-  }
+  const groqResponse = await requestGroq(mockRequest);
+  const responseData = await groqResponse.json();
+  console.log("LLM Response Data:", responseData);
 
-  const data = await response.json();
-  const generatedContent = data.choices[0]?.message?.content;
+  const generatedContent = responseData.choices?.[0]?.message?.content;
 
   if (!generatedContent) {
     throw new Error("No content generated from LLM");
