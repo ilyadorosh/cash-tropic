@@ -10,6 +10,8 @@ import LoadingIcon from "@/app/icons/three-dots.svg";
 import BotIcon from "@/app/icons/bot.svg";
 import SendWhiteIcon from "@/app/icons/send-white.svg";
 import { copyToClipboard } from "@/app/utils";
+import ReturnIcon from "@/app/icons/return.svg";
+import { useRouter } from "next/navigation";
 
 interface PageParams {
   params: {
@@ -53,6 +55,7 @@ export default function ActInLovePage({ params }: PageParams) {
   const [responses, setResponses] = useState<any[]>([]);
   const [loadingResponses, setLoadingResponses] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const generatePage = async () => {
@@ -254,6 +257,26 @@ export default function ActInLovePage({ params }: PageParams) {
 
   return (
     <div className={styles.container}>
+      {/* Navigation Bar */}
+      <div className={styles.navigationBar}>
+        <div className={styles.navLeft}>
+          <IconButton
+            icon={<ReturnIcon />}
+            onClick={() => router.back()}
+            title="Go back"
+            bordered
+          />
+          <h1 className={styles.navTitle}>💝 ActInLove</h1>
+        </div>
+        <div className={styles.navRight}>
+          <IconButton
+            text="All Conversations"
+            onClick={() => router.push("/conversations")}
+            title="View all conversations"
+            bordered
+          />
+        </div>
+      </div>
       {isCached && (
         <div className={styles.cachedBadge}>
           <span>✨ Cached</span>

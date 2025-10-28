@@ -2,7 +2,9 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
-  min-height: 100vh;
+  flex: 1;
+  height: 100vh;
+  overflow-y: auto;
   background: var(--gray);
 }
 
@@ -139,6 +141,13 @@
 
 .profileList {
   margin-top: 2rem;
+  flex: 1;
+  overflow: auto;
+  overflow-x: hidden;
+  padding: 20px;
+  padding-bottom: 40px;
+  position: relative;
+  overscroll-behavior: none;
 }
 
 .profileList h2 {
@@ -237,6 +246,11 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
+  }
+
+  .profileList {
+    padding: 10px;
+    padding-bottom: 30px;
   }
 
   .formActions {

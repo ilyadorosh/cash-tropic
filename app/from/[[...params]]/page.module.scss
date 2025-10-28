@@ -337,6 +337,44 @@
   animation: slide-in ease 0.3s;
 }
 
+// Navigation Bar
+.navigationBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: var(--white);
+  border-bottom: var(--border-in-light);
+  box-shadow: var(--card-shadow);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  animation: slide-in ease 0.3s;
+}
+
+.navLeft {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.navTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--primary);
+}
+
+.navRight {
+  display: flex;
+  gap: 10px;
+
+  button {
+    min-width: 120px;
+  }
+}
+
+
 @media only screen and (max-width: 600px) {
   .cachedBadge {
     top: 10px;

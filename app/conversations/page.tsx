@@ -52,77 +52,89 @@ export default function ConversationsPage() {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.headerTop}>
-          <IconButton
-            icon={<ReturnIcon />}
-            onClick={() => router.back()}
-            title="Go back"
-            bordered
-          />
-          <h1>💬 Conversations</h1>
+          <div className={styles.headerActions}>
+            <IconButton
+              icon={<ReturnIcon />}
+              onClick={() => router.back()}
+              title="Go back"
+              bordered
+            />
+            <div>
+              <h1>💬 Conversations</h1>
+              <p className={styles.subtitle}>All your message exchanges</p>
+            </div>
+          </div>
         </div>
-        <p className={styles.subtitle}>All your message exchanges</p>
-      </div>
-
-      <div className={styles.searchBar}>
-        <input
-          type="text"
-          placeholder="Search conversations..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className={chatStyles["chat-input"]}
+        <IconButton
+          text="Create New"
+          onClick={() => router.push("/admin/profiles")}
+          type="primary"
+          title="Create a new profile"
         />
-      </div>
 
-      <div className={styles.conversationsList}>
-        {loading ? (
-          <div className={styles.loadingContainer}>
-            <p>Loading conversations...</p>
-          </div>
-        ) : filteredConversations.length === 0 ? (
-          <div className={styles.emptyState}>
-            <p>No conversations yet. Create one!</p>
-          </div>
-        ) : (
-          filteredConversations.map((conv) => {
-            const formattedDate = new Date(
-              conv.lastResponseDate,
-            ).toLocaleString("en-US", {
-              month: "2-digit",
-              day: "2-digit",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true,
-            });
+        <div className={styles.searchBar}>
+          <input
+            type="text"
+            placeholder="Search conversations..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={chatStyles["chat-input"]}
+          />
+        </div>
 
-            return (
-              <div
-                key={conv.id}
-                className={styles.conversationCard}
-                onClick={() =>
-                  router.push(
-                    `/from/${conv.fromUsername}/to/${conv.toUsername}`,
-                  )
-                }
-              >
-                <div className={styles.conversationHeader}>
-                  <div className={styles.conversationTitle}>
-                    <span className={styles.fromUser}>{conv.fromUsername}</span>
-                    <span className={styles.arrow}>→</span>
-                    <span className={styles.toUser}>{conv.toUsername}</span>
+        <div className={styles.conversationsList}>
+          {loading ? (
+            <div className={styles.loadingContainer}>
+              <p>Loading conversations...</p>
+            </div>
+          ) : filteredConversations.length === 0 ? (
+            <div className={styles.emptyState}>
+              <p>No conversations yet. Create one!</p>
+            </div>
+          ) : (
+            filteredConversations.map((conv) => {
+              const formattedDate = new Date(
+                conv.lastResponseDate,
+              ).toLocaleString("en-US", {
+                month: "2-digit",
+                day: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              });
+
+              return (
+                <div
+                  key={conv.id}
+                  className={styles.conversationCard}
+                  onClick={() =>
+                    router.push(
+                      `/from/${conv.fromUsername}/to/${conv.toUsername}`,
+                    )
+                  }
+                >
+                  <div className={styles.conversationHeader}>
+                    <div className={styles.conversationTitle}>
+                      <span className={styles.fromUser}>
+                        {conv.fromUsername}
+                      </span>
+                      <span className={styles.arrow}>→</span>
+                      <span className={styles.toUser}>{conv.toUsername}</span>
+                    </div>
+                    <span className={styles.responseCount}>
+                      {conv.responseCount} responses
+                    </span>
                   </div>
-                  <span className={styles.responseCount}>
-                    {conv.responseCount} responses
-                  </span>
+                  <p className={styles.latestResponse}>{conv.latestResponse}</p>
+                  <div className={styles.conversationFooter}>
+                    <span className={styles.lastDate}>{formattedDate}</span>
+                  </div>
                 </div>
-                <p className={styles.latestResponse}>{conv.latestResponse}</p>
-                <div className={styles.conversationFooter}>
-                  <span className={styles.lastDate}>{formattedDate}</span>
-                </div>
-              </div>
-            );
-          })
-        )}
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );
