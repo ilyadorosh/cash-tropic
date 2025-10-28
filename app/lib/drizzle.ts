@@ -22,6 +22,8 @@ import {
   Profile,
   generatedPage,
   GeneratedPage,
+  UserResponse,
+  userResponse,
 } from "./schema";
 
 import * as schema from "./schema";
@@ -425,6 +427,68 @@ export async function getGeneratedPage({
     return page;
   } catch (error) {
     console.error("Failed to get generated page from database");
+    throw error;
+  }
+}
+
+// User Response Functions
+export async function saveUserResponse({
+  fromUsername,
+  toUsername,
+  responseText,
+}: {
+  fromUsername: string;
+  toUsername: string;
+  responseText: string;
+}) {
+  try {
+    // Get profile IDs
+    const fromProfile = await getProfileByUsername({ username: fromUsername });
+    const toProfile = await getProfileByUsername({ username: toUsername });
+
+    if (!fromProfile || !toProfile) {
+      throw new Error("One or both profiles not found");
+    }
+
+    return await db.insert(userResponse).values({
+      fromProfileId: fromProfile.id,
+      toProfileId: toProfile.id,
+      responseText,
+      createdAt: new Date(),
+    });
+  } catch (error) {
+    console.error("Failed to save user response in database");
+    throw error;
+  }
+}
+
+export async function getUserResponses({
+  fromUsername,
+  toUsername,
+}: {
+  fromUsername: string;
+  toUsername: string;
+}): Promise<Array<UserResponse>> {
+  try {
+    const fromProfile = await getProfileByUsername({ username: fromUsername });
+    const toProfile = await getProfileByUsername({ username: toUsername });
+
+    if (!fromProfile || !toProfile) {
+      return [];
+    }
+
+    return await db
+      .select()
+      .from(userResponse)
+      .where(
+        and(
+          eq(userResponse.fromProfileId, fromProfile.id),
+          eq(userResponse.toProfileId, toProfile.id),
+        ),
+      )
+      .orderBy(desc(userResponse.createdAt));
+  } catch (error) {
+    console.error("Failed to get user responses from database");
     throw error;
   }
 }

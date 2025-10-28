@@ -140,3 +140,17 @@ export const generatedPage = pgTable("GeneratedPage", {
 });
 
 export type GeneratedPage = InferSelectModel<typeof generatedPage>;
+
+export const userResponse = pgTable("UserResponse", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  fromProfileId: uuid("fromProfileId")
+    .notNull()
+    .references(() => profile.id),
+  toProfileId: uuid("toProfileId")
+    .notNull()
+    .references(() => profile.id),
+  responseText: text("responseText").notNull(),
+  createdAt: timestamp("createdAt").notNull(),
+});
+
+export type UserResponse = InferSelectModel<typeof userResponse>;

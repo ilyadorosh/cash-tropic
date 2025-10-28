@@ -21,7 +21,6 @@ import {
 } from "@/app/store";
 
 import { requestGroq } from "@/app/api/common";
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -42,15 +41,7 @@ export async function POST(req: NextRequest) {
       customPrompt: say || undefined,
     });
 
-    if (existingPage) {
-      return NextResponse.json({
-        success: true,
-        html: existingPage.generatedHtml,
-        cached: true,
-      });
-    }
-
-    // Fetch profiles from database
+    // Fetch profiles from database (do this always, not just for new pages)
     const fromProfile = await getProfileByUsername({ username: from });
     const toProfile = await getProfileByUsername({ username: to });
 
@@ -66,6 +57,23 @@ export async function POST(req: NextRequest) {
         { error: `Profile not found for username: ${to}` },
         { status: 404 },
       );
+    }
+
+    // If cached, return with profile data
+    if (existingPage) {
+      return NextResponse.json({
+        success: true,
+        html: existingPage.generatedHtml,
+        cached: true,
+        fromProfile: {
+          username: fromProfile.username,
+          context: fromProfile.context,
+        },
+        toProfile: {
+          username: toProfile.username,
+          context: toProfile.context,
+        },
+      });
     }
 
     // Construct LLM prompt
@@ -92,6 +100,14 @@ export async function POST(req: NextRequest) {
       success: true,
       html: generatedHtml,
       cached: false,
+      fromProfile: {
+        username: fromProfile.username,
+        context: fromProfile.context,
+      },
+      toProfile: {
+        username: toProfile.username,
+        context: toProfile.context,
+      },
     });
   } catch (error) {
     console.error("Error generating page:", error);
@@ -123,7 +139,7 @@ ${toContext || "No additional context provided."}
 ${customMessage ? `Special message: ${customMessage}` : ""}
 
 Create a complete, self-contained HTML page that:
-1. Is visually beautiful with modern CSS styling
+1. Is visually beautiful with modern CSS styling. If images are used, use valid URLs, or not at all.
 2. Is responsive and works on mobile devices
 3. Expresses genuine emotion and connection between ${fromUsername} and ${toUsername}
 4. Incorporates the context about both people
