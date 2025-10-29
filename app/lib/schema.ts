@@ -1,6 +1,7 @@
 import {
   boolean,
   foreignKey,
+  integer,
   json,
   pgTable,
   primaryKey,
@@ -154,3 +155,14 @@ export const userResponse = pgTable("UserResponse", {
 });
 
 export type UserResponse = InferSelectModel<typeof userResponse>;
+
+// Add this to your existing schema
+export const contextInteractions = pgTable("context_interactions", {
+  id: serial("id").primaryKey(),
+  originalPieceId: varchar("original_piece_id"),
+  character: varchar("character"),
+  response: text("response"),
+  x: integer("x"),
+  y: integer("y"),
+  createdAt: timestamp("created_at").defaultNow(),
+});

@@ -24,6 +24,9 @@ import {
   GeneratedPage,
   UserResponse,
   userResponse,
+  contextInteractions,
+  // ContextInteraction type is not used elsewhere yet, but keep consistent naming
+  // ContextInteraction,
 } from "./schema";
 
 import * as schema from "./schema";
@@ -489,6 +492,45 @@ export async function getUserResponses({
       .orderBy(desc(userResponse.createdAt));
   } catch (error) {
     console.error("Failed to get user responses from database");
+    throw error;
+  }
+}
+
+// Context Interaction Functions
+export async function saveContextInteraction({
+  originalPieceId,
+  character,
+  response,
+  x,
+  y,
+}: {
+  originalPieceId: string | null;
+  character?: string | null;
+  response?: string | null;
+  x?: number | null;
+  y?: number | null;
+}) {
+  try {
+    // Insert and return the created row's id
+    const inserted = await db
+      .insert(contextInteractions)
+      .values({
+        originalPieceId: originalPieceId ?? null,
+        character: character ?? null,
+        response: response ?? null,
+        x: x ?? null,
+        y: y ?? null,
+        createdAt: new Date(),
+      })
+      .returning({ id: contextInteractions.id });
+
+    // `.returning` may return an array; normalize to the first row
+    if (Array.isArray(inserted)) {
+      return inserted[0];
+    }
+    return inserted;
+  } catch (error) {
+    console.error("Failed to save context interaction in database", error);
     throw error;
   }
 }

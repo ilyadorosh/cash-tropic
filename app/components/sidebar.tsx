@@ -31,7 +31,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { isIOS, useMobileScreen } from "../utils";
 import dynamic from "next/dynamic";
 import { showConfirm, Selector } from "./ui-lib";
+
 import { ActInLoveNav } from "./ActInLoveNav";
+import ChatMapSidebar from "@/app/components/ChatMapSidebar"; // adjust path if using alias
 
 const ChatList = dynamic(async () => (await import("./chat-list")).ChatList, {
   loading: () => null,
@@ -191,6 +193,7 @@ export function SideBarBody(props: {
   const { onClick, children } = props;
   return (
     <div className={styles["sidebar-body"]} onClick={onClick}>
+      <ChatMapSidebar />
       {children}
     </div>
   );

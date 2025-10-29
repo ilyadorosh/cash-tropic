@@ -25,7 +25,6 @@ import {
 } from "react-router-dom";
 import { SideBar } from "./sidebar";
 // app/layout.tsx (or your main layout component)
-import ChatMapSidebar from "@/app/components/ChatMapSidebar"; // adjust path if using alias
 import { useAppConfig } from "../store/config";
 import { AuthPage } from "./auth";
 import { getClientConfig } from "../config/client";
@@ -197,7 +196,6 @@ function Screen() {
     if (isSdNew) return <Sd />;
     return (
       <>
-        <ChatMapSidebar />
         <SideBar className={isHome ? styles["sidebar-show"] : ""} />
         <WindowContent>
           <Routes>

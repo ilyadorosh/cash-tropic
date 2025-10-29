@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import styles from "./nca.module.scss";
 import styles1 from "@/app/components/home.module.scss";
 import { SideBar } from "@/app/components-next/sidebar-next";
+import DisasterGame from "../components/DisasterGame";
 
 // Neural Cellular Automata Component
 function NCASimulation() {
@@ -220,6 +221,10 @@ function NCASimulation() {
             Distill.pub&lsquo;s Growing Neural Cellular Automata
           </a>
         </p>
+      </div>
+      <div>
+        <h1>Disaster Game</h1>
+        <DisasterGame />
       </div>
     </div>
   );

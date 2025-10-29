@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useChatStore } from "../store";
 import styles from "./game-chat-nav.module.scss";
+import DisasterGame from "./DisasterGame";
 
 interface GameChatNavProps {
   onClose?: () => void;
@@ -178,12 +179,13 @@ export function GameChatNav({ onClose }: GameChatNavProps) {
           </button>
         )}
       </div>
-      <canvas
+      <DisasterGame />
+      {/* <canvas
         ref={canvasRef}
         width={800}
         height={600}
         className={styles.gameCanvas}
-      />
+      /> */}
       <div className={styles.instructions}>
         <p>Use WASD or Arrow keys to move your character</p>
         <p>Walk into a chat box to select it</p>
