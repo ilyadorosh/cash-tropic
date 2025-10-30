@@ -35,6 +35,9 @@ import { showConfirm, Selector } from "./ui-lib";
 import { ActInLoveNav } from "./ActInLoveNav";
 import ChatMapSidebar from "@/app/components/ChatMapSidebar"; // adjust path if using alias
 import ConversationsPage from "../conversations/page";
+import { TTSControls } from "./tts-controls";
+import { TTSFloatingDock } from "./tts-floating-dock";
+import { ProfileNotes } from "./profile-notes";
 
 const ChatList = dynamic(async () => (await import("./chat-list")).ChatList, {
   loading: () => null,
@@ -184,6 +187,9 @@ export function SideBarHeader(props: {
         <div className={styles["sidebar-sub-title"]}>{subTitle}</div>
         <div className={styles["sidebar-logo"] + " no-dark"}>{logo}</div>
       </div> */}
+      <TTSControls />
+      <ProfileNotes />
+      <TTSFloatingDock />
       {children}
     </Fragment>
   );

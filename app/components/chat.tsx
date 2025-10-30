@@ -847,9 +847,55 @@ function _Chat() {
   };
 
   const speakAloud = (message: ChatMessage) => {
-    var msg = new SpeechSynthesisUtterance();
-    msg.text = getMessageTextContent(message);
-    window.speechSynthesis.speak(msg);
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const TTS_LANG_KEY = "tts_lang";
+    const TTS_READ_SELECTION_KEY = "tts_read_selection";
+    
+    const savedLang = localStorage.getItem(TTS_LANG_KEY) || "de-DE";
+    const readSelectionOnly = localStorage.getItem(TTS_READ_SELECTION_KEY) === "true";
+    
+    let textToSpeak = "";
+    
+    // Check if we should prioritize selected text
+    if (readSelectionOnly) {
+      const selection = window.getSelection()?.toString().trim();
+      if (selection) {
+        textToSpeak = selection;
+      } else {
+        textToSpeak = getMessageTextContent(message);
+      }
+    } else {
+      textToSpeak = getMessageTextContent(message);
+    }
+    
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = savedLang;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const speakSelection = () => {
+    const selection = window.getSelection()?.toString().trim();
+    
+    if (!selection) {
+      showToast("No text selected");
+      return;
+    }
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const TTS_LANG_KEY = "tts_lang";
+    const savedLang = localStorage.getItem(TTS_LANG_KEY) || "de-DE";
+    
+    const utterance = new SpeechSynthesisUtterance(selection);
+    utterance.lang = savedLang;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
   };
 
   const doSubmit = (userInput: string) => {
@@ -1488,12 +1534,21 @@ function _Chat() {
                                 }}
                               />
                               <ChatAction
-                                icon={<ResetIcon />}
-                                text={"Translate 🇩🇪"}
+                                text={"Play 🔈"}
+                                icon={<RobotIcon />}
                                 onClick={() => {
                                   speakAloud(message);
-                                  console.log("🇩🇪");
                                 }}
+                              />
+                              <ChatAction
+                                text={"Play Selection 🖍️"}
+                                icon={<EditIcon />}
+                                onClick={speakSelection}
+                              />
+                              <ChatAction
+                                text={"Stop ⏹️"}
+                                icon={<StopIcon />}
+                                onClick={stopSpeaking}
                               />
 
                               <ChatAction
