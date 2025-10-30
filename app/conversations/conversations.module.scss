@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: 100vh;
+  // min-height: 100vh;
   padding: 20px;
   box-sizing: border-box;
   background-color: var(--white);
@@ -38,6 +38,13 @@
     font-size: 28px;
     font-weight: bold;
   }
+}
+
+.payButton {
+  margin-left: 10px;
+  padding: 8px 16px;
+  background-color: green !important;
+  font-size: 14px;
 }
 
 .subtitle {

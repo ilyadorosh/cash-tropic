@@ -11,10 +11,6 @@ export function ActInLoveNav() {
   return (
     <div className={styles.actinloveNav}>
       <div className={styles.navContent}>
-        <div className={styles.navLeft}>
-          <h2 className={styles.navTitle}>💝 ActInLove</h2>
-          <p className={styles.navSubtitle}>Create personalized love pages</p>
-        </div>
         <div className={styles.navActions}>
           <IconButton
             text="View Conversations"
@@ -23,7 +19,7 @@ export function ActInLoveNav() {
             bordered
           />
           <IconButton
-            text="Create New"
+            text="Profiles"
             onClick={() => router.push("/admin/profiles")}
             title="Create new profiles or generate pages"
             type="primary"

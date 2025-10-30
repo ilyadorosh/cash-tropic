@@ -20,6 +20,10 @@ export function About() {
   return (
     <div>
       <h1>About</h1>
+      <div className={styles.navLeft}>
+        <h2 className={styles.navTitle}>💝 ActInLove</h2>
+        <p className={styles.navSubtitle}>Create personalized love pages</p>
+      </div>
       <p>Welcome to the Intelligent Fund cash-tropic app! </p>
       <p>Here you will be launching a dumpster into an orbit!</p>
       <p>

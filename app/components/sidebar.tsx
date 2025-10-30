@@ -34,6 +34,7 @@ import { showConfirm, Selector } from "./ui-lib";
 
 import { ActInLoveNav } from "./ActInLoveNav";
 import ChatMapSidebar from "@/app/components/ChatMapSidebar"; // adjust path if using alias
+import ConversationsPage from "../conversations/page";
 
 const ChatList = dynamic(async () => (await import("./chat-list")).ChatList, {
   loading: () => null,
@@ -173,14 +174,16 @@ export function SideBarHeader(props: {
   const { title, subTitle, logo, children } = props;
   return (
     <Fragment>
-      <ActInLoveNav />
-      <div className={styles["sidebar-header"]} data-tauri-drag-region>
+      {/* <ActInLoveNav /> */}
+
+      <ConversationsPage />
+      {/* <div className={styles["sidebar-header"]} data-tauri-drag-region>
         <div className={styles["sidebar-title"]} data-tauri-drag-region>
           {title}
         </div>
         <div className={styles["sidebar-sub-title"]}>{subTitle}</div>
         <div className={styles["sidebar-logo"] + " no-dark"}>{logo}</div>
-      </div>
+      </div> */}
       {children}
     </Fragment>
   );
@@ -232,7 +235,7 @@ export function SideBar(props: { className?: string }) {
         subTitle="Intelligent Fund"
         logo={<ChatGptIcon />}
       >
-        <div className={styles["sidebar-header-bar"]}>
+        {/* <div className={styles["sidebar-header-bar"]}>
           <IconButton
             icon={<MaskIcon />}
             text={shouldNarrow ? undefined : Locale.Mask.Name}
@@ -253,7 +256,7 @@ export function SideBar(props: { className?: string }) {
             onClick={() => setShowPluginSelector(true)}
             shadow
           />
-        </div>
+        </div> */}
         {showPluginSelector && (
           <Selector
             items={[

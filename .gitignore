@@ -50,3 +50,6 @@ package-lock.json
 yarn.lock
 public/masks.json
 yarn.lock
+
+# Drizzle files
+/drizzle/meta

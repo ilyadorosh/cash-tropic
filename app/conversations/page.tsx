@@ -66,11 +66,21 @@ export default function ConversationsPage() {
           </div>
         </div>
         <IconButton
-          text="Create New"
+          text="Profiles"
           onClick={() => router.push("/admin/profiles")}
           type="primary"
           title="Create a new profile"
         />
+        <IconButton
+          text="Pay $25"
+          className={styles.payButton}
+          onClick={() =>
+            window.open("https://buy.stripe.com/test_fZucN65L40Wh5Py0UO8AE00")
+          }
+          type="primary"
+          title="Create a new profile"
+        />
+        <p>cancel any time</p>
 
         <div className={styles.searchBar}>
           <input
