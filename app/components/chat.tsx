@@ -107,6 +107,27 @@ import { useAllModels } from "../utils/hooks";
 import { MultimodalContent } from "../client/api";
 import { GameChatNav } from "./game-chat-nav";
 
+// Add these helpers near the top-level (once per file)
+const TTS_LANG_KEY = "tts_lang";
+const TTS_READ_KEY = "tts_read_selection";
+
+function getTtsLang(): string {
+  try {
+    return localStorage.getItem(TTS_LANG_KEY) || "de-DE";
+  } catch {
+    return "de-DE";
+  }
+}
+
+function getReadSelectionOnly(): boolean {
+  try {
+    const v = localStorage.getItem(TTS_READ_KEY);
+    return v === null ? true : v === "true";
+  } catch {
+    return true;
+  }
+}
+
 const Markdown = dynamic(async () => (await import("./markdown")).Markdown, {
   loading: () => <LoadingIcon />,
 });
@@ -846,9 +867,27 @@ function _Chat() {
     }
   };
 
+  // Replace the existing speakAloud with this implementation
   const speakAloud = (message: ChatMessage) => {
-    var msg = new SpeechSynthesisUtterance();
-    msg.text = getMessageTextContent(message);
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    const readSelectionOnly = getReadSelectionOnly();
+    const sel =
+      typeof window !== "undefined" && window.getSelection
+        ? window.getSelection()?.toString().trim()
+        : "";
+    const textToSpeak =
+      readSelectionOnly && sel ? sel : getMessageTextContent(message);
+    if (!textToSpeak) return;
+
+    // Stop any ongoing speech to avoid overlap
+    window.speechSynthesis.cancel();
+
+    const msg = new SpeechSynthesisUtterance(textToSpeak);
+    msg.lang = getTtsLang();
+    msg.rate = 1;
+    msg.pitch = 1;
+
     window.speechSynthesis.speak(msg);
   };
 

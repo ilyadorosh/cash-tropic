@@ -35,6 +35,8 @@ import { showConfirm, Selector } from "./ui-lib";
 import { ActInLoveNav } from "./ActInLoveNav";
 import ChatMapSidebar from "@/app/components/ChatMapSidebar"; // adjust path if using alias
 import ConversationsPage from "../conversations/page";
+// Add this import near the other imports at the top:
+import { TtsControls } from "@/app/components/tts-controls";
 
 const ChatList = dynamic(async () => (await import("./chat-list")).ChatList, {
   loading: () => null,
@@ -175,6 +177,7 @@ export function SideBarHeader(props: {
   return (
     <Fragment>
       {/* <ActInLoveNav /> */}
+      <TtsControls />
 
       <ConversationsPage />
       {/* <div className={styles["sidebar-header"]} data-tauri-drag-region>
