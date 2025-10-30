@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import styles from "./ui-lib.module.scss";
-
-const TTS_LANG_KEY = "tts_lang";
-const TTS_READ_SELECTION_KEY = "tts_read_selection";
+import { TTS_LANG_KEY, TTS_READ_SELECTION_KEY, DEFAULT_TTS_LANG } from "../constants/tts";
 
 export function TTSControls() {
-  const [language, setLanguage] = useState<string>("de-DE");
+  const [language, setLanguage] = useState<string>(DEFAULT_TTS_LANG);
   const [readSelectionOnly, setReadSelectionOnly] = useState<boolean>(false);
 
   useEffect(() => {

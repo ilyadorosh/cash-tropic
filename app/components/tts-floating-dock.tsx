@@ -1,7 +1,6 @@
 import React from "react";
 import { showToast } from "./ui-lib";
-
-const TTS_LANG_KEY = "tts_lang";
+import { TTS_LANG_KEY, DEFAULT_TTS_LANG } from "../constants/tts";
 
 export function TTSFloatingDock() {
   const speakSelection = () => {
@@ -16,7 +15,7 @@ export function TTSFloatingDock() {
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(selection);
-    const savedLang = localStorage.getItem(TTS_LANG_KEY) || "de-DE";
+    const savedLang = localStorage.getItem(TTS_LANG_KEY) || DEFAULT_TTS_LANG;
     utterance.lang = savedLang;
     
     window.speechSynthesis.speak(utterance);

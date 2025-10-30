@@ -105,6 +105,7 @@ import { ExportMessageModal } from "@/app/components/exporter";
 import { getClientConfig } from "../config/client";
 import { useAllModels } from "../utils/hooks";
 import { MultimodalContent } from "../client/api";
+import { TTS_LANG_KEY, TTS_READ_SELECTION_KEY, DEFAULT_TTS_LANG } from "../constants/tts";
 
 import { useRouter } from "next/navigation";
 
@@ -843,11 +844,8 @@ function _Chat() {
   const speakAloud = (message: ChatMessage) => {
     // Cancel any ongoing speech
     window.speechSynthesis.cancel();
-
-    const TTS_LANG_KEY = "tts_lang";
-    const TTS_READ_SELECTION_KEY = "tts_read_selection";
     
-    const savedLang = localStorage.getItem(TTS_LANG_KEY) || "de-DE";
+    const savedLang = localStorage.getItem(TTS_LANG_KEY) || DEFAULT_TTS_LANG;
     const readSelectionOnly = localStorage.getItem(TTS_READ_SELECTION_KEY) === "true";
     
     let textToSpeak = "";
@@ -880,8 +878,7 @@ function _Chat() {
     // Cancel any ongoing speech
     window.speechSynthesis.cancel();
 
-    const TTS_LANG_KEY = "tts_lang";
-    const savedLang = localStorage.getItem(TTS_LANG_KEY) || "de-DE";
+    const savedLang = localStorage.getItem(TTS_LANG_KEY) || DEFAULT_TTS_LANG;
     
     const utterance = new SpeechSynthesisUtterance(selection);
     utterance.lang = savedLang;
