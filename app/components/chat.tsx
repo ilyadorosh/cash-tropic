@@ -106,6 +106,7 @@ import { getClientConfig } from "../config/client";
 import { useAllModels } from "../utils/hooks";
 import { MultimodalContent } from "../client/api";
 import { GameChatNav } from "./game-chat-nav";
+import SwapDemo from "@/app/components/SwapDemo";
 
 // Add these helpers near the top-level (once per file)
 const TTS_LANG_KEY = "tts_lang";
@@ -757,6 +758,7 @@ export function EditMessageModal(props: { onClose: () => void }) {
             setMessages(newMessages);
           }}
         />
+        <SwapDemo />
       </Modal>
     </div>
   );
