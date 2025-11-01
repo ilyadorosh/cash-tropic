@@ -80,6 +80,16 @@ export default function ConversationsPage() {
           type="primary"
           title="Create a new profile"
         />
+        <IconButton
+          text="Pay $1"
+          className={styles.payButton}
+          onClick={() =>
+            window.open("https://buy.stripe.com/aFa14oaXO3Uw0IW6eR4Vy01")
+          }
+          type="primary"
+          title="Create a new profile"
+        />
+
         <p>cancel any time</p>
 
         <div className={styles.searchBar}>

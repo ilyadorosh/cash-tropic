@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import styles from "./profiles.module.scss";
+import AuthGuard from "@/app/components/AuthGuard";
 
 interface Profile {
   id: string;
@@ -209,11 +210,13 @@ export default function AdminProfiles() {
                     </button>
                   </div>
                 </div>
-                <div className={styles.profileContext}>
-                  {profile.context || (
-                    <em className={styles.noContext}>No context provided</em>
-                  )}
-                </div>
+                <AuthGuard>
+                  <div className={styles.profileContext}>
+                    {profile.context || (
+                      <em className={styles.noContext}>No context provided</em>
+                    )}
+                  </div>
+                </AuthGuard>
               </div>
             ))}
           </div>
