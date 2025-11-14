@@ -1089,16 +1089,7 @@ function _Chat() {
     try {
       const content = getMessageTextContent(message);
       
-      // Save to local store
-      savedMessageStore.add({
-        id: message.id,
-        content: content,
-        role: message.role,
-        savedAt: Date.now(),
-        sessionId: session.id,
-      });
-
-      // Save to backend (Redis + file)
+      // Save to backend (Redis + file) first to get the new ID
       const response = await fetch("/api/save-message", {
         method: "POST",
         headers: {
@@ -1113,6 +1104,13 @@ function _Chat() {
 
       if (!response.ok) {
         throw new Error("Failed to save message to server");
+      }
+
+      const result = await response.json();
+      
+      // Save to local store with the ID from backend
+      if (result.success && result.message) {
+        savedMessageStore.add(result.message);
       }
 
       showToast("Message saved successfully! Use /saved to access it.", {
