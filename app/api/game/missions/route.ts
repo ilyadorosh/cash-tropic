@@ -216,7 +216,7 @@ const DEFAULT_MISSIONS: Mission[] = [
     title: "Historical Nürnberg Tour",
     description:
       "Visit all historical landmarks and learn about the city's past",
-    category: "historical" as MissionCategory,
+    category: "historical",
     objectives: [
       {
         id: "obj-visit-durer",

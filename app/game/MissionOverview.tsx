@@ -10,7 +10,7 @@ interface MissionOverviewProps {
   currentMissionId?: string;
 }
 
-const CATEGORY_COLORS: Record<MissionCategory | "historical", string> = {
+const CATEGORY_COLORS: Record<MissionCategory, string> = {
   physics: "#667eea",
   finance: "#48bb78",
   health: "#fc8181",
@@ -18,7 +18,7 @@ const CATEGORY_COLORS: Record<MissionCategory | "historical", string> = {
   historical: "#ed8936",
 };
 
-const CATEGORY_ICONS: Record<MissionCategory | "historical", string> = {
+const CATEGORY_ICONS: Record<MissionCategory, string> = {
   physics: "⚡",
   finance: "💰",
   health: "❤️",
@@ -33,7 +33,7 @@ export function MissionOverview({
   currentMissionId,
 }: MissionOverviewProps) {
   const [selectedCategory, setSelectedCategory] = useState<
-    MissionCategory | "historical" | "all"
+    MissionCategory | "all"
   >("all");
 
   const filteredMissions =
@@ -136,19 +136,17 @@ export function MissionOverview({
             onClick={() => setSelectedCategory("all")}
             color="#666"
           />
-          {(
-            Object.keys(CATEGORY_COLORS) as Array<
-              MissionCategory | "historical"
-            >
-          ).map((cat) => (
-            <CategoryButton
-              key={cat}
-              label={`${CATEGORY_ICONS[cat]} ${cat.charAt(0).toUpperCase() + cat.slice(1)}`}
-              selected={selectedCategory === cat}
-              onClick={() => setSelectedCategory(cat)}
-              color={CATEGORY_COLORS[cat]}
-            />
-          ))}
+          {(Object.keys(CATEGORY_COLORS) as Array<MissionCategory>).map(
+            (cat) => (
+              <CategoryButton
+                key={cat}
+                label={`${CATEGORY_ICONS[cat]} ${cat.charAt(0).toUpperCase() + cat.slice(1)}`}
+                selected={selectedCategory === cat}
+                onClick={() => setSelectedCategory(cat)}
+                color={CATEGORY_COLORS[cat]}
+              />
+            ),
+          )}
         </div>
 
         {/* Mission List */}

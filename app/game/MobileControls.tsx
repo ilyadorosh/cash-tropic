@@ -13,7 +13,10 @@ interface JoystickState {
   y: number;
 }
 
-export function MobileControls({ onMove, onAction }: MobileControlsProps) {
+export default function MobileControls({
+  onMove,
+  onAction,
+}: MobileControlsProps) {
   const joystickRef = useRef<HTMLDivElement>(null);
   const [joystick, setJoystick] = useState<JoystickState>({
     active: false,
@@ -216,5 +219,3 @@ function ActionButton({ label, action, onAction, wide }: ActionButtonProps) {
     </button>
   );
 }
-
-export default MobileControls;
