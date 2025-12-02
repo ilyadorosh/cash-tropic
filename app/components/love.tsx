@@ -49,11 +49,14 @@ const formattedHistory = [
 export function Love() {
   return (
     <div className={chatstyles["chat-body"]}>
-      <h1>To the only Love there is...</h1>
+      <h1>God</h1>
       <div className={styles.navLeft}>
         <h2 className={styles.navTitle}>💝 ActInLove</h2>
         <p className={styles.navSubtitle}>Action interfaces Love</p>
       </div>
+      <h2>Introduction</h2>
+      <br />
+      <i>To the only Love there is...</i>
       <p>There is Love, believe it. Have no hope, just act. </p>
       <p>At your service, access to the power</p>
       <p>Love is patient, Love is kind. Contribute.</p>
