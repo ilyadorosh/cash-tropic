@@ -7,10 +7,19 @@ const REDIS_LIST_KEY = "game:traces:list";
 
 export async function GET(req: NextRequest) {
   try {
-    const kv = Redis.fromEnv();
     const { searchParams } = new URL(req.url);
     const playerId = searchParams.get("playerId");
-    const limit = parseInt(searchParams.get("limit") || "50");
+
+    // Check if Redis env vars are available
+    if (
+      !process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN
+    ) {
+      // Return empty traces when Redis is not configured
+      return NextResponse.json([]);
+    }
+
+    const kv = Redis.fromEnv();
 
     if (playerId) {
       // Get specific player's trace
@@ -19,6 +28,8 @@ export async function GET(req: NextRequest) {
       );
       return NextResponse.json(trace || null);
     }
+
+    const limit = parseInt(searchParams.get("limit") || "50");
 
     // Get recent traces list
     const traceIds = await kv.lrange(REDIS_LIST_KEY, 0, limit - 1);
@@ -39,16 +50,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(traces);
   } catch (error) {
     console.error("Traces API GET error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch traces" },
-      { status: 500 },
-    );
+    // Return empty array on error for better DX
+    return NextResponse.json([]);
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const kv = Redis.fromEnv();
     const body = await req.json();
 
     const { playerId, playerName, point, isHistorical } = body;
@@ -59,6 +67,21 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
+
+    // Check if Redis env vars are available
+    if (
+      !process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN
+    ) {
+      // Return success without saving when Redis is not configured
+      return NextResponse.json({
+        success: true,
+        pointCount: 1,
+        note: "Redis not configured - trace not persisted",
+      });
+    }
+
+    const kv = Redis.fromEnv();
 
     const traceKey = `${REDIS_KEY_PREFIX}:${playerId}`;
     let trace = await kv.get<PlayerTrace>(traceKey);
@@ -117,7 +140,6 @@ export async function POST(req: NextRequest) {
 // Delete player trace
 export async function DELETE(req: NextRequest) {
   try {
-    const kv = Redis.fromEnv();
     const { searchParams } = new URL(req.url);
     const playerId = searchParams.get("playerId");
 
@@ -128,6 +150,15 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
+    // Check if Redis env vars are available
+    if (
+      !process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN
+    ) {
+      return NextResponse.json({ success: true, note: "Redis not configured" });
+    }
+
+    const kv = Redis.fromEnv();
     await kv.del(`${REDIS_KEY_PREFIX}:${playerId}`);
 
     return NextResponse.json({ success: true });

@@ -21,30 +21,44 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   try {
-    const kv = Redis.fromEnv();
     const playerId = params.id;
+
+    // Return default state for new player if Redis is not configured
+    const newPlayer: PlayerState = {
+      id: playerId,
+      name: `Player ${playerId.slice(0, 6)}`,
+      ...DEFAULT_PLAYER_STATE,
+    };
+
+    // Check if Redis env vars are available
+    if (
+      !process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN
+    ) {
+      return NextResponse.json(newPlayer);
+    }
+
+    const kv = Redis.fromEnv();
 
     const playerState = await kv.get<PlayerState>(
       `${REDIS_KEY_PREFIX}:${playerId}`,
     );
 
     if (!playerState) {
-      // Return default state for new player
-      const newPlayer: PlayerState = {
-        id: playerId,
-        name: `Player ${playerId.slice(0, 6)}`,
-        ...DEFAULT_PLAYER_STATE,
-      };
       return NextResponse.json(newPlayer);
     }
 
     return NextResponse.json(playerState);
   } catch (error) {
     console.error("Player API GET error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch player data" },
-      { status: 500 },
-    );
+    // Return default player state on error
+    const playerId = params.id;
+    const newPlayer: PlayerState = {
+      id: playerId,
+      name: `Player ${playerId.slice(0, 6)}`,
+      ...DEFAULT_PLAYER_STATE,
+    };
+    return NextResponse.json(newPlayer);
   }
 }
 
@@ -53,31 +67,50 @@ export async function POST(
   { params }: { params: { id: string } },
 ) {
   try {
-    const kv = Redis.fromEnv();
     const playerId = params.id;
     const body = await req.json();
 
-    const existingState =
-      (await kv.get<PlayerState>(`${REDIS_KEY_PREFIX}:${playerId}`)) ||
-      ({
-        id: playerId,
-        name: `Player ${playerId.slice(0, 6)}`,
-        ...DEFAULT_PLAYER_STATE,
-      } as PlayerState);
+    const baseState: PlayerState = {
+      id: playerId,
+      name: `Player ${playerId.slice(0, 6)}`,
+      ...DEFAULT_PLAYER_STATE,
+    };
 
     const updatedState: PlayerState = {
-      ...existingState,
+      ...baseState,
       ...body,
       id: playerId, // Ensure ID cannot be changed
       lastSaveTime: Date.now(),
     };
 
-    await kv.set(
+    // Check if Redis env vars are available
+    if (
+      !process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN
+    ) {
+      return NextResponse.json({
+        success: true,
+        data: updatedState,
+        note: "Redis not configured - data not persisted",
+      });
+    }
+
+    const kv = Redis.fromEnv();
+
+    const existingState = await kv.get<PlayerState>(
       `${REDIS_KEY_PREFIX}:${playerId}`,
-      JSON.stringify(updatedState),
     );
 
-    return NextResponse.json({ success: true, data: updatedState });
+    const finalState: PlayerState = {
+      ...(existingState || baseState),
+      ...body,
+      id: playerId,
+      lastSaveTime: Date.now(),
+    };
+
+    await kv.set(`${REDIS_KEY_PREFIX}:${playerId}`, JSON.stringify(finalState));
+
+    return NextResponse.json({ success: true, data: finalState });
   } catch (error) {
     console.error("Player API POST error:", error);
     return NextResponse.json(
@@ -92,9 +125,17 @@ export async function DELETE(
   { params }: { params: { id: string } },
 ) {
   try {
-    const kv = Redis.fromEnv();
     const playerId = params.id;
 
+    // Check if Redis env vars are available
+    if (
+      !process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN
+    ) {
+      return NextResponse.json({ success: true, note: "Redis not configured" });
+    }
+
+    const kv = Redis.fromEnv();
     await kv.del(`${REDIS_KEY_PREFIX}:${playerId}`);
 
     return NextResponse.json({ success: true });

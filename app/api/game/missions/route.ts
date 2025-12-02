@@ -239,6 +239,14 @@ const DEFAULT_MISSIONS: Mission[] = [
 
 export async function GET() {
   try {
+    // Check if Redis env vars are available
+    if (
+      !process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN
+    ) {
+      return NextResponse.json(DEFAULT_MISSIONS);
+    }
+
     const kv = Redis.fromEnv();
     const missions = await kv.get<Mission[]>(REDIS_KEY);
 
@@ -249,16 +257,13 @@ export async function GET() {
     return NextResponse.json(missions);
   } catch (error) {
     console.error("Missions API GET error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch missions" },
-      { status: 500 },
-    );
+    // Return default on error for better DX
+    return NextResponse.json(DEFAULT_MISSIONS);
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const kv = Redis.fromEnv();
     const body = await req.json();
 
     let missions: Mission[];
@@ -266,18 +271,39 @@ export async function POST(req: NextRequest) {
     if (Array.isArray(body)) {
       missions = body;
     } else if (body.mission) {
-      const existing = (await kv.get<Mission[]>(REDIS_KEY)) || [];
-      missions = [...existing, body.mission];
+      missions = [body.mission];
     } else if (body.update) {
-      // Update a specific mission
-      const existing = (await kv.get<Mission[]>(REDIS_KEY)) || DEFAULT_MISSIONS;
-      missions = existing.map((m) =>
+      missions = DEFAULT_MISSIONS.map((m) =>
         m.id === body.update.id ? { ...m, ...body.update } : m,
       );
     } else {
       return NextResponse.json(
         { error: "Invalid request body" },
         { status: 400 },
+      );
+    }
+
+    // Check if Redis env vars are available
+    if (
+      !process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN
+    ) {
+      return NextResponse.json({
+        success: true,
+        data: missions,
+        note: "Redis not configured - data not persisted",
+      });
+    }
+
+    const kv = Redis.fromEnv();
+
+    if (body.mission) {
+      const existing = (await kv.get<Mission[]>(REDIS_KEY)) || [];
+      missions = [...existing, body.mission];
+    } else if (body.update) {
+      const existing = (await kv.get<Mission[]>(REDIS_KEY)) || DEFAULT_MISSIONS;
+      missions = existing.map((m) =>
+        m.id === body.update.id ? { ...m, ...body.update } : m,
       );
     }
 

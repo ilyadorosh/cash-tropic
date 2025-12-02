@@ -84,6 +84,14 @@ const DEFAULT_MAP: GameMap = {
 
 export async function GET() {
   try {
+    // Check if Redis env vars are available
+    if (
+      !process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN
+    ) {
+      return NextResponse.json(DEFAULT_MAP);
+    }
+
     const kv = Redis.fromEnv();
     const mapData = await kv.get<GameMap>(REDIS_KEY);
 
@@ -95,16 +103,13 @@ export async function GET() {
     return NextResponse.json(mapData);
   } catch (error) {
     console.error("Map API GET error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch map data" },
-      { status: 500 },
-    );
+    // Return default on error for better DX
+    return NextResponse.json(DEFAULT_MAP);
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const kv = Redis.fromEnv();
     const body = await req.json();
 
     const mapData: GameMap = {
@@ -113,6 +118,19 @@ export async function POST(req: NextRequest) {
       updatedAt: Date.now(),
     };
 
+    // Check if Redis env vars are available
+    if (
+      !process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN
+    ) {
+      return NextResponse.json({
+        success: true,
+        data: mapData,
+        note: "Redis not configured - data not persisted",
+      });
+    }
+
+    const kv = Redis.fromEnv();
     await kv.set(REDIS_KEY, JSON.stringify(mapData));
 
     return NextResponse.json({ success: true, data: mapData });

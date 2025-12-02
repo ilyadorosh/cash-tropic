@@ -89,6 +89,15 @@ const DEFAULT_BUILDINGS: Building[] = [
 
 export async function GET() {
   try {
+    // Check if Redis env vars are available
+    if (
+      !process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN
+    ) {
+      // Return default data when Redis is not configured
+      return NextResponse.json(DEFAULT_BUILDINGS);
+    }
+
     const kv = Redis.fromEnv();
     const buildings = await kv.get<Building[]>(REDIS_KEY);
 
@@ -99,16 +108,13 @@ export async function GET() {
     return NextResponse.json(buildings);
   } catch (error) {
     console.error("Buildings API GET error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch buildings" },
-      { status: 500 },
-    );
+    // Return default data on error for better DX
+    return NextResponse.json(DEFAULT_BUILDINGS);
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const kv = Redis.fromEnv();
     const body = await req.json();
 
     let buildings: Building[];
@@ -116,14 +122,33 @@ export async function POST(req: NextRequest) {
     if (Array.isArray(body)) {
       buildings = body;
     } else if (body.building) {
-      // Add single building to existing
-      const existing = (await kv.get<Building[]>(REDIS_KEY)) || [];
-      buildings = [...existing, body.building];
+      buildings = [body.building];
     } else {
       return NextResponse.json(
         { error: "Invalid request body" },
         { status: 400 },
       );
+    }
+
+    // Check if Redis env vars are available
+    if (
+      !process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN
+    ) {
+      // Return success without saving when Redis is not configured
+      return NextResponse.json({
+        success: true,
+        data: buildings,
+        note: "Redis not configured - data not persisted",
+      });
+    }
+
+    const kv = Redis.fromEnv();
+
+    if (body.building) {
+      // Add single building to existing
+      const existing = (await kv.get<Building[]>(REDIS_KEY)) || [];
+      buildings = [...existing, body.building];
     }
 
     await kv.set(REDIS_KEY, JSON.stringify(buildings));

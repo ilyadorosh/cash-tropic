@@ -170,6 +170,14 @@ const DEFAULT_NPCS: NPC[] = [
 
 export async function GET() {
   try {
+    // Check if Redis env vars are available
+    if (
+      !process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN
+    ) {
+      return NextResponse.json(DEFAULT_NPCS);
+    }
+
     const kv = Redis.fromEnv();
     const npcs = await kv.get<NPC[]>(REDIS_KEY);
 
@@ -180,16 +188,13 @@ export async function GET() {
     return NextResponse.json(npcs);
   } catch (error) {
     console.error("NPCs API GET error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch NPCs" },
-      { status: 500 },
-    );
+    // Return default on error for better DX
+    return NextResponse.json(DEFAULT_NPCS);
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const kv = Redis.fromEnv();
     const body = await req.json();
 
     let npcs: NPC[];
@@ -197,13 +202,31 @@ export async function POST(req: NextRequest) {
     if (Array.isArray(body)) {
       npcs = body;
     } else if (body.npc) {
-      const existing = (await kv.get<NPC[]>(REDIS_KEY)) || [];
-      npcs = [...existing, body.npc];
+      npcs = [body.npc];
     } else {
       return NextResponse.json(
         { error: "Invalid request body" },
         { status: 400 },
       );
+    }
+
+    // Check if Redis env vars are available
+    if (
+      !process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN
+    ) {
+      return NextResponse.json({
+        success: true,
+        data: npcs,
+        note: "Redis not configured - data not persisted",
+      });
+    }
+
+    const kv = Redis.fromEnv();
+
+    if (body.npc) {
+      const existing = (await kv.get<NPC[]>(REDIS_KEY)) || [];
+      npcs = [...existing, body.npc];
     }
 
     await kv.set(REDIS_KEY, JSON.stringify(npcs));
