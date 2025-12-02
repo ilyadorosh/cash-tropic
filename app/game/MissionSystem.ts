@@ -51,7 +51,7 @@ export class MissionSystem {
 
     return {
       title: character.name,
-      text: THIEF_MISSION_DIALOGUE.convince_thief[0].text,
+      text: THIEF_MISSION_DIALOGUE.convince_thief[0]?.text ?? "",
       options: [
         {
           text: "The priest asked for you specifically.",
@@ -118,7 +118,7 @@ export class MissionSystem {
       this.mariaMetPlayer = true;
       return {
         title: character.name,
-        text: MARIA_DIALOGUE.first_meeting[0].text,
+        text: MARIA_DIALOGUE.first_meeting[0]?.text ?? "",
         options: [
           {
             text: "I'm always looking for trouble.",
@@ -145,14 +145,15 @@ export class MissionSystem {
     if (this.mariaAffection >= 80) {
       return {
         title: character.name,
-        text: MARIA_DIALOGUE.high_affection[
-          Math.floor(Math.random() * MARIA_DIALOGUE.high_affection.length)
-        ].text,
+        text:
+          MARIA_DIALOGUE.high_affection[
+            Math.floor(Math.random() * MARIA_DIALOGUE.high_affection.length)
+          ]?.text ?? "",
       };
     } else if (this.mariaAffection >= 50) {
       return {
         title: character.name,
-        text: MARIA_DIALOGUE.date_offer[0].text,
+        text: MARIA_DIALOGUE.date_offer[0]?.text ?? "",
         options: [
           {
             text: "Let's go.  I know a place.",

@@ -157,6 +157,32 @@ export class ProceduralCity {
   private playerRelationship: number = 50;
   private completedMissions: Set<string> = new Set();
 
+  private maxBuildingsPerZone: number = 6;
+  private maxTotalBuildings: number = 25;
+  private generationCooldown: number = 30000; // 30 seconds between generation attempts
+  private lastGenerationAttempt: number = 0;
+  private hasInitialized: boolean = false;
+
+  initializeStartingBuildings() {
+    if (this.hasInitialized) return; // Prevent double init
+    this.hasInitialized = true;
+
+    console.log("Initializing starting buildings (fallback only).. .");
+
+    // Generate a few buildings per unlocked zone using FALLBACK ONLY (no LLM)
+    this.zones.forEach((zone) => {
+      if (!zone || !zone.unlocked) return;
+
+      const slots = this.getAvailableSlots(zone, 3); // Just 3 per zone
+      slots.forEach((slot) => {
+        const building = this.generateFallbackBuilding(zone, slot.x, slot.z);
+        this.addBuilding(building, zone);
+      });
+    });
+
+    console.log(`Created ${this.allBuildings.size} starting buildings`);
+  }
+
   constructor(
     scene: THREE.Scene,
     colliders: THREE.Mesh[],
@@ -171,7 +197,7 @@ export class ProceduralCity {
   private initializeZones() {
     this.zones = [
       {
-        name: "Grove Street",
+        name: "Südstadt",
         centerX: 0,
         centerZ: 40,
         radius: 80,
@@ -180,7 +206,7 @@ export class ProceduralCity {
         buildings: [],
       },
       {
-        name: "Downtown",
+        name: "Innenstadt",
         centerX: 0,
         centerZ: -120,
         radius: 100,
@@ -189,7 +215,7 @@ export class ProceduralCity {
         buildings: [],
       },
       {
-        name: "Vinewood",
+        name: "Erlenstegen",
         centerX: 200,
         centerZ: 0,
         radius: 120,
@@ -198,7 +224,7 @@ export class ProceduralCity {
         buildings: [],
       },
       {
-        name: "Industrial District",
+        name: "Industriegebiet Hafen",
         centerX: -200,
         centerZ: -100,
         radius: 100,
@@ -207,7 +233,7 @@ export class ProceduralCity {
         buildings: [],
       },
       {
-        name: "Santa Maria Beach",
+        name: "Wöhrder See",
         centerX: 200,
         centerZ: -200,
         radius: 150,
@@ -216,7 +242,7 @@ export class ProceduralCity {
         buildings: [],
       },
       {
-        name: "El Corona",
+        name: "Gostenhof",
         centerX: -150,
         centerZ: 100,
         radius: 80,
@@ -228,6 +254,7 @@ export class ProceduralCity {
   }
 
   // Call LLM to generate a building
+
   private async generateBuildingFromLLM(
     zone: CityZone,
     slotX: number,
@@ -235,32 +262,32 @@ export class ProceduralCity {
   ): Promise<Building | null> {
     const themePrompts: Record<string, string> = {
       slums:
-        "a run-down but colorful business in a poor neighborhood.  Think pawn shops, liquor stores, barber shops, taco stands, auto repair.  Names should feel authentic to a Latino/Black community.",
+        "ein heruntergekommenes aber buntes Geschäft in einem armen Viertel von Nürnberg.  Döner-Läden, Spätkaufs, Wettbüros, Shisha-Bars, Handyshops, türkische Bäckereien.  Namen sollen authentisch deutsch-türkisch oder deutsch klingen.",
       downtown:
-        "a modern urban business.  Think law firms, tech startups, upscale restaurants, nightclubs, art galleries.  Names should be trendy or corporate.",
+        "ein modernes urbanes Geschäft in der Nürnberger Innenstadt. Anwaltskanzleien, Boutiquen, schicke Restaurants, Clubs, Kunstgalerien.  Namen sollen trendy oder geschäftsmäßig klingen.",
       hills:
-        "a luxury establishment in a wealthy area. Think designer boutiques, wine bars, plastic surgery clinics, luxury car dealers.  Names should be pretentious.",
+        "ein Luxus-Etablissement in einem wohlhabenden Viertel.  Designer-Boutiquen, Weinbars, Privatpraxen, Premium-Autohäuser. Namen sollen vornehm und teuer klingen.",
       industrial:
-        "an industrial or blue-collar business. Think warehouses, trucking companies, metal works, cheap diners.  Names should be straightforward.",
+        "ein Industrie- oder Arbeiter-Geschäft.  Lagerhäuser, Speditionen, Metallbau, billige Imbisse, Autowerkstätten. Namen sollen praktisch und direkt sein.",
       beach:
-        "a beach-side business. Think surf shops, seafood restaurants, tattoo parlors, beach bars, rental shops. Names should be fun and casual.",
+        "ein Geschäft am See oder Naherholungsgebiet. Biergärten, Eisdielen, Bootsverleih, Fahrradläden. Namen sollen entspannt und freundlich klingen.",
       residential:
-        "a neighborhood business. Think corner stores, laundromats, family restaurants, hair salons.  Names should feel local and family-owned.",
+        "ein Nachbarschaftsgeschäft.  Bäckereien, Metzgereien, Waschsalons, Friseursalons, Tante-Emma-Läden. Namen sollen lokal und familiengeführt klingen.",
     };
 
-    const prompt = `Generate a fictional business for a GTA-style game. 
-Theme: ${themePrompts[zone.theme]}
-Location: ${zone.name}
+    const prompt = `Generiere ein fiktives deutsches Geschäft für ein GTA-ähnliches Spiel das in Nürnberg spielt. 
+Thema: ${themePrompts[zone.theme]}
+Stadtteil: ${zone.name}
 
-Respond ONLY with valid JSON in this exact format:
+Antworte NUR mit gültigem JSON in diesem exakten Format:
 {
-  "name": "Business Name",
+  "name": "Geschäftsname auf Deutsch",
   "type": "business",
-  "description": "One sentence description",
-  "mainSign": "MAIN SIGN TEXT",
-  "windowSign": "Window text or slogan",
-  "color": "hex color like #ff5500",
-  "vibe": "one word mood"
+  "description": "Ein Satz Beschreibung auf Deutsch",
+  "mainSign": "HAUPTSCHILD TEXT",
+  "windowSign": "Schaufenstertext oder Slogan",
+  "color": "hex Farbe wie #ff5500",
+  "vibe": "ein Wort Stimmung"
 }`;
 
     try {
@@ -349,31 +376,39 @@ Respond ONLY with valid JSON in this exact format:
       Array<{ name: string; sign: string; color: number }>
     > = {
       slums: [
-        { name: "El Burro Tacos", sign: "TACOS $2", color: 0xff6600 },
-        { name: "Cheap Cuts Barber", sign: "HAIRCUTS", color: 0x0066ff },
-        { name: "24/7 Liquor", sign: "COLD BEER", color: 0xff0000 },
-        { name: "Cash 4 Gold", sign: "WE BUY GOLD", color: 0xffcc00 },
+        { name: "Öncü Döner", sign: "DÖNER 4,50€", color: 0xff6600 },
+        { name: "Metin's Spätkauf", sign: "24h OFFEN", color: 0x0066ff },
+        { name: "Glückspilz Wettbüro", sign: "SPORTWETTEN", color: 0x00aa00 },
+        { name: "Goldankauf Blitz", sign: "GOLD ANKAUF", color: 0xffcc00 },
+        { name: "Shisha Palace", sign: "SHISHA BAR", color: 0x9900cc },
+        { name: "Handy Doktor", sign: "REPARATUR", color: 0x00ccff },
       ],
       downtown: [
-        { name: "Maze Bank Branch", sign: "MAZE BANK", color: 0x003366 },
-        { name: "The Ivory Tower", sign: "FINE DINING", color: 0xffffcc },
-        { name: "Paradigm Shift Co", sign: "INNOVATION", color: 0x00ccff },
+        { name: "Sparkasse Filiale", sign: "SPARKASSE", color: 0xff0000 },
+        { name: "Zum Goldenen Hirsch", sign: "FINE DINING", color: 0xffffcc },
+        { name: "TechHub Nürnberg", sign: "COWORKING", color: 0x00ccff },
+        { name: "Modehaus Schuster", sign: "MODE", color: 0xff69b4 },
       ],
       hills: [
-        { name: "Chez Pierre", sign: "HAUTE CUISINE", color: 0xcc9900 },
-        { name: "Forever Young Clinic", sign: "BEAUTY", color: 0xffcccc },
+        { name: "Château Weinbar", sign: "ERLESENE WEINE", color: 0x990033 },
+        { name: "Dr. Schön Ästhetik", sign: "SCHÖNHEIT", color: 0xffcccc },
+        { name: "Autohaus Prestige", sign: "PREMIUM AUTOS", color: 0x333333 },
       ],
       industrial: [
-        { name: "Big Rig Parts", sign: "TRUCK PARTS", color: 0x666666 },
-        { name: "Steel City Fabrication", sign: "METALWORKS", color: 0x999999 },
+        { name: "Müller Spedition", sign: "TRANSPORT", color: 0x666666 },
+        { name: "Metallbau Huber", sign: "STAHLBAU", color: 0x999999 },
+        { name: "Imbiss zur Werkhalle", sign: "SCHNITZEL 6€", color: 0xcc6600 },
       ],
       beach: [
-        { name: "Surf's Up", sign: "BOARDS & GEAR", color: 0x00cccc },
-        { name: "Sandy's Seafood", sign: "FRESH CATCH", color: 0x0099cc },
+        { name: "Seestüberl", sign: "BIERGARTEN", color: 0x00aa66 },
+        { name: "Eiscafé Venezia", sign: "GELATO", color: 0xff99cc },
+        { name: "Bootsverleih Fischer", sign: "TRETBOOTE", color: 0x0099cc },
       ],
       residential: [
-        { name: "Mama's Kitchen", sign: "HOME COOKING", color: 0xcc6600 },
-        { name: "Sunny Laundromat", sign: "WASH & DRY", color: 0x66ccff },
+        { name: "Bäckerei Schmitt", sign: "FRISCHE BRÖTCHEN", color: 0xcc9966 },
+        { name: "Metzgerei Hofer", sign: "WURST & FLEISCH", color: 0xcc0000 },
+        { name: "Waschsalon Sauber", sign: "WASCHEN 3€", color: 0x66ccff },
+        { name: "Friseur Locke", sign: "HAARE SCHNEIDEN", color: 0xff66cc },
       ],
     };
 
@@ -384,7 +419,7 @@ Respond ONLY with valid JSON in this exact format:
       id: `bld_fallback_${Date.now()}`,
       type: "business",
       name: choice.name,
-      description: "A local establishment",
+      description: "Ein lokales Geschäft",
       signs: [
         {
           text: choice.sign,
@@ -592,17 +627,25 @@ Respond ONLY with valid JSON in this exact format:
   }
 
   // Generate buildings for a zone
-  async generateZoneBuildings(zone: CityZone, count: number) {
-    if (!zone.unlocked) return;
+  // Remove or simplify generateZoneBuildings to not use LLM:
+  async generateZoneBuildings(zone: CityZone | undefined, count: number) {
+    if (!zone || !zone.unlocked) return;
+    if (zone.buildings.length >= this.maxBuildingsPerZone) return;
 
-    const slots = this.getAvailableSlots(zone, count);
+    const actualCount = Math.min(
+      count,
+      this.maxBuildingsPerZone - zone.buildings.length,
+    );
+    const slots = this.getAvailableSlots(zone, actualCount);
 
-    for (const slot of slots) {
-      this.generationQueue.push({ zone, slot });
-    }
-
-    this.processGenerationQueue();
+    // Use FALLBACK only - no LLM calls!
+    slots.forEach((slot) => {
+      const building = this.generateFallbackBuilding(zone, slot.x, slot.z);
+      this.addBuilding(building, zone);
+    });
   }
+
+  // In getAvailableSlots or wherever you generate building positions:
 
   private getAvailableSlots(
     zone: CityZone,
@@ -611,6 +654,10 @@ Respond ONLY with valid JSON in this exact format:
     const slots: Array<{ x: number; z: number }> = [];
     const gridSize = 35;
     const attempts = count * 10;
+
+    // Player spawn point - keep this area clear!
+    const playerSpawn = { x: 0, z: 80 }; // Where player car starts
+    const spawnExclusionRadius = 40; // No buildings within 40 units of spawn
 
     for (let i = 0; i < attempts && slots.length < count; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -622,7 +669,15 @@ Respond ONLY with valid JSON in this exact format:
       const gridX = Math.round(x / gridSize) * gridSize;
       const gridZ = Math.round(z / gridSize) * gridSize;
 
-      // Check if slot is available
+      // Check if too close to player spawn
+      const distToSpawn = Math.sqrt(
+        Math.pow(gridX - playerSpawn.x, 2) + Math.pow(gridZ - playerSpawn.z, 2),
+      );
+      if (distToSpawn < spawnExclusionRadius) {
+        continue; // Skip this slot
+      }
+
+      // Check if slot is occupied by existing building
       const occupied = Array.from(this.allBuildings.values()).some((b) => {
         const dx = Math.abs(b.data.position.x - gridX);
         const dz = Math.abs(b.data.position.z - gridZ);
@@ -700,23 +755,47 @@ Respond ONLY with valid JSON in this exact format:
   }
 
   // Generate buildings near player as they explore
+  // This is now MUCH more conservative
   async generateNearPlayer(playerX: number, playerZ: number) {
-    for (const zone of this.zones) {
-      if (!zone.unlocked) continue;
+    // Check cooldown
+    const now = Date.now();
+    if (now - this.lastGenerationAttempt < this.generationCooldown) {
+      return; // Too soon, skip
+    }
 
-      const distToZone = Math.sqrt(
-        Math.pow(playerX - zone.centerX, 2) +
-          Math.pow(playerZ - zone.centerZ, 2),
+    // Check total building limit
+    if (this.allBuildings.size >= this.maxTotalBuildings) {
+      return; // Enough buildings already
+    }
+
+    // Check if already generating
+    if (this.isGenerating || this.generationQueue.length > 0) {
+      return; // Already busy
+    }
+
+    // Find the zone player is in
+    const currentZone = this.getPlayerZone(playerX, playerZ);
+    if (!currentZone || !currentZone.unlocked) {
+      return; // Not in a valid zone
+    }
+
+    // Only generate if this zone needs buildings
+    if (currentZone.buildings.length >= this.maxBuildingsPerZone) {
+      return; // Zone is full
+    }
+
+    this.lastGenerationAttempt = now;
+
+    // Generate just ONE building (using fallback to save tokens)
+    const slots = this.getAvailableSlots(currentZone, 1);
+    if (slots.length > 0) {
+      console.log(`Generating 1 building in ${currentZone.name}`);
+      const building = this.generateFallbackBuilding(
+        currentZone,
+        slots[0].x,
+        slots[0].z,
       );
-
-      // If player is in or near zone and zone needs more buildings
-      if (distToZone < zone.radius + 50 && zone.buildings.length < 8) {
-        const needed =
-          3 - this.generationQueue.filter((q) => q.zone === zone).length;
-        if (needed > 0) {
-          await this.generateZoneBuildings(zone, needed);
-        }
-      }
+      this.addBuilding(building, currentZone);
     }
   }
 

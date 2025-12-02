@@ -236,6 +236,11 @@ export function initWorld(
         housePos: group.position,
         dims: { w: 20, d: 20 },
       });
+      // In the church creation section, make sure this line exists:
+      interactables.push({
+        type: "altar",
+        pos: new THREE.Vector3(-120, 0, 25).add(group.position), // Adjust position as needed
+      });
     } else if (obj.type === "wormhole") {
       // Enterable Bar
       const group = new THREE.Group();

@@ -82,3 +82,12 @@ export interface AIAgent {
   lastAction: string;
   nextActionTime: number;
 }
+
+export interface Notification {
+  id: string;
+  type: "location" | "business" | "zone" | "money" | "mission";
+  title: string;
+  subtitle?: string;
+  duration: number;
+  startTime: number;
+}
