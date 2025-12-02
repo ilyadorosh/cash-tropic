@@ -5,6 +5,15 @@ import * as THREE from "three";
 import { initWorld, MAP_LAYOUT } from "./World";
 import { GameStats, Dialogue, DialogueOption } from "./types";
 import {
+  PLAYER_SPAWN,
+  ROADS,
+  LOCATIONS,
+  ZONES,
+  NO_BUILD_ZONES,
+  isInNoBuildZone,
+} from "./NuernbergMap";
+
+import {
   CHARACTERS,
   THIEF_MISSION_DIALOGUE,
   MARIA_DIALOGUE,
@@ -464,6 +473,146 @@ export default function GTAEngine() {
       colliders.push(collider);
     }
 
+    function drawRoads() {
+      const roadsGroup = new THREE.Group();
+
+      ROADS.forEach((road) => {
+        const color =
+          road.type === "autobahn"
+            ? 0x333333
+            : road.type === "hauptstrasse"
+            ? 0x444444
+            : 0x555555;
+
+        // Draw road segments
+        for (let i = 0; i < road.points.length - 1; i++) {
+          const start = road.points[i];
+          const end = road.points[i + 1];
+
+          const dx = end.x - start.x;
+          const dz = end.z - start.z;
+          const length = Math.sqrt(dx * dx + dz * dz);
+          const angle = Math.atan2(dx, dz);
+
+          // Asphalt
+          const roadMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(road.width, length),
+            new THREE.MeshLambertMaterial({ color }),
+          );
+          roadMesh.rotation.x = -Math.PI / 2;
+          roadMesh.rotation.z = angle;
+          roadMesh.position.set(
+            (start.x + end.x) / 2,
+            0.05,
+            (start.z + end.z) / 2,
+          );
+          roadMesh.receiveShadow = true;
+          roadsGroup.add(roadMesh);
+
+          // Lane markings for autobahn
+          if (road.type === "autobahn") {
+            // Center lines
+            for (let lane = 1; lane < road.lanes; lane++) {
+              const offset =
+                (lane - road.lanes / 2) * (road.width / road.lanes);
+              const lineMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.3, length),
+                new THREE.MeshBasicMaterial({ color: 0xffffff }),
+              );
+              lineMesh.rotation.x = -Math.PI / 2;
+              lineMesh.rotation.z = angle;
+
+              // Offset perpendicular to road direction
+              const perpX = Math.cos(angle) * offset;
+              const perpZ = -Math.sin(angle) * offset;
+
+              lineMesh.position.set(
+                (start.x + end.x) / 2 + perpX,
+                0.06,
+                (start.z + end.z) / 2 + perpZ,
+              );
+              roadsGroup.add(lineMesh);
+            }
+
+            // Edge lines (yellow for autobahn)
+            [-1, 1].forEach((side) => {
+              const edgeMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.4, length),
+                new THREE.MeshBasicMaterial({ color: 0xffcc00 }),
+              );
+              edgeMesh.rotation.x = -Math.PI / 2;
+              edgeMesh.rotation.z = angle;
+
+              const offset = side * (road.width / 2 - 0.5);
+              const perpX = Math.cos(angle) * offset;
+              const perpZ = -Math.sin(angle) * offset;
+
+              edgeMesh.position.set(
+                (start.x + end.x) / 2 + perpX,
+                0.06,
+                (start.z + end.z) / 2 + perpZ,
+              );
+              roadsGroup.add(edgeMesh);
+            });
+          }
+        }
+
+        // Autobahn signs
+        if (road.type === "autobahn" && road.points.length > 0) {
+          const signPos = road.points[0];
+          const sign = createAutobahnSign(road.name, road.speedLimit);
+          sign.position.set(signPos.x + 15, 0, signPos.z);
+          roadsGroup.add(sign);
+        }
+      });
+
+      scene.add(roadsGroup);
+    }
+
+    function createAutobahnSign(name: string, speed: number): THREE.Group {
+      const group = new THREE.Group();
+
+      // Pole
+      const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.2, 0.2, 8),
+        new THREE.MeshLambertMaterial({ color: 0x888888 }),
+      );
+      pole.position.y = 4;
+      group.add(pole);
+
+      // Sign background (blue for autobahn)
+      const signBg = new THREE.Mesh(
+        new THREE.BoxGeometry(6, 3, 0.2),
+        new THREE.MeshLambertMaterial({ color: 0x0055aa }),
+      );
+      signBg.position.y = 7;
+      group.add(signBg);
+
+      // Speed sign (round, no limit)
+      if (speed >= 200) {
+        // No speed limit sign
+        const noLimit = new THREE.Mesh(
+          new THREE.CircleGeometry(1, 32),
+          new THREE.MeshBasicMaterial({ color: 0xffffff }),
+        );
+        noLimit.position.set(0, 7, 0.15);
+        group.add(noLimit);
+
+        // Diagonal lines
+        const lines = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.1, 2),
+          new THREE.MeshBasicMaterial({ color: 0x000000 }),
+        );
+        lines.rotation.z = Math.PI / 4;
+        lines.position.set(0, 7, 0.2);
+        group.add(lines);
+      }
+
+      return group;
+    }
+    // Call it after scene setup:
+    drawRoads();
+
     // Generate building data for a plot
     function generateBuildingForPlot(
       plot: BuildingPlot,
@@ -661,7 +810,10 @@ export default function GTAEngine() {
       w.position.set(pos[0], pos[1], pos[2]);
       carGroup.add(w);
     });
-    carGroup.position.set(0, 0, 120);
+    // carGroup.position.set(0, 0, 120);
+    carGroup.position.set(PLAYER_SPAWN.position.x, 0, PLAYER_SPAWN.position.z);
+    carGroup.rotation.y = PLAYER_SPAWN.rotation;
+
     carGroup.rotation.y = Math.PI;
     scene.add(carGroup);
 
@@ -669,6 +821,20 @@ export default function GTAEngine() {
     const playerGroup = new THREE.Group();
     // Also set player spawn:
     playerGroup.position.set(0, 0, 125);
+
+    playerGroup.position.set(
+      PLAYER_SPAWN.position.x,
+      0,
+      PLAYER_SPAWN.position.z + 5,
+    );
+
+    camera.position.set(
+      PLAYER_SPAWN.position.x,
+      20,
+      PLAYER_SPAWN.position.z + 30,
+    );
+    camera.lookAt(PLAYER_SPAWN.position.x, 0, PLAYER_SPAWN.position.z);
+
     const pBody = new THREE.Mesh(
       new THREE.BoxGeometry(1.2, 3.5, 0.8),
       new THREE.MeshLambertMaterial({ color: 0xffffff }),
