@@ -24,12 +24,15 @@ export async function GET(req: Request) {
 
   // Get game progress from Redis
   const gameProgress = await redis.get(`city:${user.id}`);
+  function getDisplayName(email: string): string {
+    return email.split("@")[0];
+  }
 
   return NextResponse.json({
     user: {
       id: user.id,
       email: user.email,
-      name: cachedName || user.name,
+      name: cachedName ?? getDisplayName(user.email),
     },
     gameProgress: gameProgress ? JSON.parse(gameProgress as string) : null,
   });
