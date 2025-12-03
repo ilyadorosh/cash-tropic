@@ -41,6 +41,7 @@ import { getAllLessons, getNextLesson, Lesson } from "./LearningJourney";
 // Add these imports
 import { MobileControls } from "./MobileControls";
 import { MissionOverview } from "./MissionOverview";
+import { PrayerModal } from "./PrayerModal";
 
 // === AUDIO UTILITIES ===
 const speak = (text: string, pitch = 1, rate = 1) => {
@@ -168,6 +169,9 @@ export default function GTAEngine() {
   // === ADD THESE REFS AT THE TOP OF THE COMPONENT (outside useEffect) ===
   const keysRef = useRef<Record<string, boolean>>({});
   const onKeyDownRef = useRef<((e: KeyboardEvent) => void) | null>(null);
+
+  // Add state
+  const [showPrayerModal, setShowPrayerModal] = useState(false);
 
   // Dialogue handler with options support
   const handleDialogue = useCallback((d: Dialogue) => {
@@ -1316,6 +1320,11 @@ export default function GTAEngine() {
       // === SPACE KEY - BRAKE / SURRENDER ===
       if (e.key === " " || e.code === "Space") {
         e.preventDefault();
+        // If dialogue is showing, dismiss it
+        if (dialogue) {
+          setDialogue(null);
+          return; // Don't do anything else!
+        }
 
         if (showSurrenderPrompt && wantedLevel > 0) {
           wantedLevel = 0;
@@ -1474,6 +1483,7 @@ export default function GTAEngine() {
           const altar = interactables.find((i) => i.type === "altar");
           if (altar && playerGroup.position.distanceTo(altar.pos) < 6) {
             // Thief mission completion
+            setShowPrayerModal(true);
             if (thiefFollowing) {
               missionSystemRef.current?.thiefReachedChurch();
               thiefFollowing = false;
@@ -2480,6 +2490,14 @@ export default function GTAEngine() {
             or keep running...{" "}
           </span>
         </div>
+      )}
+      {showPrayerModal && (
+        <PrayerModal
+          onClose={() => setShowPrayerModal(false)}
+          onPrayerComplete={() => {
+            setStats((s) => ({ ...s, wanted: 0 }));
+          }}
+        />
       )}
       {/* GTA Vice City Style Notifications - Non-intrusive */}
       <div
