@@ -481,34 +481,56 @@ If you want to add a new translation, read this [document](./docs/translation.md
 
 [MIT](https://opensource.org/license/mit/)
 
+---
 
-Utopiła moje serce w benzynie i podpaliła je-e
-Piję drinka przy ognisku, żeby zapomnieć o Tobie
-Dzwoni do mnie ziomal, że tu na mnie czeka 1000 kobiet
-Na nogach mam ramony, ty to Ricky i Owens
-Ja nikomu nie ufam, w Żabce kupuje kondomy
-Poza kontrolą będę K.O w tym mieście
-Moi ziomale ostrzegali mnie wcześniej
-Nadal P.P.P. - papier ponad pussy
-Ale jak wrócę znów, gapię się na ten sufit
-Utopiła moje serce w benzynie i podpaliła je-e
-Utopiła moje serce w benzynie i podpaliła je-е
-Utopiła moje serce w bеnzynie (i podpaliła je-e)
-Utopiła moje serce w benzynie i podpaliła je-e
-Ona chce zrobić z Ciebie simp, zapomniał o ziomalach
-Mam abnormalny rizz, następna już wybrana
-Jestem G. O. A. T., przysięgam to na mamę
-Wchodzę tak jak Halland na tą pierwszą bazę
-Najlepszy lek, aby zapomnieć to jest iść na jakiś melanż
-Dzwoni do mnie Ania, potem dzwoni do mnie Ela
-Po tych ciotach nic nie widzę
-Oczy jak zepsuty ekran
-Mówię na nią "speed", bo ciągle na mnie szczeka
-Poza kontrolą, będę K.O w tym mieście
-Moi ziomale ostrzegali mnie wcześniej
-Nadal P.P.P. - papier ponad pussy
-Ale jak wrócę znów, gapię się na ten sufit
-Utopiła moje serce w benzynie i podpaliła je-e
-Utopiła moje serce w benzynie i podpaliła je-e
-Utopiła moje serce w benzynie (i podpaliła je-e)
-Utopiła moje serce w benzynie i podpaliła je-e
+## 🌌 Energy-Based Civilization Visualizer
+
+**Cash-Tropic** extends NextChat into an **interactive thesis** demonstrating energy-based economics, thermodynamics, and AI model architectures.
+
+### Core Thesis
+
+> **Energy is information. Entropy is information. Temperature is a statistical equalizer of movement.**
+
+### Features
+
+- **3D Energy Visualization** (`/visualizer`) - Interactive Three.js environment showing:
+  - Energy flows as particle systems
+  - Entropy gradients as heat maps
+  - AI model architectures in 3D
+  - Civilization grids with energy balance
+
+- **AI Model Switching** - Like switching cars in GTA, seamlessly switch between:
+  - OpenAI (GPT-4, GPT-3.5)
+  - Anthropic (Claude 3 Opus, Sonnet, Haiku)
+  - Google (Gemini Pro)
+  - Groq (Llama 3.1, Mixtral)
+  - SambaNova
+  - Custom trained models (placeholder)
+
+- **Physics Education** - Interactive panels with LaTeX-rendered equations:
+  - Boltzmann entropy: $S = k_B \ln \Omega$
+  - Energy-information equivalence
+  - Statistical mechanics of temperature
+
+- **GTA-Style Game** (`/game`) - Educational game environment for exploring thermodynamic concepts
+
+### Navigation
+
+| Route | Description |
+|-------|-------------|
+| `/` | Main chat interface (NextChat) |
+| `/visualizer` | 3D Energy Civilization Visualizer |
+| `/game` | Grand Thermodynamische Autobahn |
+| `/admin/profiles` | ActInLove admin panel |
+
+### Vision
+
+This is the Foundation for a research demonstration platform exploring:
+- Novel AI model architectures
+- Energy-based economics and thermodynamics
+- Educational physics through interactive play
+- Interactive "Situational Awareness" style thesis
+
+*"Violence is the last refuge of the incompetent."* — Salvor Hardin
+
+Build it clean, build it impressive, build it to last. 🌌
