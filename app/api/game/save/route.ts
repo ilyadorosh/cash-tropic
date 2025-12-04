@@ -85,7 +85,7 @@ export async function POST(req: Request) {
         respect: data.respect,
         wantedLevel: data.wantedLevel,
         playTime: data.playTime,
-        currentMission: data.currentMission ?? undefined,
+        currentMission: data.currentMission || undefined,
         unlockedZones: data.unlockedZones,
         ownedPropertiesList: data.ownedProperties,
       });

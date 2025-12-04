@@ -208,7 +208,7 @@ export class SyncService {
 
 interface LearningProgress {
   subject?: string;
-  odessons: Record<
+  lessons: Record<
     string,
     {
       moduleId: string;
