@@ -396,17 +396,10 @@ const BUILT_IN_MAPS: Record<string, MapConfig> = {
 };
 
 /**
- * MapLoader implementation with Redis support
+ * MapLoader implementation.
+ * Custom map operations use server-side API routes to keep credentials secure.
  */
 export class MapLoader implements IMapLoader {
-  private redisUrl?: string;
-  private redisToken?: string;
-
-  constructor(redisUrl?: string, redisToken?: string) {
-    this.redisUrl = redisUrl;
-    this.redisToken = redisToken;
-  }
-
   /**
    * Load a built-in map by type
    */
@@ -427,33 +420,24 @@ export class MapLoader implements IMapLoader {
   }
 
   /**
-   * Load a custom map from Redis by ID
+   * Load a custom map from server-side API by ID.
+   * This method fetches from a server API route to keep Redis credentials secure.
    */
   async loadCustomMap(mapId: string): Promise<MapConfig | null> {
-    if (!this.redisUrl || !this.redisToken) {
-      console.warn("Redis not configured. Cannot load custom maps.");
-      return null;
-    }
-
     try {
-      const response = await fetch(`${this.redisUrl}/get/map:${mapId}`, {
-        headers: {
-          Authorization: `Bearer ${this.redisToken}`,
-        },
-      });
+      // Use server-side API route instead of direct Redis access
+      const response = await fetch(
+        `/api/game/map?id=${encodeURIComponent(mapId)}`,
+      );
 
       if (!response.ok) {
         return null;
       }
 
       const data = await response.json();
-      if (data.result) {
-        const mapConfig =
-          typeof data.result === "string"
-            ? JSON.parse(data.result)
-            : data.result;
-        console.log(`📍 Loaded custom map: ${mapConfig.name}`);
-        return mapConfig as MapConfig;
+      if (data.mapConfig) {
+        console.log(`📍 Loaded custom map: ${data.mapConfig.name}`);
+        return data.mapConfig as MapConfig;
       }
 
       return null;
@@ -464,22 +448,18 @@ export class MapLoader implements IMapLoader {
   }
 
   /**
-   * Save a custom map to Redis
+   * Save a custom map via server-side API.
+   * This method posts to a server API route to keep Redis credentials secure.
    */
   async saveCustomMap(mapConfig: MapConfig): Promise<boolean> {
-    if (!this.redisUrl || !this.redisToken) {
-      console.warn("Redis not configured. Cannot save custom maps.");
-      return false;
-    }
-
     try {
-      const response = await fetch(`${this.redisUrl}/set/map:${mapConfig.id}`, {
+      // Use server-side API route instead of direct Redis access
+      const response = await fetch("/api/game/map", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${this.redisToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(mapConfig),
+        body: JSON.stringify({ mapConfig }),
       });
 
       return response.ok;
@@ -523,9 +503,8 @@ export class MapLoader implements IMapLoader {
 }
 
 /**
- * Export a singleton instance with default configuration
+ * Export a singleton instance.
+ * Note: Custom map loading via Redis should be done through server-side API routes
+ * to avoid exposing credentials to the client.
  */
-export const defaultMapLoader = new MapLoader(
-  process.env.NEXT_PUBLIC_UPSTASH_REDIS_REST_URL,
-  process.env.NEXT_PUBLIC_UPSTASH_REDIS_REST_TOKEN,
-);
+export const defaultMapLoader = new MapLoader();

@@ -4,6 +4,7 @@ import { PlayerProgress, createDefaultProgress } from "../GameState";
 import { GameStats, Dialogue } from "../types";
 import {
   EngineConfig,
+  EngineFeatures,
   EngineType,
   IGameEngine,
   MapConfig,
@@ -226,7 +227,7 @@ export abstract class BaseEngine implements IGameEngine {
   /**
    * Utility: Check if a feature is enabled
    */
-  protected hasFeature(feature: keyof typeof DEFAULT_ENGINE_FEATURES): boolean {
+  protected hasFeature(feature: keyof EngineFeatures): boolean {
     return this.config?.features[feature] ?? false;
   }
 

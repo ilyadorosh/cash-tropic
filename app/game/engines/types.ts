@@ -275,7 +275,7 @@ export interface IMapLoader {
 /**
  * Default feature set for a standard engine
  */
-export const DEFAULT_ENGINE_FEATURES: EngineFeatures = {
+export const DEFAULT_ENGINE_FEATURES: Readonly<EngineFeatures> = {
   traffic: true,
   police: true,
   missions: true,

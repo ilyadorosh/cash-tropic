@@ -11,9 +11,9 @@ import {
   EngineRegistry,
   defaultMapLoader,
   DEFAULT_ENGINE_FEATURES,
-} from "./engines";
-import { Three3DEngine } from "./engines/Three3DEngine";
-import { GameStats, Dialogue } from "./types";
+  Three3DEngine,
+} from "./index";
+import { GameStats, Dialogue } from "../types";
 
 // Register engines on module load (client-side only)
 if (typeof window !== "undefined") {
