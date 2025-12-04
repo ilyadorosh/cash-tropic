@@ -8,14 +8,19 @@ export class GameManager {
   private saveInterval: ReturnType<typeof setInterval> | null = null;
   private isDirty: boolean = false;
 
-  // Load game - tries cloud first, falls back to local
+  // Load game - tries PostgreSQL first, then Redis, then localStorage
   async loadGame(
     userId: string,
   ): Promise<{ progress: PlayerProgress; world: WorldState }> {
     console.log("🎮 Loading game for user:", userId);
 
-    // Try cloud first
-    let progress = await this.loadFromCloud(userId);
+    // Try PostgreSQL first (persistent storage)
+    let progress = await this.loadFromPostgres(userId);
+
+    // Fall back to Redis cloud cache
+    if (!progress) {
+      progress = await this.loadFromCloud(userId);
+    }
 
     // Fall back to localStorage
     if (!progress) {
@@ -39,13 +44,31 @@ export class GameManager {
     return { progress: this.progress, world: this.worldState };
   }
 
+  private async loadFromPostgres(
+    userId: string,
+  ): Promise<PlayerProgress | null> {
+    try {
+      const res = await fetch(`/api/game/load/${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.progress) {
+          console.log("🐘 Loaded from PostgreSQL");
+          return data.progress;
+        }
+      }
+    } catch (e) {
+      console.warn("PostgreSQL load failed:", e);
+    }
+    return null;
+  }
+
   private async loadFromCloud(userId: string): Promise<PlayerProgress | null> {
     try {
       const res = await fetch(`/api/game/city?userId=${userId}`);
       if (res.ok) {
         const { city } = await res.json();
         if (city) {
-          console.log("☁️ Loaded from cloud");
+          console.log("☁️ Loaded from Redis cloud");
           return typeof city === "string" ? JSON.parse(city) : city;
         }
       }
@@ -94,22 +117,29 @@ export class GameManager {
     };
   }
 
-  // Save game
+  // Save game to all storage layers
   async saveGame(): Promise<boolean> {
     if (!this.progress) return false;
 
     this.progress.lastSaved = new Date().toISOString();
 
-    // Save to localStorage immediately (fast)
+    // Save to localStorage immediately (fast, offline support)
     this.saveToLocal();
 
-    // Sync to cloud (async)
+    // Save to PostgreSQL (persistent, reliable)
+    const postgresSaved = await this.saveToPostgres();
+
+    // Also sync to Redis (fast cache for multiplayer)
     const cloudSaved = await this.saveToCloud();
 
     this.isDirty = false;
-    console.log("💾 Game saved", cloudSaved ? "(+ cloud)" : "(local only)");
+    console.log(
+      "💾 Game saved",
+      postgresSaved ? "(+ PostgreSQL)" : "",
+      cloudSaved ? "(+ Redis)" : "",
+    );
 
-    return true;
+    return postgresSaved || cloudSaved;
   }
 
   private saveToLocal() {
@@ -122,6 +152,22 @@ export class GameManager {
       );
     } catch (e) {
       console.error("Local save failed:", e);
+    }
+  }
+
+  private async saveToPostgres(): Promise<boolean> {
+    if (!this.progress) return false;
+
+    try {
+      const res = await fetch("/api/game/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(this.progress),
+      });
+      return res.ok;
+    } catch (e) {
+      console.warn("PostgreSQL save failed:", e);
+      return false;
     }
   }
 
@@ -206,7 +252,8 @@ export class GameManager {
         }
       }
 
-      this.markDirty();
+      // Auto-save on mission complete (important event)
+      this.saveGame();
     }
   }
 
@@ -222,10 +269,19 @@ export class GameManager {
       track.quizScores[lessonId] = score;
       track.xp += Math.floor(score / 10) * 10; // XP based on score
 
-      // Update leaderboard
-      this.updateLeaderboard(subject, track.xp);
+      // Level up check
+      const xpForLevelUp = track.level * 100;
+      if (track.xp >= xpForLevelUp) {
+        track.level++;
+        track.xp -= xpForLevelUp;
+        // Auto-save on level up (important event)
+        this.saveGame();
+      } else {
+        this.markDirty();
+      }
 
-      this.markDirty();
+      // Update leaderboard
+      this.updateLeaderboard(subject, track.xp + (track.level - 1) * 100);
     }
   }
 
@@ -255,7 +311,8 @@ export class GameManager {
     if (current < 12) {
       this.progress.twelveSteps.stepsCompleted[current] = true;
       this.progress.twelveSteps.currentStep++;
-      this.markDirty();
+      // Auto-save on step completion (important event)
+      this.saveGame();
     }
   }
 
@@ -276,7 +333,8 @@ export class GameManager {
           this.progress.relationships[npcId] + 20,
         );
       }
-      this.markDirty();
+      // Auto-save on making amends (important event)
+      this.saveGame();
     }
   }
 
