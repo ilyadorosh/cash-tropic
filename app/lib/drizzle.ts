@@ -25,8 +25,19 @@ import {
   UserResponse,
   userResponse,
   contextInteractions,
-  // ContextInteraction type is not used elsewhere yet, but keep consistent naming
-  // ContextInteraction,
+  // Game state tables
+  gameSave,
+  GameSave,
+  learningProgress,
+  LearningProgress,
+  missionProgress,
+  MissionProgress,
+  twelveStepsProgress,
+  TwelveStepsProgress,
+  npcRelationships,
+  NPCRelationships,
+  ownedProperties,
+  OwnedProperties,
 } from "./schema";
 
 import * as schema from "./schema";
@@ -531,6 +542,482 @@ export async function saveContextInteraction({
     return inserted;
   } catch (error) {
     console.error("Failed to save context interaction in database", error);
+    throw error;
+  }
+}
+
+// ============================================
+// GAME STATE FUNCTIONS
+// ============================================
+
+// GameSave CRUD operations
+export async function getGameSaveByUserId({
+  userId,
+}: {
+  userId: string;
+}): Promise<GameSave | undefined> {
+  try {
+    const [save] = await db
+      .select()
+      .from(gameSave)
+      .where(eq(gameSave.userId, userId))
+      .orderBy(desc(gameSave.lastSaved))
+      .limit(1);
+    return save;
+  } catch (error) {
+    console.error("Failed to get game save from database", error);
+    throw error;
+  }
+}
+
+export async function createGameSave({
+  userId,
+  money = 500,
+  health = 100,
+  respect = 0,
+  wantedLevel = 0,
+  playTime = 0,
+  currentMission,
+  unlockedZones = ["Südstadt", "Innenstadt", "Gostenhof"],
+  ownedPropertiesList = [],
+}: {
+  userId: string;
+  money?: number;
+  health?: number;
+  respect?: number;
+  wantedLevel?: number;
+  playTime?: number;
+  currentMission?: string;
+  unlockedZones?: string[];
+  ownedPropertiesList?: string[];
+}): Promise<GameSave> {
+  try {
+    const [created] = await db
+      .insert(gameSave)
+      .values({
+        userId,
+        money,
+        health,
+        respect,
+        wantedLevel,
+        playTime,
+        currentMission: currentMission ?? null,
+        unlockedZones,
+        ownedProperties: ownedPropertiesList,
+        createdAt: new Date(),
+        lastSaved: new Date(),
+      })
+      .returning();
+    return created;
+  } catch (error) {
+    console.error("Failed to create game save in database", error);
+    throw error;
+  }
+}
+
+export async function updateGameSave({
+  id,
+  money,
+  health,
+  respect,
+  wantedLevel,
+  playTime,
+  currentMission,
+  unlockedZones,
+  ownedPropertiesList,
+}: {
+  id: string;
+  money?: number;
+  health?: number;
+  respect?: number;
+  wantedLevel?: number;
+  playTime?: number;
+  currentMission?: string | null;
+  unlockedZones?: string[];
+  ownedPropertiesList?: string[];
+}): Promise<GameSave> {
+  try {
+    const updateData: Partial<GameSave> = { lastSaved: new Date() };
+    if (money !== undefined) updateData.money = money;
+    if (health !== undefined) updateData.health = health;
+    if (respect !== undefined) updateData.respect = respect;
+    if (wantedLevel !== undefined) updateData.wantedLevel = wantedLevel;
+    if (playTime !== undefined) updateData.playTime = playTime;
+    if (currentMission !== undefined)
+      updateData.currentMission = currentMission;
+    if (unlockedZones !== undefined) updateData.unlockedZones = unlockedZones;
+    if (ownedPropertiesList !== undefined)
+      updateData.ownedProperties = ownedPropertiesList;
+
+    const [updated] = await db
+      .update(gameSave)
+      .set(updateData)
+      .where(eq(gameSave.id, id))
+      .returning();
+    return updated;
+  } catch (error) {
+    console.error("Failed to update game save in database", error);
+    throw error;
+  }
+}
+
+// Learning Progress operations
+export async function getLearningProgressByGameSave({
+  gameSaveId,
+}: {
+  gameSaveId: string;
+}): Promise<LearningProgress[]> {
+  try {
+    return await db
+      .select()
+      .from(learningProgress)
+      .where(eq(learningProgress.gameSaveId, gameSaveId));
+  } catch (error) {
+    console.error("Failed to get learning progress from database", error);
+    throw error;
+  }
+}
+
+export async function upsertLearningProgress({
+  gameSaveId,
+  subject,
+  level = 1,
+  xp = 0,
+  lessonsCompleted = [],
+  currentLesson,
+  achievements = [],
+  quizScores = {},
+}: {
+  gameSaveId: string;
+  subject: string;
+  level?: number;
+  xp?: number;
+  lessonsCompleted?: string[];
+  currentLesson?: string | null;
+  achievements?: string[];
+  quizScores?: Record<string, number>;
+}): Promise<LearningProgress> {
+  try {
+    // Check if exists
+    const [existing] = await db
+      .select()
+      .from(learningProgress)
+      .where(
+        and(
+          eq(learningProgress.gameSaveId, gameSaveId),
+          eq(learningProgress.subject, subject),
+        ),
+      );
+
+    if (existing) {
+      // Update
+      const [updated] = await db
+        .update(learningProgress)
+        .set({
+          level,
+          xp,
+          lessonsCompleted,
+          currentLesson: currentLesson ?? null,
+          achievements,
+          quizScores,
+        })
+        .where(eq(learningProgress.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      // Insert
+      const [created] = await db
+        .insert(learningProgress)
+        .values({
+          gameSaveId,
+          subject,
+          level,
+          xp,
+          lessonsCompleted,
+          currentLesson: currentLesson ?? null,
+          achievements,
+          quizScores,
+        })
+        .returning();
+      return created;
+    }
+  } catch (error) {
+    console.error("Failed to upsert learning progress in database", error);
+    throw error;
+  }
+}
+
+// Mission Progress operations
+export async function getMissionProgressByGameSave({
+  gameSaveId,
+}: {
+  gameSaveId: string;
+}): Promise<MissionProgress[]> {
+  try {
+    return await db
+      .select()
+      .from(missionProgress)
+      .where(eq(missionProgress.gameSaveId, gameSaveId));
+  } catch (error) {
+    console.error("Failed to get mission progress from database", error);
+    throw error;
+  }
+}
+
+export async function completeMission({
+  gameSaveId,
+  missionId,
+}: {
+  gameSaveId: string;
+  missionId: string;
+}): Promise<MissionProgress> {
+  try {
+    // Check if exists
+    const [existing] = await db
+      .select()
+      .from(missionProgress)
+      .where(
+        and(
+          eq(missionProgress.gameSaveId, gameSaveId),
+          eq(missionProgress.missionId, missionId),
+        ),
+      );
+
+    if (existing) {
+      const [updated] = await db
+        .update(missionProgress)
+        .set({
+          completed: true,
+          completedAt: new Date(),
+        })
+        .where(eq(missionProgress.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(missionProgress)
+        .values({
+          gameSaveId,
+          missionId,
+          completed: true,
+          completedAt: new Date(),
+        })
+        .returning();
+      return created;
+    }
+  } catch (error) {
+    console.error("Failed to complete mission in database", error);
+    throw error;
+  }
+}
+
+// Twelve Steps Progress operations
+export async function getTwelveStepsProgress({
+  gameSaveId,
+}: {
+  gameSaveId: string;
+}): Promise<TwelveStepsProgress | undefined> {
+  try {
+    const [progress] = await db
+      .select()
+      .from(twelveStepsProgress)
+      .where(eq(twelveStepsProgress.gameSaveId, gameSaveId));
+    return progress;
+  } catch (error) {
+    console.error("Failed to get twelve steps progress from database", error);
+    throw error;
+  }
+}
+
+export async function upsertTwelveStepsProgress({
+  gameSaveId,
+  currentStep = 0,
+  stepsCompleted = Array(12).fill(false),
+  sobrietyDays = 0,
+  sponsor,
+  amends = [],
+}: {
+  gameSaveId: string;
+  currentStep?: number;
+  stepsCompleted?: boolean[];
+  sobrietyDays?: number;
+  sponsor?: string | null;
+  amends?: string[];
+}): Promise<TwelveStepsProgress> {
+  try {
+    const [existing] = await db
+      .select()
+      .from(twelveStepsProgress)
+      .where(eq(twelveStepsProgress.gameSaveId, gameSaveId));
+
+    if (existing) {
+      const [updated] = await db
+        .update(twelveStepsProgress)
+        .set({
+          currentStep,
+          stepsCompleted,
+          sobrietyDays,
+          sponsor: sponsor ?? null,
+          amends,
+        })
+        .where(eq(twelveStepsProgress.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(twelveStepsProgress)
+        .values({
+          gameSaveId,
+          currentStep,
+          stepsCompleted,
+          sobrietyDays,
+          sponsor: sponsor ?? null,
+          amends,
+        })
+        .returning();
+      return created;
+    }
+  } catch (error) {
+    console.error("Failed to upsert twelve steps progress in database", error);
+    throw error;
+  }
+}
+
+// NPC Relationships operations
+export async function getNPCRelationshipsByGameSave({
+  gameSaveId,
+}: {
+  gameSaveId: string;
+}): Promise<NPCRelationships[]> {
+  try {
+    return await db
+      .select()
+      .from(npcRelationships)
+      .where(eq(npcRelationships.gameSaveId, gameSaveId));
+  } catch (error) {
+    console.error("Failed to get NPC relationships from database", error);
+    throw error;
+  }
+}
+
+export async function upsertNPCRelationship({
+  gameSaveId,
+  npcId,
+  affection = 50,
+  memories = [],
+}: {
+  gameSaveId: string;
+  npcId: string;
+  affection?: number;
+  memories?: string[];
+}): Promise<NPCRelationships> {
+  try {
+    const [existing] = await db
+      .select()
+      .from(npcRelationships)
+      .where(
+        and(
+          eq(npcRelationships.gameSaveId, gameSaveId),
+          eq(npcRelationships.npcId, npcId),
+        ),
+      );
+
+    if (existing) {
+      const [updated] = await db
+        .update(npcRelationships)
+        .set({ affection, memories })
+        .where(eq(npcRelationships.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(npcRelationships)
+        .values({ gameSaveId, npcId, affection, memories })
+        .returning();
+      return created;
+    }
+  } catch (error) {
+    console.error("Failed to upsert NPC relationship in database", error);
+    throw error;
+  }
+}
+
+// Owned Properties operations
+export async function getOwnedPropertiesByGameSave({
+  gameSaveId,
+}: {
+  gameSaveId: string;
+}): Promise<OwnedProperties[]> {
+  try {
+    return await db
+      .select()
+      .from(ownedProperties)
+      .where(eq(ownedProperties.gameSaveId, gameSaveId));
+  } catch (error) {
+    console.error("Failed to get owned properties from database", error);
+    throw error;
+  }
+}
+
+export async function addOwnedProperty({
+  gameSaveId,
+  propertyId,
+  propertyName,
+  propertyType,
+  purchasePrice,
+}: {
+  gameSaveId: string;
+  propertyId: string;
+  propertyName?: string;
+  propertyType?: string;
+  purchasePrice?: number;
+}): Promise<OwnedProperties> {
+  try {
+    const [created] = await db
+      .insert(ownedProperties)
+      .values({
+        gameSaveId,
+        propertyId,
+        propertyName: propertyName ?? null,
+        propertyType: propertyType ?? null,
+        purchasedAt: new Date(),
+        purchasePrice: purchasePrice ?? null,
+      })
+      .returning();
+    return created;
+  } catch (error) {
+    console.error("Failed to add owned property in database", error);
+    throw error;
+  }
+}
+
+// Full game state loader - loads all related data for a user
+export async function loadFullGameState({ userId }: { userId: string }) {
+  try {
+    const save = await getGameSaveByUserId({ userId });
+    if (!save) {
+      return null;
+    }
+
+    const [learning, missions, twelveSteps, relationships, properties] =
+      await Promise.all([
+        getLearningProgressByGameSave({ gameSaveId: save.id }),
+        getMissionProgressByGameSave({ gameSaveId: save.id }),
+        getTwelveStepsProgress({ gameSaveId: save.id }),
+        getNPCRelationshipsByGameSave({ gameSaveId: save.id }),
+        getOwnedPropertiesByGameSave({ gameSaveId: save.id }),
+      ]);
+
+    return {
+      save,
+      learning,
+      missions,
+      twelveSteps,
+      relationships,
+      properties,
+    };
+  } catch (error) {
+    console.error("Failed to load full game state from database", error);
     throw error;
   }
 }

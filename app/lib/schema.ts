@@ -166,3 +166,127 @@ export const contextInteractions = pgTable("context_interactions", {
   y: integer("y"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// ============================================
+// GAME STATE TABLES
+// ============================================
+
+// Main game save - stores core player progress
+export const gameSave = pgTable("GameSave", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: varchar("userId", { length: 128 }).notNull(),
+  money: integer("money").notNull().default(500),
+  health: integer("health").notNull().default(100),
+  respect: integer("respect").notNull().default(0),
+  wantedLevel: integer("wantedLevel").notNull().default(0),
+  playTime: integer("playTime").notNull().default(0), // in seconds
+  currentMission: varchar("currentMission", { length: 128 }),
+  unlockedZones: json("unlockedZones").$type<string[]>().default([]),
+  ownedProperties: json("ownedProperties").$type<string[]>().default([]),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  lastSaved: timestamp("lastSaved").notNull().defaultNow(),
+});
+
+export type GameSave = InferSelectModel<typeof gameSave>;
+
+// Learning progress per subject track
+export const learningProgress = pgTable(
+  "LearningProgress",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    gameSaveId: uuid("gameSaveId")
+      .notNull()
+      .references(() => gameSave.id, { onDelete: "cascade" }),
+    subject: varchar("subject", { length: 32 }).notNull(), // physics, math, finance, health, spiritual
+    level: integer("level").notNull().default(1),
+    xp: integer("xp").notNull().default(0),
+    lessonsCompleted: json("lessonsCompleted").$type<string[]>().default([]),
+    currentLesson: varchar("currentLesson", { length: 128 }),
+    achievements: json("achievements").$type<string[]>().default([]),
+    quizScores: json("quizScores").$type<Record<string, number>>().default({}),
+  },
+  (table) => ({
+    uniqueSubject: uniqueIndex("learning_progress_game_subject_idx").on(
+      table.gameSaveId,
+      table.subject,
+    ),
+  }),
+);
+
+export type LearningProgress = InferSelectModel<typeof learningProgress>;
+
+// Mission progress tracking
+export const missionProgress = pgTable("MissionProgress", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  gameSaveId: uuid("gameSaveId")
+    .notNull()
+    .references(() => gameSave.id, { onDelete: "cascade" }),
+  missionId: varchar("missionId", { length: 128 }).notNull(),
+  completed: boolean("completed").notNull().default(false),
+  completedAt: timestamp("completedAt"),
+  rewardClaimed: boolean("rewardClaimed").notNull().default(false),
+});
+
+export type MissionProgress = InferSelectModel<typeof missionProgress>;
+
+// 12-Steps recovery program progress
+export const twelveStepsProgress = pgTable("TwelveStepsProgress", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  gameSaveId: uuid("gameSaveId")
+    .notNull()
+    .references(() => gameSave.id, { onDelete: "cascade" })
+    .unique(),
+  currentStep: integer("currentStep").notNull().default(0),
+  stepsCompleted: json("stepsCompleted").$type<boolean[]>().default([]),
+  sobrietyDays: integer("sobrietyDays").notNull().default(0),
+  sponsor: varchar("sponsor", { length: 128 }),
+  amends: json("amends").$type<string[]>().default([]),
+});
+
+export type TwelveStepsProgress = InferSelectModel<typeof twelveStepsProgress>;
+
+// NPC relationships with the player
+export const npcRelationships = pgTable(
+  "NPCRelationships",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    gameSaveId: uuid("gameSaveId")
+      .notNull()
+      .references(() => gameSave.id, { onDelete: "cascade" }),
+    npcId: varchar("npcId", { length: 128 }).notNull(),
+    affection: integer("affection").notNull().default(50),
+    memories: json("memories").$type<string[]>().default([]),
+  },
+  (table) => ({
+    uniqueNpc: uniqueIndex("npc_relationships_game_npc_idx").on(
+      table.gameSaveId,
+      table.npcId,
+    ),
+  }),
+);
+
+export type NPCRelationships = InferSelectModel<typeof npcRelationships>;
+
+// Owned properties/zones
+export const ownedProperties = pgTable(
+  "OwnedProperties",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    gameSaveId: uuid("gameSaveId")
+      .notNull()
+      .references(() => gameSave.id, { onDelete: "cascade" }),
+    propertyId: varchar("propertyId", { length: 128 }).notNull(),
+    propertyName: varchar("propertyName", { length: 256 }),
+    propertyType: varchar("propertyType", { length: 64 }), // house, business, landmark, etc.
+    purchasedAt: timestamp("purchasedAt").notNull().defaultNow(),
+    purchasePrice: integer("purchasePrice"),
+  },
+  (table) => ({
+    uniqueProperty: uniqueIndex("owned_properties_game_property_idx").on(
+      table.gameSaveId,
+      table.propertyId,
+    ),
+  }),
+);
+
+export type OwnedProperties = InferSelectModel<typeof ownedProperties>;

@@ -1,6 +1,7 @@
-// SyncService.ts - Sync local state with Redis Upstash
+// SyncService.ts - Sync local state with Redis Upstash and PostgreSQL
 
 import { CityData } from "./CityDatabase";
+import { PlayerProgress } from "./GameState";
 
 interface SyncConfig {
   upstashUrl: string;
@@ -38,7 +39,7 @@ export class SyncService {
       if (response.ok) {
         this.lastSyncTime = Date.now();
         this.pendingChanges = false;
-        console.log("✅ Synced to cloud");
+        console.log("✅ Synced to cloud (Redis)");
         return true;
       }
       return false;
@@ -73,11 +74,84 @@ export class SyncService {
     }
   }
 
-  // Save learning progress
+  // Save full game state to PostgreSQL
+  async saveToPostgres(progress: PlayerProgress): Promise<boolean> {
+    try {
+      const response = await fetch("/api/game/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(progress),
+      });
+
+      if (response.ok) {
+        console.log("✅ Saved to PostgreSQL");
+        return true;
+      }
+      console.error("❌ PostgreSQL save failed:", await response.text());
+      return false;
+    } catch (error) {
+      console.error("❌ PostgreSQL save error:", error);
+      return false;
+    }
+  }
+
+  // Load full game state from PostgreSQL
+  async loadFromPostgres(userId: string): Promise<PlayerProgress | null> {
+    try {
+      const response = await fetch(`/api/game/load/${userId}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ Loaded from PostgreSQL");
+        return data.progress;
+      } else if (response.status === 404) {
+        console.log("ℹ️ No PostgreSQL save found");
+        return null;
+      }
+      console.error("❌ PostgreSQL load failed:", await response.text());
+      return null;
+    } catch (error) {
+      console.error("❌ PostgreSQL load error:", error);
+      return null;
+    }
+  }
+
+  // Update specific progress in PostgreSQL
+  async updateProgress(
+    userId: string,
+    type:
+      | "stats"
+      | "learning"
+      | "mission"
+      | "twelveSteps"
+      | "relationship"
+      | "property",
+    data: Record<string, unknown>,
+  ): Promise<boolean> {
+    try {
+      const response = await fetch("/api/game/progress", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, type, data }),
+      });
+
+      if (response.ok) {
+        console.log(`✅ Updated ${type} in PostgreSQL`);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error(`❌ Failed to update ${type}:`, error);
+      return false;
+    }
+  }
+
+  // Save learning progress to both Redis and PostgreSQL
   async saveLearningProgress(
     userId: string,
     progress: LearningProgress,
   ): Promise<void> {
+    // Redis (fast cache)
     await fetch(`${this.config.upstashUrl}/set/${userId}:learning`, {
       method: "POST",
       headers: {
@@ -85,6 +159,14 @@ export class SyncService {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(progress),
+    });
+
+    // PostgreSQL (persistent)
+    await this.updateProgress(userId, "learning", {
+      subject: progress.subject || "general",
+      level: progress.level,
+      xp: progress.totalXp,
+      achievements: progress.achievements,
     });
   }
 
@@ -125,7 +207,8 @@ export class SyncService {
 }
 
 interface LearningProgress {
-  odessons: Record<
+  subject?: string;
+  lessons: Record<
     string,
     {
       moduleId: string;
