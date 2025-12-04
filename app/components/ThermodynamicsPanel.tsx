@@ -3,11 +3,13 @@
 import React, { useState } from "react";
 import { PhysicsExplainer, PHYSICS_PRESETS } from "./PhysicsExplainer";
 
+type PhysicsTopic = "entropy" | "temperature" | "energy";
+
 interface ThermodynamicsPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedTopic?: "entropy" | "temperature" | "energy" | null;
-  onSelectTopic?: (topic: "entropy" | "temperature" | "energy") => void;
+  selectedTopic?: PhysicsTopic | null;
+  onSelectTopic?: (topic: PhysicsTopic) => void;
   energyBalance?: {
     production: number;
     consumption: number;
@@ -30,9 +32,7 @@ export function ThermodynamicsPanel({
   currentEntropy,
   className = "",
 }: ThermodynamicsPanelProps) {
-  const [internalTopic, setInternalTopic] = useState<
-    "entropy" | "temperature" | "energy"
-  >("entropy");
+  const [internalTopic, setInternalTopic] = useState<PhysicsTopic>("entropy");
 
   const topic = selectedTopic ?? internalTopic;
   const handleTopicSelect = onSelectTopic ?? setInternalTopic;

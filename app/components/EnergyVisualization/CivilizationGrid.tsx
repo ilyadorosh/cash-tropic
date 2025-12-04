@@ -35,10 +35,13 @@ export class CivilizationGrid {
   private time: number = 0;
 
   constructor(scene: THREE.Scene, options: CivilizationGridOptions = {}) {
+    const gridSize = options.gridSize ?? 10;
+    const cellSize = options.cellSize ?? 4;
+
     this.options = {
-      gridSize: options.gridSize ?? 10,
-      cellSize: options.cellSize ?? 4,
-      buildings: options.buildings ?? this.generateDefaultBuildings(),
+      gridSize,
+      cellSize,
+      buildings: options.buildings ?? this.generateDefaultBuildings(gridSize),
     };
 
     this.group = new THREE.Group();
@@ -49,9 +52,9 @@ export class CivilizationGrid {
     this.createEnergyNetwork();
   }
 
-  private generateDefaultBuildings(): BuildingConfig[] {
+  private generateDefaultBuildings(gridSize?: number): BuildingConfig[] {
     const buildings: BuildingConfig[] = [];
-    const { gridSize } = this.options;
+    const size = gridSize ?? this.options?.gridSize ?? 10;
 
     // Power plant in center
     buildings.push({

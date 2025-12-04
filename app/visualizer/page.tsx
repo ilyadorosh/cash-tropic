@@ -31,6 +31,13 @@ import {
 import { CivilizationGrid } from "../components/EnergyVisualization/CivilizationGrid";
 
 type VisualizationMode = "energy" | "entropy" | "model" | "civilization";
+type PhysicsTopic = "entropy" | "temperature" | "energy";
+
+interface EnergyBalanceState {
+  production: number;
+  consumption: number;
+  balance: number;
+}
 
 export default function VisualizerPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -38,12 +45,10 @@ export default function VisualizerPage() {
   const [showPhysicsPanel, setShowPhysicsPanel] = useState(false);
   const [showHelp, setShowHelp] = useState(true);
   const [currentModel, setCurrentModel] = useState("gpt-4");
-  const [physicsTopic, setPhysicsTopic] = useState<
-    "entropy" | "temperature" | "energy"
-  >("entropy");
+  const [physicsTopic, setPhysicsTopic] = useState<PhysicsTopic>("entropy");
 
   // Stats
-  const [energyBalance, setEnergyBalance] = useState({
+  const [energyBalance, setEnergyBalance] = useState<EnergyBalanceState>({
     production: 0,
     consumption: 0,
     balance: 0,
