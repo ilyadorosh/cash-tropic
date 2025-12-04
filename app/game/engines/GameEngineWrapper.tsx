@@ -89,7 +89,8 @@ export function GameEngineWrapper({
 
   // Initialize engine
   useEffect(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
 
     const initEngine = async () => {
       try {
@@ -114,7 +115,7 @@ export function GameEngineWrapper({
         engine.onStatsUpdate(setStats);
 
         // Initialize engine
-        await engine.initialize(config, containerRef.current);
+        await engine.initialize(config, container);
 
         // Load map
         let mapConfig;
