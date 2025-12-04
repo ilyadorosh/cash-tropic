@@ -1,6 +1,5 @@
 "use client";
 import { PlayerProgress } from "./GameState";
-import { CHARACTERS } from "./Characters";
 import {
   PHYSICS_PATH,
   SPIRITUAL_PATH,
