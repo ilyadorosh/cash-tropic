@@ -155,22 +155,51 @@ interface ZoneConfig {
 
 ## Custom Maps via Redis
 
-Maps can be stored and loaded from Redis:
+Custom maps are stored in Redis and accessed through server-side API routes
+(for security - credentials are not exposed to the client).
 
 ```typescript
-const mapLoader = new MapLoader(
-  process.env.UPSTASH_REDIS_REST_URL,
-  process.env.UPSTASH_REDIS_REST_TOKEN
-);
+import { defaultMapLoader } from '@/app/game/engines';
 
-// Load custom map
-const customMap = await mapLoader.loadCustomMap('my-map-id');
+// Load custom map (fetches from /api/game/map)
+const customMap = await defaultMapLoader.loadCustomMap('my-map-id');
 
-// Save custom map
-await mapLoader.saveCustomMap(myMapConfig);
+// Save custom map (posts to /api/game/map)
+await defaultMapLoader.saveCustomMap(myMapConfig);
 
 // List available maps
-const maps = await mapLoader.listMaps();
+const maps = await defaultMapLoader.listMaps();
+```
+
+### Server-side API Route
+
+Create `/api/game/map/route.ts` to handle custom map operations:
+
+```typescript
+import { Redis } from '@upstash/redis';
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const mapId = searchParams.get('id');
+  
+  if (!mapId) {
+    return Response.json({ error: 'Map ID required' }, { status: 400 });
+  }
+  
+  const mapConfig = await redis.get(`map:${mapId}`);
+  return Response.json({ mapConfig });
+}
+
+export async function POST(request: Request) {
+  const { mapConfig } = await request.json();
+  await redis.set(`map:${mapConfig.id}`, mapConfig);
+  return Response.json({ success: true });
+}
 ```
 
 ## Implementing New Engines
