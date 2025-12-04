@@ -42,6 +42,7 @@ import { getAllLessons, getNextLesson, Lesson } from "./LearningJourney";
 import { MobileControls } from "./MobileControls";
 import { MissionOverview } from "./MissionOverview";
 import { PrayerModal } from "./PrayerModal";
+import { NeuralCity } from "./NeuralCity";
 
 // === AUDIO UTILITIES ===
 const speak = (text: string, pitch = 1, rate = 1) => {
@@ -169,6 +170,9 @@ export default function GTAEngine() {
   // === ADD THESE REFS AT THE TOP OF THE COMPONENT (outside useEffect) ===
   const keysRef = useRef<Record<string, boolean>>({});
   const onKeyDownRef = useRef<((e: KeyboardEvent) => void) | null>(null);
+
+  // Add ref
+  const neuralCityRef = useRef<NeuralCity | null>(null);
 
   // Add state
   const [showPrayerModal, setShowPrayerModal] = useState(false);
@@ -333,6 +337,9 @@ export default function GTAEngine() {
     const colliders: THREE.Mesh[] = [];
     const interactables: any[] = [];
     initWorld(scene, colliders, interactables);
+
+    // After creating neuralCityRef:
+    neuralCityRef.current = new NeuralCity(scene);
 
     // === CITY DATABASE ===
     let money = 500;
@@ -754,6 +761,9 @@ export default function GTAEngine() {
       process.env.UPSTASH_REDIS_REST_URL || "",
       process.env.UPSTASH_REDIS_REST_TOKEN || "",
     );
+
+    // In useEffect after scene setup:
+    neuralCityRef.current = new NeuralCity(scene);
 
     // === PROCEDURAL CITY ===
     cityRef.current = new ProceduralCity(scene, colliders, interactables);
@@ -1361,6 +1371,30 @@ export default function GTAEngine() {
         setShowMissions((prev) => !prev);
       }
 
+      // N = toggle Matrix mode
+      if (e.key.toLowerCase() === "n") {
+        const active = neuralCityRef.current?.toggleMatrixMode();
+        showNotification(
+          "zone",
+          active ? "🔴 MATRIX MODE" : "🔵 NORMAL MODE",
+          active
+            ? `${neuralCityRef.current?.getBuildingCount()} neural buildings`
+            : undefined,
+          2000,
+        );
+      }
+
+      // // T = time warp (see the past!)
+      // if (e.key.toLowerCase() === 't' && neuralCityRef.current?. isMatrixModeActive()) {
+      //   const warp = neuralCityRef.current. cycleTimeWarp();
+      //   const percent = Math.round(warp * 100);
+      //   showNotification('zone',
+      //     `⏰ TIME: ${percent}%`,
+      //     warp < 1 ? 'Viewing the past.. .' : 'Present',
+      //     1500
+      //   );
+      // }
+
       // Interact (E key)
       if (e.key.toLowerCase() === "e" && cameraMode === "follow") {
         // Check if already inside - press E to exit
@@ -1721,9 +1755,13 @@ export default function GTAEngine() {
 
     // === GAME LOOP ===
     let frame = 0;
+    let lastFrameTime = performance.now();
 
     function animate() {
       requestAnimationFrame(animate);
+      const now = performance.now();
+      const deltaTime = (now - lastFrameTime) / 1000;
+      lastFrameTime = now;
       frame++;
 
       // Audio
@@ -2210,6 +2248,10 @@ export default function GTAEngine() {
         return; // Skip exterior game logic when inside
       }
 
+      if (neuralCityRef.current) {
+        neuralCityRef.current.update(deltaTime, playerGroup.position);
+      }
+
       renderer.render(scene, camera);
     }
 
@@ -2233,6 +2275,8 @@ export default function GTAEngine() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handleDialogue, handleReward]);
+  // Cleanup:
+  neuralCityRef.current?.dispose();
 
   return (
     <div
