@@ -53,3 +53,6 @@ yarn.lock
 
 # Drizzle files
 /drizzle/meta
+
+# Saved messages data file
+/data/saved_messages.json
