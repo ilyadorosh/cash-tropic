@@ -185,7 +185,7 @@ function escapeBrackets(text: string) {
   );
 }
 
-function _MarkDownContent(props: { content: string }) {
+function MarkDownContentInner(props: { content: string }) {
   const escapedContent = useMemo(() => {
     return escapeBrackets(escapeDollarNumber(props.content));
   }, [props.content]);
@@ -209,7 +209,7 @@ function _MarkDownContent(props: { content: string }) {
         a: (aProps) => {
           const href = aProps.href || "";
           const isInternal = /^\/#/i.test(href);
-          const target = isInternal ? "_self" : aProps.target ?? "_blank";
+          const target = isInternal ? "_self" : (aProps.target ?? "_blank");
           return <a {...aProps} target={target} />;
         },
       }}
@@ -219,7 +219,7 @@ function _MarkDownContent(props: { content: string }) {
   );
 }
 
-export const MarkdownContent = React.memo(_MarkDownContent);
+export const MarkdownContent = React.memo(MarkDownContentInner);
 
 export function Markdown(
   props: {
