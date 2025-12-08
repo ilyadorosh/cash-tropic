@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { PhysicsExplainer, PHYSICS_PRESETS } from "./PhysicsExplainer";
 
-type PhysicsTopic = "entropy" | "temperature" | "energy";
+type PhysicsTopic = "entropy" | "temperature" | "energy" | "overclocking";
 
 interface ThermodynamicsPanelProps {
   isOpen: boolean;
@@ -43,6 +43,7 @@ export function ThermodynamicsPanel({
     { id: "entropy" as const, label: "Entropy", icon: "🌀" },
     { id: "temperature" as const, label: "Temperature", icon: "🌡️" },
     { id: "energy" as const, label: "Energy", icon: "⚡" },
+    { id: "overclocking" as const, label: "Overclocking", icon: "⏱️" },
   ];
 
   return (

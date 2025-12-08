@@ -212,6 +212,55 @@ This insight connects thermodynamics, computation, and the foundations of realit
       },
     ],
   },
+
+  overclocking: {
+    title: "Overclocking Physics",
+    content: `
+**Overclocking** is the practice of running a processor at a higher clock frequency than its rated specification.
+From theoretical physics, it's about how fast you can reliably push charge through transistors before physics breaks your digital abstraction.
+
+The limits are set by signal propagation, thermal dynamics, and quantum effects.
+    `,
+    equations: [
+      {
+        name: "Maximum Clock Frequency",
+        latex: "f_{max} = \\frac{1}{t_{pd} + t_{setup} + t_{skew}}",
+        description:
+          "Maximum frequency is limited by propagation delay (t_pd), setup time (t_setup), and clock skew (t_skew). Signals must settle to valid states before the next clock edge.",
+      },
+      {
+        name: "Dynamic Power Dissipation",
+        latex: "P = C \\cdot V^2 \\cdot f",
+        description:
+          "Power consumption scales with capacitance (C), voltage squared (V²), and frequency (f). Overclocking with higher voltage causes sharply increased power and heat.",
+      },
+      {
+        name: "Gate Delay (CMOS)",
+        latex:
+          "t_{pd} \\propto \\frac{C_L \\cdot V_{DD}}{(V_{DD} - V_{th})^\\alpha}",
+        description:
+          "Gate delay depends on load capacitance (C_L), supply voltage (V_DD), and threshold voltage (V_th). Higher voltage reduces delay but increases power.",
+      },
+      {
+        name: "Carrier Mobility Temperature Dependence",
+        latex: "\\mu(T) = \\mu_0 \\left(\\frac{T}{T_0}\\right)^{-\\gamma}",
+        description:
+          "Carrier mobility (μ) decreases with temperature due to phonon scattering. This is why extreme cooling enables higher frequencies—cryogenic temps increase mobility.",
+      },
+      {
+        name: "Thermal Resistance",
+        latex: "T_{junction} = T_{ambient} + P \\cdot R_{thermal}",
+        description:
+          "Junction temperature equals ambient plus power times thermal resistance. Cooling solutions reduce R_thermal, allowing higher power (and frequency) before thermal limits.",
+      },
+      {
+        name: "Electromigration Lifetime (Black's Equation)",
+        latex: "MTTF = A \\cdot J^{-n} \\cdot e^{\\frac{E_a}{k_B T}}",
+        description:
+          "Mean time to failure decreases with current density (J) and temperature (T). Aggressive overclocking accelerates wear mechanisms in metal interconnects.",
+      },
+    ],
+  },
 };
 
 export default PhysicsExplainer;
