@@ -261,22 +261,47 @@ export class InteriorSystem {
   }
 
   private async loadRedisDataForScreens(buildingId: string) {
+    // Set loading timeout - don't block forever
+    const timeout = new Promise<null>((_, reject) => 
+      setTimeout(() => reject(new Error('Loading timeout')), 3000)
+    );
+
     try {
-      // Use YOUR API route
+      // Use YOUR API route with timeout
+      const fetchWithTimeout = async (url: string) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        try {
+          const res = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          return res;
+        } catch {
+          clearTimeout(timeoutId);
+          return null;
+        }
+      };
+
       const [statsRes, leaderboardRes] = await Promise.all([
-        fetch("/api/game? key=game:stats"),
-        fetch("/api/game/leaderboard?subject=physics"),
+        fetchWithTimeout("/api/game?key=game:stats"),
+        fetchWithTimeout("/api/game/leaderboard?subject=physics"),
       ]);
 
-      const stats = await statsRes.json();
-      const leaderboard = await leaderboardRes.json();
-
-      this.redisCache.set("game_stats", stats.result);
-      this.redisCache.set("leaderboard", leaderboard.leaderboard);
+      if (statsRes) {
+        const stats = await statsRes.json().catch(() => ({}));
+        this.redisCache.set("game_stats", stats.result || {});
+      }
+      if (leaderboardRes) {
+        const leaderboard = await leaderboardRes.json().catch(() => ({}));
+        this.redisCache.set("leaderboard", leaderboard.leaderboard || []);
+      }
 
       this.updateScreens();
     } catch (e) {
-      console.error("Failed to load game data:", e);
+      console.warn("Failed to load game data (using defaults):", e);
+      // Set defaults so screens still render
+      this.redisCache.set("game_stats", { totalBuildings: 0, playersOnline: 1 });
+      this.redisCache.set("leaderboard", []);
+      this.updateScreens();
     }
   }
 

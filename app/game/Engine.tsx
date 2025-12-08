@@ -1113,6 +1113,10 @@ export default function GTAEngine() {
       changeTimer: number;
       dead: boolean;
       personality: (typeof CHARACTERS)[keyof typeof CHARACTERS] | null;
+      targetX: number;
+      targetZ: number;
+      idleTimer: number;
+      state: "walking" | "idle" | "fleeing";
     }
     const pedestrians: Pedestrian[] = [];
     const pedPersonalities = [
@@ -1123,7 +1127,25 @@ export default function GTAEngine() {
       null,
     ];
 
-    for (let i = 0; i < 30; i++) {
+    // Define sidewalk paths along roads (offset from road center)
+    const sidewalkPaths = [
+      { x1: -100, z1: 0, x2: 100, z2: 0, offset: 8 }, // Main street sidewalk
+      { x1: 0, z1: -100, x2: 0, z2: 100, offset: 8 }, // Cross street
+      { x1: -50, z1: -50, x2: 50, z2: -50, offset: 8 },
+      { x1: -50, z1: 50, x2: 50, z2: 50, offset: 8 },
+    ];
+
+    const getRandomSidewalkPoint = () => {
+      const path = sidewalkPaths[Math.floor(Math.random() * sidewalkPaths.length)];
+      const t = Math.random();
+      const side = Math.random() > 0.5 ? 1 : -1;
+      return {
+        x: path.x1 + (path.x2 - path.x1) * t + (path.z1 === path.z2 ? 0 : path.offset * side),
+        z: path.z1 + (path.z2 - path.z1) * t + (path.x1 === path.x2 ? 0 : path.offset * side),
+      };
+    };
+
+    for (let i = 0; i < 20; i++) { // Reduced from 30 to 20
       const ped = new THREE.Group();
       const body = new THREE.Mesh(
         new THREE.BoxGeometry(1, 3, 0.8),
@@ -1138,18 +1160,26 @@ export default function GTAEngine() {
       head.position.y = 3.5;
       ped.add(head);
 
-      const angle = Math.random() * Math.PI * 2;
-      const r = 30 + Math.random() * 120;
-      ped.position.set(Math.cos(angle) * r, 0, Math.sin(angle) * r);
+      // Spawn on sidewalks
+      const spawnPoint = getRandomSidewalkPoint();
+      ped.position.set(spawnPoint.x, 0, spawnPoint.z);
+      
+      // Initial target
+      const targetPoint = getRandomSidewalkPoint();
+      
       scene.add(ped);
 
       pedestrians.push({
         mesh: ped,
-        speed: 0.03,
-        changeTimer: 0,
+        speed: 0.02 + Math.random() * 0.02, // Slower, more natural
+        changeTimer: 100 + Math.random() * 200,
         dead: false,
         personality:
           pedPersonalities[Math.floor(Math.random() * pedPersonalities.length)],
+        targetX: targetPoint.x,
+        targetZ: targetPoint.z,
+        idleTimer: 0,
+        state: "walking",
       });
     }
 
@@ -1963,37 +1993,104 @@ export default function GTAEngine() {
           }
         }
 
-        // Pedestrian AI
+        // Pedestrian AI - improved with target-based movement
         pedestrians.forEach((ped) => {
           if (ped.dead) return;
 
-          ped.changeTimer--;
-          if (ped.changeTimer <= 0) {
-            ped.mesh.rotation.y = Math.random() * Math.PI * 2;
-            ped.changeTimer = 40 + Math.random() * 80;
-          }
-          ped.mesh.translateZ(ped.speed);
-
-          // Hit by car
           const carPos =
             playerState === "driving"
               ? activeCar.position
               : new THREE.Vector3(9999, 0, 9999);
+          const distToCar = ped.mesh.position.distanceTo(carPos);
+
+          // Flee from fast-approaching cars
+          if (distToCar < 15 && Math.abs(speed) > 0.4 && ped.state !== "fleeing") {
+            ped.state = "fleeing";
+            const awayFromCar = ped.mesh.position.clone().sub(carPos).normalize();
+            ped.targetX = ped.mesh.position.x + awayFromCar.x * 20;
+            ped.targetZ = ped.mesh.position.z + awayFromCar.z * 20;
+          }
+
+          // State machine
+          if (ped.state === "fleeing") {
+            // Run away fast
+            const toTarget = new THREE.Vector3(
+              ped.targetX - ped.mesh.position.x,
+              0,
+              ped.targetZ - ped.mesh.position.z
+            );
+            if (toTarget.length() < 2 || distToCar > 30) {
+              ped.state = "walking";
+              const newTarget = getRandomSidewalkPoint();
+              ped.targetX = newTarget.x;
+              ped.targetZ = newTarget.z;
+            } else {
+              ped.mesh.lookAt(new THREE.Vector3(ped.targetX, 0, ped.targetZ));
+              ped.mesh.translateZ(ped.speed * 3); // Run fast
+            }
+          } else if (ped.state === "idle") {
+            ped.idleTimer--;
+            if (ped.idleTimer <= 0) {
+              ped.state = "walking";
+              const newTarget = getRandomSidewalkPoint();
+              ped.targetX = newTarget.x;
+              ped.targetZ = newTarget.z;
+            }
+          } else {
+            // Walking state - move toward target
+            const toTarget = new THREE.Vector3(
+              ped.targetX - ped.mesh.position.x,
+              0,
+              ped.targetZ - ped.mesh.position.z
+            );
+            
+            if (toTarget.length() < 2) {
+              // Reached target - either idle or get new target
+              if (Math.random() < 0.3) {
+                ped.state = "idle";
+                ped.idleTimer = 60 + Math.random() * 120;
+              } else {
+                const newTarget = getRandomSidewalkPoint();
+                ped.targetX = newTarget.x;
+                ped.targetZ = newTarget.z;
+              }
+            } else {
+              ped.mesh.lookAt(new THREE.Vector3(ped.targetX, 0, ped.targetZ));
+              ped.mesh.translateZ(ped.speed);
+            }
+          }
+
+          // Hit by car - require much higher speed, smaller hitbox
+          const hitDistance = ped.mesh.position.distanceTo(carPos);
+          const speedThreshold = 0.7; // Much higher - need to be going fast
+          
           if (
-            ped.mesh.position.distanceTo(carPos) < 4 &&
-            Math.abs(speed) > 0.3
+            hitDistance < 2.5 && // Smaller hitbox
+            Math.abs(speed) > speedThreshold
           ) {
-            health -= 1;
-            wantedLevel = Math.min(wantedLevel + 1, 5);
-            ped.dead = true;
-            ped.mesh.rotation.x = -Math.PI / 2;
-            ped.mesh.position.y = 0.5;
-            const flyDir = ped.mesh.position
-              .clone()
-              .sub(carPos)
-              .normalize()
-              .multiplyScalar(5);
-            ped.mesh.position.add(flyDir);
+            // Only count as hit if directly in front of car
+            const carForward = new THREE.Vector3(0, 0, 1).applyQuaternion(activeCar.quaternion);
+            const toPed = ped.mesh.position.clone().sub(carPos).normalize();
+            const dotProduct = carForward.dot(toPed);
+            
+            if (dotProduct > 0.5) { // Must be in front of car
+              health -= 1;
+              // Smaller wanted increase, cap at 3 for pedestrian hits
+              wantedLevel = Math.min(wantedLevel + 0.5, 3);
+              ped.dead = true;
+              ped.mesh.rotation.x = -Math.PI / 2;
+              ped.mesh.position.y = 0.5;
+              const flyDir = ped.mesh.position
+                .clone()
+                .sub(carPos)
+                .normalize()
+                .multiplyScalar(5);
+              ped.mesh.position.add(flyDir);
+            }
+          } else if (hitDistance < 4 && Math.abs(speed) > 0.2 && Math.abs(speed) <= speedThreshold) {
+            // Pedestrians dodge slow-moving cars
+            const awayFromCar = ped.mesh.position.clone().sub(carPos).normalize();
+            ped.mesh.position.add(awayFromCar.multiplyScalar(0.5));
           }
         });
 
@@ -2055,13 +2152,30 @@ export default function GTAEngine() {
         const targetPos =
           playerState === "driving" ? activeCar.position : playerGroup.position;
 
-        // Spawn police based on wanted level
+        // Spawn police based on wanted level - much slower spawn rate
+        // Max 1 car at 1 star, 2 at 2 stars, etc. - GTA style gradual response
+        const maxPolice = Math.min(wantedLevel, 3); // Cap at 3 police cars
         if (
           wantedLevel > 0 &&
-          policeCars.length < wantedLevel * 2 &&
-          frame % 100 === 0
+          policeCars.filter(pc => !pc.hijacked).length < maxPolice &&
+          frame % 600 === 0 // Much slower spawn (every 10 sec instead of 1.6 sec)
         ) {
-          policeCars.push(createPoliceCar());
+          // Spawn police away from player, not on top of them
+          const newCop = createPoliceCar();
+          const spawnAngle = Math.random() * Math.PI * 2;
+          const spawnDist = 80 + Math.random() * 40; // 80-120 units away
+          newCop.mesh.position.set(
+            targetPos.x + Math.cos(spawnAngle) * spawnDist,
+            0,
+            targetPos.z + Math.sin(spawnAngle) * spawnDist
+          );
+          policeCars.push(newCop);
+        }
+
+        // Wanted level decay over time when not committing crimes
+        if (wantedLevel > 0 && frame % 1800 === 0) { // Every 30 seconds
+          wantedLevel = Math.max(0, wantedLevel - 0.25); // Slow decay
+          if (wantedLevel < 0.5) wantedLevel = 0; // Clear if very low
         }
 
         if (frame % 300 === 0 && cityRef.current) {
@@ -2130,18 +2244,18 @@ export default function GTAEngine() {
             }
 
             if (pc.state === "warning") {
-              // Issue warnings before pursuit
-              if (now - pc.lastWarningTime > 5000 && pc.warningsIssued < 3) {
+              // Issue warnings before pursuit - longer intervals
+              if (now - pc.lastWarningTime > 8000 && pc.warningsIssued < 3) {
                 pc.warningsIssued++;
                 pc.lastWarningTime = now;
 
                 const warnings = [
-                  "This is LSPD!  Pull over NOW!",
-                  "Final warning! Stop your vehicle! ",
-                  "Suspect is not complying.  All units pursue!",
+                  "This is LSPD! Pull over NOW!",
+                  "Final warning! Stop your vehicle!",
+                  "Suspect is not complying. All units pursue!",
                 ];
 
-                if (distToPlayer < 100) {
+                if (distToPlayer < 60) { // Only warn when closer
                   handleDialogue({
                     title: "Officer",
                     text: warnings[pc.warningsIssued - 1],
@@ -2155,13 +2269,13 @@ export default function GTAEngine() {
                 pc.state = "pursuit";
               }
 
-              // Slower approach during warning phase
-              pc.speed = Math.min(pc.speed + 0.01, 0.8);
+              // Much slower approach during warning phase
+              pc.speed = Math.min(pc.speed + 0.005, 0.5);
             }
 
             if (pc.state === "pursuit") {
-              // Full pursuit
-              pc.speed = Math.min(pc.speed + 0.02, 1.4);
+              // Pursuit but not overly aggressive
+              pc.speed = Math.min(pc.speed + 0.01, 0.9); // Slower max speed
             }
 
             // Flanking behavior

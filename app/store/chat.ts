@@ -65,6 +65,19 @@ export interface ChatSession {
   mask: Mask;
 }
 
+
+// type Session = {
+//   id: string;
+//   topic?: string;
+//   title?: string;
+//   lastUpdate?: number;
+//   updatedAt?: number;
+//   createdAt?: number;
+//   createAt?: number;
+//   messages?: Array<{ role?: string; content?: string; date?: number }>;
+//   mask?: { name?: string; avatar?: string };
+// };
+
 export const DEFAULT_TOPIC = Locale.Store.DefaultTopic;
 export const BOT_HELLO: ChatMessage = createMessage({
   role: "assistant",
