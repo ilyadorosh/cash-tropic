@@ -119,7 +119,7 @@ async function callLLM(
   }
 }
 
-export default function GTAEngine() {
+export default function GTAEngine3D() {
   const mountRef = useRef<HTMLDivElement>(null);
   const minimapRef = useRef<HTMLCanvasElement>(null);
   const cityRef = useRef<ProceduralCity | null>(null);
