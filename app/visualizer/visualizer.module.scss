@@ -1,0 +1,342 @@
+.visualizer-container {
+  width: 100vw;
+  height: 100vh;
+  background: #0a0a1a;
+  position: relative;
+  overflow: hidden;
+}
+
+.visualizer-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.visualizer-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.visualizer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: linear-gradient(to bottom, rgba(10, 10, 26, 0.95), rgba(10, 10, 26, 0));
+  pointer-events: auto;
+}
+
+.visualizer-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.visualizer-title h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #88aaff;
+  letter-spacing: 0.5px;
+}
+
+.visualizer-title p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.visualizer-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.nav-button {
+  padding: 8px 16px;
+  background: rgba(50, 50, 80, 0.6);
+  border: 1px solid rgba(100, 100, 255, 0.2);
+  border-radius: 6px;
+  color: #aaa;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.nav-button:hover {
+  background: rgba(100, 100, 255, 0.2);
+  border-color: rgba(100, 100, 255, 0.4);
+  color: #fff;
+}
+
+.nav-button.active {
+  background: rgba(100, 100, 255, 0.3);
+  border-color: rgba(100, 100, 255, 0.5);
+  color: #aaccff;
+}
+
+.visualizer-controls {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(20, 20, 40, 0.9);
+  border: 1px solid rgba(100, 100, 255, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.control-group h3 {
+  margin: 0 0 8px 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #888;
+}
+
+.control-button {
+  padding: 10px 16px;
+  background: rgba(50, 50, 80, 0.6);
+  border: 1px solid rgba(100, 100, 255, 0.2);
+  border-radius: 8px;
+  color: #ccc;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-button:hover {
+  background: rgba(100, 100, 255, 0.2);
+  border-color: rgba(100, 100, 255, 0.4);
+  color: #fff;
+}
+
+.control-button.active {
+  background: rgba(100, 100, 255, 0.3);
+  border-color: rgba(100, 100, 255, 0.5);
+  color: #aaccff;
+}
+
+.control-button-icon {
+  font-size: 1.25rem;
+}
+
+.visualizer-stats {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(20, 20, 40, 0.9);
+  border: 1px solid rgba(100, 100, 255, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  pointer-events: auto;
+  min-width: 200px;
+  backdrop-filter: blur(10px);
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.stat-label {
+  color: #888;
+}
+
+.stat-value {
+  color: #aaccff;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.stat-value.positive {
+  color: #66ff88;
+}
+
+.stat-value.negative {
+  color: #ff6688;
+}
+
+.model-switcher-container {
+  pointer-events: auto;
+}
+
+.physics-panel-toggle {
+  position: absolute;
+  right: 24px;
+  top: 80px;
+  pointer-events: auto;
+}
+
+.panel-toggle-button {
+  padding: 12px 20px;
+  background: rgba(50, 50, 100, 0.8);
+  border: 1px solid rgba(100, 100, 255, 0.3);
+  border-radius: 8px;
+  color: #aaccff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.panel-toggle-button:hover {
+  background: rgba(100, 100, 255, 0.3);
+  border-color: rgba(100, 100, 255, 0.5);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .visualizer-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px 16px;
+  }
+
+  .visualizer-title h1 {
+    font-size: 1.25rem;
+  }
+
+  .visualizer-nav {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .nav-button {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .visualizer-controls {
+    left: 12px;
+    bottom: 12px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .control-group {
+    padding: 12px;
+  }
+
+  .visualizer-stats {
+    right: 12px;
+    bottom: 12px;
+    min-width: 160px;
+    padding: 12px;
+  }
+
+  .physics-panel-toggle {
+    right: 12px;
+    top: auto;
+    bottom: 80px;
+  }
+
+  .panel-toggle-button {
+    padding: 10px 16px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Loading state */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 10, 26, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  z-index: 100;
+}
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(100, 100, 255, 0.2);
+  border-top-color: #88aaff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+/* Help tooltip */
+.help-tooltip {
+  position: absolute;
+  left: 24px;
+  top: 80px;
+  background: rgba(30, 30, 60, 0.95);
+  border: 1px solid rgba(100, 100, 255, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  color: #aaa;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  max-width: 280px;
+  pointer-events: auto;
+  backdrop-filter: blur(10px);
+}
+
+.help-tooltip h4 {
+  margin: 0 0 8px 0;
+  color: #aaccff;
+  font-size: 0.9rem;
+}
+
+.help-tooltip ul {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.help-tooltip li {
+  margin-bottom: 4px;
+}
+
+.help-tooltip code {
+  background: rgba(100, 100, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+}
