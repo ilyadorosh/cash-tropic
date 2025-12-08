@@ -1,6 +1,196 @@
+// Combined types for 2D map and 3D game subsystems
+// This file merges the map-focused types (2D) and gameplay/AI types (3D)
 
-// types.ts - Enhanced type system for AI-powered GTA
+// 2D Map helpers
+export interface Position {
+  x: number;
+  y: number;
+}
 
+export type Vec3 = [number, number, number];
+
+export type ZoneType =
+  | "suedstadt"
+  | "innenstadt"
+  | "gostenhof"
+  | "nordstadt"
+  | "weststadt"
+  | "oststadt"
+  | "langwasser";
+
+export type RoadType = "autobahn" | "hauptstrasse" | "nebenstrasse";
+
+export type BuildingType =
+  | "factory"
+  | "house"
+  | "church"
+  | "museum"
+  | "shop"
+  | "restaurant"
+  | "hospital"
+  | "school"
+  | "office"
+  | "historical";
+
+export type MissionCategory =
+  | "physics"
+  | "finance"
+  | "health"
+  | "spiritual"
+  | "historical";
+
+export interface Zone {
+  id: string;
+  name: string;
+  type: ZoneType;
+  bounds: { minX: number; minY: number; maxX: number; maxY: number };
+  color: string;
+  description?: string;
+}
+
+export interface Road {
+  id: string;
+  type: RoadType;
+  points: Position[];
+  width: number;
+  name?: string;
+}
+
+export interface Building {
+  id: string;
+  type: BuildingType;
+  name: string;
+  description?: string;
+  position: Position;
+  width: number;
+  height: number;
+  color?: string;
+  interactable?: boolean;
+  missionId?: string;
+}
+
+export interface NPCDialogue {
+  id: string;
+  text: string;
+  responses?: { text: string; nextDialogueId?: string; action?: string }[];
+}
+
+export interface NPC {
+  id: string;
+  name: string;
+  position: Position;
+  personality?: string;
+  dialogues: NPCDialogue[];
+  isHistorical?: boolean;
+  sprite?: string;
+  color?: string;
+}
+
+export interface MissionObjective {
+  id: string;
+  description: string;
+  completed: boolean;
+  targetPosition?: Position;
+  targetNpcId?: string;
+  targetBuildingId?: string;
+}
+
+// Unified Mission interface
+// This covers both 2D map missions (title/description/objectives) and 3D in-world missions (pos/camPos/dialogue/reward)
+export interface Mission {
+  id: string;
+
+  // Common map-facing fields
+  title?: string;
+  name?: string;
+  description?: string;
+  category?: MissionCategory;
+  stepNumber?: number;
+  objectives?: MissionObjective[];
+  reward?: { xp?: number; money?: number; item?: string; respect?: number };
+  prerequisites?: string[];
+  unlocked?: boolean;
+  completed?: boolean;
+  startPosition?: Position;
+  npcId?: string;
+
+  // 3D/gameplay-specific fields
+  pos?: Vec3;
+  camPos?: Vec3;
+  lookAt?: Vec3;
+  dialogue?: string[];
+  prerequisite?: string; // legacy single prerequisite
+}
+
+// Player trace point for multiplayer ghosts
+export interface TracePoint {
+  x: number;
+  y: number;
+  timestamp: number;
+}
+
+export interface PlayerTrace {
+  id: string;
+  playerId: string;
+  playerName?: string;
+  points: TracePoint[];
+  startTime: number;
+  endTime?: number;
+  isHistorical?: boolean;
+}
+
+export interface PlayerState {
+  id: string;
+  name: string;
+  position: Position;
+  health: number;
+  money: number;
+  xp: number;
+  level: number;
+  wantedLevel: number;
+  currentMissionId?: string;
+  completedMissions: string[];
+  inventory: string[];
+  lastSaveTime: number;
+}
+
+export interface GameMap {
+  id: string;
+  name: string;
+  width: number;
+  height: number;
+  zones: Zone[];
+  roads: Road[];
+  spawnPosition: Position;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export const HISTORICAL_FIGURES = {
+  SIGMUND_SCHUCKERT: {
+    id: "schuckert",
+    name: "Sigmund Schuckert",
+    description: "Electrical pioneer who founded Schuckert & Co.",
+    era: "1846-1895",
+  },
+  PETER_HENLEIN: {
+    id: "henlein",
+    name: "Peter Henlein",
+    description: "Inventor of the pocket watch (Taschenuhr)",
+    era: "1485-1542",
+  },
+  ALBRECHT_DURER: {
+    id: "durer",
+    name: "Albrecht Dürer",
+    description: "Famous Renaissance artist",
+    era: "1471-1528",
+  },
+} as const;
+
+export const DEFAULT_SPAWN_POSITION: Position = { x: 400, y: 300 };
+export const DEFAULT_MAP_SIZE = { width: 2000, height: 2000 };
+
+// Gameplay / AI-focused types
 export interface GameStats {
   speed: string;
   health: number;
@@ -9,7 +199,13 @@ export interface GameStats {
   wanted: number;
   isCutscene: boolean;
   respect: number;
-  relationship: number; // Girlfriend affection
+  relationship: number;
+}
+
+export interface DialogueOption {
+  text: string;
+  action?: () => void;
+  requirement?: () => boolean;
 }
 
 export interface Dialogue {
@@ -18,21 +214,10 @@ export interface Dialogue {
   options?: DialogueOption[];
 }
 
-export interface DialogueOption {
-  text: string;
-  action: () => void;
-  requirement?: () => boolean;
-}
-
-export interface Mission {
-  id: string;
-  pos: [number, number, number];
-  name: string;
-  camPos: [number, number, number];
-  lookAt: [number, number, number];
-  dialogue: string[];
-  reward: { money: number; respect: number };
-  prerequisite?: string; // Mission ID that must be completed first
+export interface NPCSchedule {
+  hour: number;
+  location: Vec3;
+  activity: string;
 }
 
 export interface NPCPersonality {
@@ -42,15 +227,9 @@ export interface NPCPersonality {
   voicePitch: number;
   voiceRate: number;
   defaultLines: string[];
-  memory: string[]; // Remembers past interactions
-  affection?: number; // For relationship NPCs
+  memory: string[];
+  affection?: number;
   schedule?: NPCSchedule[];
-}
-
-export interface NPCSchedule {
-  hour: number;
-  location: [number, number, number];
-  activity: string;
 }
 
 export interface PoliceState {
@@ -79,7 +258,7 @@ export interface AIAgent {
   currentGoal: string;
   shortTermMemory: string[];
   longTermMemory: string[];
-  relationships: Map<string, number>; // NPC ID -> affection
+  relationships: Record<string, number>;
   lastAction: string;
   nextActionTime: number;
 }
@@ -92,218 +271,3 @@ export interface Notification {
   duration: number;
   startTime: number;
 }
-=======
-// Game Types for Grand Thermodynamische Autobahn
-
-// Position type for coordinates
-export interface Position {
-  x: number;
-  y: number;
-}
-
-// Zone types for Nürnberg districts
-export type ZoneType =
-  | "suedstadt"
-  | "innenstadt"
-  | "gostenhof"
-  | "nordstadt"
-  | "weststadt"
-  | "oststadt"
-  | "langwasser";
-
-// Road types
-export type RoadType = "autobahn" | "hauptstrasse" | "nebenstrasse";
-
-// Building types
-export type BuildingType =
-  | "factory"
-  | "house"
-  | "church"
-  | "museum"
-  | "shop"
-  | "restaurant"
-  | "hospital"
-  | "school"
-  | "office"
-  | "historical";
-
-// Mission categories
-export type MissionCategory =
-  | "physics"
-  | "finance"
-  | "health"
-  | "spiritual"
-  | "historical";
-
-// Zone definition
-export interface Zone {
-  id: string;
-  name: string;
-  type: ZoneType;
-  bounds: {
-    minX: number;
-    minY: number;
-    maxX: number;
-    maxY: number;
-  };
-  color: string;
-  description?: string;
-}
-
-// Road definition
-export interface Road {
-  id: string;
-  type: RoadType;
-  points: Position[];
-  width: number;
-  name?: string;
-}
-
-// Building definition
-export interface Building {
-  id: string;
-  type: BuildingType;
-  name: string;
-  description?: string;
-  position: Position;
-  width: number;
-  height: number;
-  color?: string;
-  interactable?: boolean;
-  missionId?: string;
-}
-
-// NPC dialogue
-export interface NPCDialogue {
-  id: string;
-  text: string;
-  responses?: {
-    text: string;
-    nextDialogueId?: string;
-    action?: string;
-  }[];
-}
-
-// NPC definition
-export interface NPC {
-  id: string;
-  name: string;
-  position: Position;
-  personality?: string;
-  dialogues: NPCDialogue[];
-  isHistorical?: boolean;
-  sprite?: string;
-  color?: string;
-}
-
-// Mission objective
-export interface MissionObjective {
-  id: string;
-  description: string;
-  completed: boolean;
-  targetPosition?: Position;
-  targetNpcId?: string;
-  targetBuildingId?: string;
-}
-
-// Mission definition
-export interface Mission {
-  id: string;
-  title: string;
-  description: string;
-  category: MissionCategory;
-  stepNumber?: number; // For 12-step recovery quests
-  objectives: MissionObjective[];
-  reward?: {
-    xp?: number;
-    money?: number;
-    item?: string;
-  };
-  prerequisites?: string[]; // Mission IDs that must be completed first
-  unlocked: boolean;
-  completed: boolean;
-  startPosition?: Position;
-  npcId?: string;
-}
-
-// Player trace point for multiplayer ghosts
-export interface TracePoint {
-  x: number;
-  y: number;
-  timestamp: number;
-}
-
-// Player trace
-export interface PlayerTrace {
-  id: string;
-  playerId: string;
-  playerName?: string;
-  points: TracePoint[];
-  startTime: number;
-  endTime?: number;
-  isHistorical?: boolean; // For historical figure traces
-}
-
-// Player state
-export interface PlayerState {
-  id: string;
-  name: string;
-  position: Position;
-  health: number;
-  money: number;
-  xp: number;
-  level: number;
-  wantedLevel: number; // 0-5 stars like GTA
-  currentMissionId?: string;
-  completedMissions: string[];
-  inventory: string[];
-  lastSaveTime: number;
-}
-
-// Full map data
-export interface GameMap {
-  id: string;
-  name: string;
-  width: number;
-  height: number;
-  zones: Zone[];
-  roads: Road[];
-  spawnPosition: Position;
-  createdAt: number;
-  updatedAt: number;
-}
-
-// Historical figures for Nürnberg
-export const HISTORICAL_FIGURES = {
-  SIGMUND_SCHUCKERT: {
-    id: "schuckert",
-    name: "Sigmund Schuckert",
-    description: "Electrical pioneer who founded Schuckert & Co.",
-    era: "1846-1895",
-  },
-  PETER_HENLEIN: {
-    id: "henlein",
-    name: "Peter Henlein",
-    description: "Inventor of the pocket watch (Taschenuhr)",
-    era: "1485-1542",
-  },
-  ALBRECHT_DURER: {
-    id: "durer",
-    name: "Albrecht Dürer",
-    description: "Famous Renaissance artist",
-    era: "1471-1528",
-  },
-} as const;
-
-// Default spawn position (safe area)
-export const DEFAULT_SPAWN_POSITION: Position = {
-  x: 400,
-  y: 300,
-};
-
-// Default map size
-export const DEFAULT_MAP_SIZE = {
-  width: 2000,
-  height: 2000,
-};
->>>>>>> copilot/add-map-editor-page
