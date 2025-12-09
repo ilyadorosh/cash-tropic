@@ -39,8 +39,8 @@ import { InteriorSystem } from "./InteriorSystem";
 import { GameManager } from "./GameManager";
 import { getAllLessons, getNextLesson, Lesson } from "./LearningJourney";
 // Add these imports
-import { MobileControls } from "./MobileControls";
-import { MissionOverview } from "./MissionOverview";
+import MobileControls from "./MobileControls";
+import MissionOverview from "./MissionOverviewClean";
 import { PrayerModal } from "./PrayerModal";
 import { NeuralCity } from "./NeuralCity";
 
@@ -224,7 +224,7 @@ export default function GTAEngine3D() {
   );
 
   // === MOBILE HANDLERS - OUTSIDE useEffect, use refs ===
-  const handleMobileMove = useCallback((x: number, y: number) => {
+  const handleMobileMove = useCallback(({ x, y }: { x: number; y: number }) => {
     keysRef.current["w"] = y > 0.3;
     keysRef.current["s"] = y < -0.3;
     keysRef.current["a"] = x < -0.3;
@@ -232,14 +232,14 @@ export default function GTAEngine3D() {
   }, []);
 
   const handleMobileAction = useCallback(
-    (action: "interact" | "shoot" | "mission" | "brake") => {
+    (action: "interact" | "attack" | "mission" | "brake") => {
       switch (action) {
         case "interact":
           if (onKeyDownRef.current) {
             onKeyDownRef.current(new KeyboardEvent("keydown", { key: "e" }));
           }
           break;
-        case "shoot":
+        case "attack":
           if (onKeyDownRef.current) {
             onKeyDownRef.current(new KeyboardEvent("keydown", { key: "f" }));
           }
@@ -1136,16 +1136,24 @@ export default function GTAEngine3D() {
     ];
 
     const getRandomSidewalkPoint = () => {
-      const path = sidewalkPaths[Math.floor(Math.random() * sidewalkPaths.length)];
+      const path =
+        sidewalkPaths[Math.floor(Math.random() * sidewalkPaths.length)];
       const t = Math.random();
       const side = Math.random() > 0.5 ? 1 : -1;
       return {
-        x: path.x1 + (path.x2 - path.x1) * t + (path.z1 === path.z2 ? 0 : path.offset * side),
-        z: path.z1 + (path.z2 - path.z1) * t + (path.x1 === path.x2 ? 0 : path.offset * side),
+        x:
+          path.x1 +
+          (path.x2 - path.x1) * t +
+          (path.z1 === path.z2 ? 0 : path.offset * side),
+        z:
+          path.z1 +
+          (path.z2 - path.z1) * t +
+          (path.x1 === path.x2 ? 0 : path.offset * side),
       };
     };
 
-    for (let i = 0; i < 20; i++) { // Reduced from 30 to 20
+    for (let i = 0; i < 20; i++) {
+      // Reduced from 30 to 20
       const ped = new THREE.Group();
       const body = new THREE.Mesh(
         new THREE.BoxGeometry(1, 3, 0.8),
@@ -1163,10 +1171,10 @@ export default function GTAEngine3D() {
       // Spawn on sidewalks
       const spawnPoint = getRandomSidewalkPoint();
       ped.position.set(spawnPoint.x, 0, spawnPoint.z);
-      
+
       // Initial target
       const targetPoint = getRandomSidewalkPoint();
-      
+
       scene.add(ped);
 
       pedestrians.push({
@@ -1350,7 +1358,11 @@ export default function GTAEngine3D() {
       if (currentDialogueOptions && ["1", "2", "3"].includes(e.key)) {
         const optionIndex = parseInt(e.key) - 1;
         if (currentDialogueOptions[optionIndex]) {
-          currentDialogueOptions[optionIndex].action();
+          if (
+            typeof currentDialogueOptions[optionIndex].action === "function"
+          ) {
+            currentDialogueOptions[optionIndex].action();
+          }
           currentDialogueOptions = null;
           return;
         }
@@ -1761,27 +1773,7 @@ export default function GTAEngine3D() {
     let lastZoneName = "";
     let completedMissions: string[] = [];
 
-    // Update the building interaction in the E key handler:
-    // (Add this in the playerState === 'walking' interaction section)
-
-    // Check for building interaction
-
-    if (cityRef.current) {
-      const nearbyBuilding = cityRef.current.getBuildingAt(
-        playerGroup.position.x,
-        playerGroup.position.z,
-        6,
-      );
-      if (nearbyBuilding) {
-        // Silent notification - no dialogue interruption!
-        showNotification(
-          "business",
-          nearbyBuilding.name,
-          nearbyBuilding.description,
-        );
-        return;
-      }
-    }
+    // (Removed misplaced building interaction block; this logic should be inside the appropriate event handler)
 
     // === GAME LOOP ===
     let frame = 0;
@@ -2004,9 +1996,16 @@ export default function GTAEngine3D() {
           const distToCar = ped.mesh.position.distanceTo(carPos);
 
           // Flee from fast-approaching cars
-          if (distToCar < 15 && Math.abs(speed) > 0.4 && ped.state !== "fleeing") {
+          if (
+            distToCar < 15 &&
+            Math.abs(speed) > 0.4 &&
+            ped.state !== "fleeing"
+          ) {
             ped.state = "fleeing";
-            const awayFromCar = ped.mesh.position.clone().sub(carPos).normalize();
+            const awayFromCar = ped.mesh.position
+              .clone()
+              .sub(carPos)
+              .normalize();
             ped.targetX = ped.mesh.position.x + awayFromCar.x * 20;
             ped.targetZ = ped.mesh.position.z + awayFromCar.z * 20;
           }
@@ -2017,7 +2016,7 @@ export default function GTAEngine3D() {
             const toTarget = new THREE.Vector3(
               ped.targetX - ped.mesh.position.x,
               0,
-              ped.targetZ - ped.mesh.position.z
+              ped.targetZ - ped.mesh.position.z,
             );
             if (toTarget.length() < 2 || distToCar > 30) {
               ped.state = "walking";
@@ -2041,9 +2040,9 @@ export default function GTAEngine3D() {
             const toTarget = new THREE.Vector3(
               ped.targetX - ped.mesh.position.x,
               0,
-              ped.targetZ - ped.mesh.position.z
+              ped.targetZ - ped.mesh.position.z,
             );
-            
+
             if (toTarget.length() < 2) {
               // Reached target - either idle or get new target
               if (Math.random() < 0.3) {
@@ -2063,17 +2062,20 @@ export default function GTAEngine3D() {
           // Hit by car - require much higher speed, smaller hitbox
           const hitDistance = ped.mesh.position.distanceTo(carPos);
           const speedThreshold = 0.7; // Much higher - need to be going fast
-          
+
           if (
             hitDistance < 2.5 && // Smaller hitbox
             Math.abs(speed) > speedThreshold
           ) {
             // Only count as hit if directly in front of car
-            const carForward = new THREE.Vector3(0, 0, 1).applyQuaternion(activeCar.quaternion);
+            const carForward = new THREE.Vector3(0, 0, 1).applyQuaternion(
+              activeCar.quaternion,
+            );
             const toPed = ped.mesh.position.clone().sub(carPos).normalize();
             const dotProduct = carForward.dot(toPed);
-            
-            if (dotProduct > 0.5) { // Must be in front of car
+
+            if (dotProduct > 0.5) {
+              // Must be in front of car
               health -= 1;
               // Smaller wanted increase, cap at 3 for pedestrian hits
               wantedLevel = Math.min(wantedLevel + 0.5, 3);
@@ -2087,9 +2089,16 @@ export default function GTAEngine3D() {
                 .multiplyScalar(5);
               ped.mesh.position.add(flyDir);
             }
-          } else if (hitDistance < 4 && Math.abs(speed) > 0.2 && Math.abs(speed) <= speedThreshold) {
+          } else if (
+            hitDistance < 4 &&
+            Math.abs(speed) > 0.2 &&
+            Math.abs(speed) <= speedThreshold
+          ) {
             // Pedestrians dodge slow-moving cars
-            const awayFromCar = ped.mesh.position.clone().sub(carPos).normalize();
+            const awayFromCar = ped.mesh.position
+              .clone()
+              .sub(carPos)
+              .normalize();
             ped.mesh.position.add(awayFromCar.multiplyScalar(0.5));
           }
         });
@@ -2157,7 +2166,7 @@ export default function GTAEngine3D() {
         const maxPolice = Math.min(wantedLevel, 3); // Cap at 3 police cars
         if (
           wantedLevel > 0 &&
-          policeCars.filter(pc => !pc.hijacked).length < maxPolice &&
+          policeCars.filter((pc) => !pc.hijacked).length < maxPolice &&
           frame % 600 === 0 // Much slower spawn (every 10 sec instead of 1.6 sec)
         ) {
           // Spawn police away from player, not on top of them
@@ -2167,13 +2176,14 @@ export default function GTAEngine3D() {
           newCop.mesh.position.set(
             targetPos.x + Math.cos(spawnAngle) * spawnDist,
             0,
-            targetPos.z + Math.sin(spawnAngle) * spawnDist
+            targetPos.z + Math.sin(spawnAngle) * spawnDist,
           );
           policeCars.push(newCop);
         }
 
         // Wanted level decay over time when not committing crimes
-        if (wantedLevel > 0 && frame % 1800 === 0) { // Every 30 seconds
+        if (wantedLevel > 0 && frame % 1800 === 0) {
+          // Every 30 seconds
           wantedLevel = Math.max(0, wantedLevel - 0.25); // Slow decay
           if (wantedLevel < 0.5) wantedLevel = 0; // Clear if very low
         }
@@ -2255,7 +2265,8 @@ export default function GTAEngine3D() {
                   "Suspect is not complying. All units pursue!",
                 ];
 
-                if (distToPlayer < 60) { // Only warn when closer
+                if (distToPlayer < 60) {
+                  // Only warn when closer
                   handleDialogue({
                     title: "Officer",
                     text: warnings[pc.warningsIssued - 1],
@@ -2783,13 +2794,34 @@ export default function GTAEngine3D() {
       )}
 
       {/* Mission Overview (works on both mobile and desktop) */}
-      {showMissions && gameManagerRef.current?.getProgress() && (
-        <MissionOverview
-          progress={gameManagerRef.current.getProgress()!}
-          onClose={() => setShowMissions(false)}
-        />
-      )}
+      {/* {showMissions && gameManagerRef.current?.getProgress() && (
+          // <MissionOverview
+          //   progress={gameManagerRef.current.getProgress()!}
+          //   onClose={() => setShowMissions(false)}
+          // />
+        )} */}
 
+      {/* Debug: Add Money Button */}
+      <button
+        style={{
+          position: "absolute",
+          top: 20,
+          right: 20,
+          zIndex: 100,
+          background: "#4caf50",
+          color: "#fff",
+          fontWeight: "bold",
+          border: "none",
+          borderRadius: 6,
+          padding: "10px 18px",
+          fontSize: 18,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+          cursor: "pointer",
+        }}
+        onClick={() => setStats((s) => ({ ...s, money: s.money + 10000 }))}
+      >
+        +$10,000
+      </button>
       {/* Update the controls hint for desktop */}
       {!isMobile && (
         <div

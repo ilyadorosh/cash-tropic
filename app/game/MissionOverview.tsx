@@ -1,72 +1,12 @@
+// MissionOverview.tsx
 "use client";
-import React from "react";
+
+import React, { useEffect, useMemo, useState } from "react";
 import type { Mission, MissionCategory } from "./types";
 
-interface MissionOverviewProps {
-  missions: Mission[];
-  onClose: () => void;
-  onSelectMission: (missionId: string) => void;
-  currentMissionId?: string;
-}
-
-const CATEGORY_COLORS: Record<MissionCategory, string> = {
-  physics: "#667eea",
-  finance: "#48bb78",
-  health: "#fc8181",
-  spiritual: "#9f7aea",
-  historical: "#ed8936"
-};
-
-export default function MissionOverview({ missions, onClose, onSelectMission, currentMissionId }: MissionOverviewProps) {
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", color: "white", padding: 20, overflowY: "auto", zIndex: 200, fontFamily: "Arial, sans-serif" }}>
-      <button onClick={onClose} style={{ float: "right", fontSize: 24 }}>
-        ×
-      </button>
-      <h1 style={{ fontFamily: "Impact", fontSize: 36 }}>📋 MISSIONEN</h1>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
-        {missions.map((mission) => (
-          <div
-            key={mission.id}
-            onClick={() => onSelectMission(mission.id)}
-            style={{
-              background: CATEGORY_COLORS[mission.category],
-              color: "#fff",
-              padding: 16,
-              borderRadius: 8,
-              minWidth: 200,
-              cursor: "pointer",
-              border: mission.id === currentMissionId ? "3px solid #fff" : "none",
-              boxShadow: mission.id === currentMissionId ? "0 0 12px #fff" : undefined,
-            }}
-          >
-            <h2 style={{ margin: 0 }}>{mission.title}</h2>
-            <p style={{ margin: 0, fontSize: 14 }}>{mission.description}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-"use client";
-import React from "react";
-import type { Mission, MissionCategory } from "./types";
-interface MissionOverviewProps {
-  missions: Mission[];
-  onClose: () => void;
-  onSelectMission: (missionId: string) => void;
-  currentMissionId?: string;
-}
-  physics: "#667eea",
-  finance: "#48bb78",
-  health: "#fc8181",
-  spiritual: "#9f7aea",
-  historical: "#ed8936",
-export default function MissionOverview({ missions, onClose, onSelectMission, currentMissionId }: MissionOverviewProps) {
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", color: "white", padding: 20, overflowY: "auto", zIndex: 200, fontFamily: "Arial, sans-serif" }}>
-      <button onClick={onClose} style={{ float: "right", fontSize: 24 }}>
-        ×
+/* ------------------------------------------------------------------
+   Helper constants – add any icons you need for each category
+   ------------------------------------------------------------------ */
 const CATEGORY_COLORS: Record<MissionCategory, string> = {
   physics: "#667eea",
   finance: "#48bb78",
@@ -74,200 +14,76 @@ const CATEGORY_COLORS: Record<MissionCategory, string> = {
   spiritual: "#9f7aea",
   historical: "#ed8936",
 };
-export default function MissionOverview({ missions, onClose, onSelectMission, currentMissionId }: MissionOverviewProps) {
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", color: "white", padding: 20, overflowY: "auto", zIndex: 200, fontFamily: "Arial, sans-serif" }}>
-      <button onClick={onClose} style={{ float: "right", fontSize: 24 }}>
-        ×
-      </button>
-      <h1 style={{ fontFamily: "Impact", fontSize: 36 }}>📋 MISSIONEN</h1>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
-        {missions.map((mission) => (
-          <div
-            key={mission.id}
-            onClick={() => onSelectMission(mission.id)}
-            style={{
-              background: CATEGORY_COLORS[mission.category],
-              color: "#fff",
-              padding: 16,
-              borderRadius: 8,
-              minWidth: 200,
-              cursor: "pointer",
-              border: mission.id === currentMissionId ? "3px solid #fff" : "none",
-              boxShadow: mission.id === currentMissionId ? "0 0 12px #fff" : undefined,
-            }}
-          >
-            <h2 style={{ margin: 0 }}>{mission.title}</h2>
-            <p style={{ margin: 0, fontSize: 14 }}>{mission.description}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-"use client";
-<<<<<<< HEAD
-import { PlayerProgress } from "./GameState";
-import {
-  getAllLessons,
-  PHYSICS_PATH,
-  SPIRITUAL_PATH,
-  FINANCE_PATH,
-  HEALTH_PATH,
-} from "./LearningJourney";
 
-export function MissionOverview({
-  progress,
+const CATEGORY_ICONS: Record<MissionCategory, string> = {
+  physics: "🔬",
+  finance: "💰",
+  health: "🏥",
+  spiritual: "🕉️",
+  historical: "🏛️",
+};
+
+/* ------------------------------------------------------------------
+   Props
+   ------------------------------------------------------------------ */
+interface MissionOverviewProps {
+  missions: Mission[];
+  onClose: () => void;
+  onSelectMission: (missionId: string) => void;
+  currentMissionId?: string;
+}
+
+/* ------------------------------------------------------------------
+   Main component
+   ------------------------------------------------------------------ */
+export default function MissionOverview({
+  missions,
   onClose,
-}: {
-  progress: PlayerProgress;
-  onClose: () => void;
-}) {
-  const paths = [
-    {
-      name: "🔵 Physik",
-      lessons: PHYSICS_PATH,
-      track: progress.learning.physics,
-    },
-    {
-      name: "🟡 Finanzen",
-      lessons: FINANCE_PATH,
-      track: progress.learning.finance,
-    },
-    {
-      name: "🔴 Gesundheit",
+  onSelectMission,
+  currentMissionId,
+}: MissionOverviewProps) {
+  const [selectedCategory, setSelectedCategory] = useState<
+    MissionCategory | "all"
+  >("all");
 
-      "use client";
-      import React from "react";
-      import type { Mission, MissionCategory } from "./types";
-
-      interface MissionOverviewProps {
-        missions: Mission[];
-        onClose: () => void;
-        onSelectMission: (missionId: string) => void;
-        currentMissionId?: string;
+  /* Handle ESC / M shortcuts */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key.toLowerCase() === "m") {
+        onClose();
       }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
-      const CATEGORY_COLORS: Record<MissionCategory, string> = {
-        physics: "#667eea",
-        finance: "#48bb78",
-        health: "#fc8181",
-        spiritual: "#9f7aea",
-        historical: "#ed8936",
-      };
-
-      export default function MissionOverview({ missions, onClose, onSelectMission, currentMissionId }: MissionOverviewProps) {
-        return (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", color: "white", padding: 20, overflowY: "auto", zIndex: 200, fontFamily: "Arial, sans-serif" }}>
-            <button onClick={onClose} style={{ float: "right", fontSize: 24 }}>
-              ×
-            </button>
-            <h1 style={{ fontFamily: "Impact", fontSize: 36 }}>📋 MISSIONEN</h1>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
-              {missions.map((mission) => (
-                <div
-                  key={mission.id}
-                  onClick={() => onSelectMission(mission.id)}
-                  style={{
-                    background: CATEGORY_COLORS[mission.category],
-                    color: "#fff",
-                    padding: 16,
-                    borderRadius: 8,
-                    minWidth: 200,
-                    cursor: "pointer",
-                    border: mission.id === currentMissionId ? "3px solid #fff" : "none",
-                    boxShadow: mission.id === currentMissionId ? "0 0 12px #fff" : undefined,
-                  }}
-                >
-                  <h2 style={{ margin: 0 }}>{mission.title}</h2>
-                  <p style={{ margin: 0, fontSize: 14 }}>{mission.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      }
-        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-          {progress.twelveSteps.stepsCompleted.map((done, i) => (
-            <div
-              key={i}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: "50%",
-                background: done
-                  ? "#4CAF50"
-                  : i === progress.twelveSteps.currentStep
-                  ? "#FFD700"
-                  : "#444",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: "bold",
-              }}
-            >
-              {i + 1}
-            </div>
-          ))}
-        </div>
-        <p>🗓️ {progress.twelveSteps.sobrietyDays} Tage clean</p>
-      </div>
-
-      {/* Learning Paths */}
-      {paths.map((path) => (
-        <div
-          key={path.name}
-          style={{
-            background: "#222",
-            padding: 15,
-            marginBottom: 15,
-            borderRadius: 8,
-          }}
-        >
-          <h2>
-            {path.name} - Level {path.track.level} ({path.track.xp} XP)
-          </h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {path.lessons.map((lesson) => {
-              const completed = path.track.lessonsCompleted.includes(lesson.id);
-              const available = lesson.prerequisites.every((p) =>
-                path.track.lessonsCompleted.includes(p),
-              );
-              return (
-                <div
-                  key={lesson.id}
-                  style={{
-                    padding: 10,
-                    background: completed
-                      ? "#2E7D32"
-                      : available
-                      ? "#1565C0"
-                      : "#444",
-                    borderRadius: 4,
-                    opacity: available || completed ? 1 : 0.5,
-                  }}
-                >
-                  {completed ? "✅" : available ? "▶️" : "🔒"} {lesson.titleDe}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
+  /* Filter missions by category */
+  const filteredMissions = useMemo(
+    () =>
+      selectedCategory === "all"
+        ? missions
+        : missions.filter((m) => m.category === selectedCategory),
+    [missions, selectedCategory],
   );
-}
-=======
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(0, 0, 0, 0.85)",
-        zIndex: 2000,
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "20px",
+
+  /* Count completed missions (simple example – adjust to your data) */
+  const completedCount = missions.filter((m) => m.completed).length;
+  const totalMissions = missions.length;
+
+  /* ------------------------------------------------------------------
+     Render
+     ------------------------------------------------------------------ */
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.9)",
+        color: "white",
+        padding: 20,
+        overflowY: "auto",
+        zIndex: 200,
+        fontFamily: "Arial, sans-serif",
       }}
       onClick={onClose}
     >
@@ -338,7 +154,9 @@ export function MissionOverview({
             (cat) => (
               <CategoryButton
                 key={cat}
-                label={`${CATEGORY_ICONS[cat]} ${cat.charAt(0).toUpperCase() + cat.slice(1)}`}
+                label={`${CATEGORY_ICONS[cat]} ${
+                  cat.charAt(0).toUpperCase() + cat.slice(1)
+                }`}
                 selected={selectedCategory === cat}
                 onClick={() => setSelectedCategory(cat)}
                 color={CATEGORY_COLORS[cat]}
@@ -355,15 +173,19 @@ export function MissionOverview({
             padding: "20px",
           }}
         >
-          {unlockedMissions.length === 0 ? (
+          {filteredMissions.length === 0 ? (
             <p style={{ color: "#666", textAlign: "center", padding: "40px" }}>
               No missions available in this category
             </p>
           ) : (
             <div
-              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+              }}
             >
-              {unlockedMissions.map((mission) => (
+              {filteredMissions.map((mission) => (
                 <MissionCard
                   key={mission.id}
                   mission={mission}
@@ -392,6 +214,9 @@ export function MissionOverview({
   );
 }
 
+/* ------------------------------------------------------------------
+   CategoryButton component
+   ------------------------------------------------------------------ */
 interface CategoryButtonProps {
   label: string;
   selected: boolean;
@@ -425,6 +250,9 @@ function CategoryButton({
   );
 }
 
+/* ------------------------------------------------------------------
+   MissionCard component
+   ------------------------------------------------------------------ */
 interface MissionCardProps {
   mission: Mission;
   isActive: boolean;
@@ -432,12 +260,19 @@ interface MissionCardProps {
 }
 
 function MissionCard({ mission, isActive, onClick }: MissionCardProps) {
-  const color = CATEGORY_COLORS[mission.category] || "#666";
-  const icon = CATEGORY_ICONS[mission.category] || "📌";
-  const completedObjectives = mission.objectives.filter(
+  const color =
+    mission.category && CATEGORY_COLORS[mission.category as MissionCategory]
+      ? CATEGORY_COLORS[mission.category as MissionCategory]
+      : "#666";
+  const icon =
+    mission.category && CATEGORY_ICONS[mission.category as MissionCategory]
+      ? CATEGORY_ICONS[mission.category as MissionCategory]
+      : "📌";
+
+  const completedObjectives = (mission.objectives ?? []).filter(
     (o) => o.completed,
   ).length;
-  const totalObjectives = mission.objectives.length;
+  const totalObjectives = (mission.objectives ?? []).length;
 
   return (
     <div
@@ -494,6 +329,7 @@ function MissionCard({ mission, isActive, onClick }: MissionCardProps) {
               </span>
             )}
           </div>
+
           <p
             style={{
               margin: "0 0 10px 26px",
@@ -549,8 +385,8 @@ function MissionCard({ mission, isActive, onClick }: MissionCardProps) {
             backgroundColor: mission.completed
               ? "#48bb78"
               : isActive
-                ? color
-                : "#3a3a4e",
+              ? color
+              : "#3a3a4e",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -562,7 +398,7 @@ function MissionCard({ mission, isActive, onClick }: MissionCardProps) {
         </div>
       </div>
 
-      {/* Rewards */}
+      {/* Rewards (optional) */}
       {mission.reward && (
         <div
           style={{
@@ -587,6 +423,3 @@ function MissionCard({ mission, isActive, onClick }: MissionCardProps) {
     </div>
   );
 }
-
-export default MissionOverview;
->>>>>>> copilot/add-map-editor-page
