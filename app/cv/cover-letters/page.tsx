@@ -18,7 +18,8 @@ const COVER_LETTER_TEMPLATES: CoverLetterTemplate[] = [
     title: "NIST Precision Measurement",
     target: "National Institute of Standards and Technology",
     type: "metrology",
-    description: "For positions in fundamental constants and precision measurement groups",
+    description:
+      "For positions in fundamental constants and precision measurement groups",
     content: `Dear Hiring Committee,
 
 I am writing to express my deep passion for joining NIST's precision measurement program. The work you do here—determining fundamental constants like the fine-structure constant α—doesn't just shape the SI units. It shapes our understanding of reality itself. I find that profoundly beautiful.
@@ -38,14 +39,15 @@ The opportunity to contribute to SI realization, test the Standard Model through
 I would be honored and grateful to discuss how my theoretical perspective and technical skills could contribute to NIST's mission. Thank you for considering my application.
 
 With deep respect and enthusiasm,
-Illia Dorosh`
+Illia Dorosh`,
   },
   {
     id: "ptb-metrology",
     title: "PTB Germany",
     target: "Physikalisch-Technische Bundesanstalt",
     type: "metrology",
-    description: "Germany's national metrology institute - precision measurement positions",
+    description:
+      "Germany's national metrology institute - precision measurement positions",
     content: `Sehr geehrte Damen und Herren,
 
 I am applying to join PTB's precision measurement research—not just as a job, but as a calling. The fundamental constants program that underpins the SI and tests our deepest theories of physics is, to me, sacred work.
@@ -72,14 +74,15 @@ The technologies developed in this work—ultra-stable lasers, atomic clocks, qu
 Thank you for your time and consideration. I hope we can discuss how I might contribute to PTB's beautiful mission.
 
 Mit herzlichen Grüßen,
-Illia Dorosh`
+Illia Dorosh`,
   },
   {
     id: "nsf-career",
     title: "NSF CAREER Grant",
     target: "National Science Foundation",
     type: "grant",
-    description: "Early career research grant for precision measurement research",
+    description:
+      "Early career research grant for precision measurement research",
     content: `PROJECT SUMMARY: Precision Determination of α and the Beauty of Fundamental Physics
 
 **Intellectual Merit:**
@@ -108,7 +111,7 @@ This work is an act of love for the universe that made us.
 Budget: $500,000 over 5 years (personnel, equipment, travel, computing)
 Duration: 5 years
 
-Principal Investigator: Illia Dorosh`
+Principal Investigator: Illia Dorosh`,
   },
   {
     id: "erc-starting",
@@ -159,7 +162,7 @@ This project requires intellectual freedom and courage—the freedom to pursue h
 - Open-access publication & outreach — €100k
 - Contingency & indirect costs — €400k
 
-**Host Institution:** [Open to discussions—seeking the right intellectual home]`
+**Host Institution:** [Open to discussions—seeking the right intellectual home]`,
   },
   {
     id: "university-postdoc",
@@ -197,7 +200,7 @@ I aim to bridge theory and experiment in precision physics—to be someone who c
 I would be honored and grateful for the opportunity to discuss how my background could contribute to your research program. Thank you for your work and for considering mine.
 
 With warmth and respect,
-Illia Dorosh`
+Illia Dorosh`,
   },
   {
     id: "quantum-industry",
@@ -235,24 +238,41 @@ My obsession with α ≈ 1/137 isn't just theoretical curiosity—the same exper
 I am genuinely excited about the opportunity to contribute to [Company]'s mission of [specific mission/product]. Let's build something beautiful together.
 
 With enthusiasm,
-Illia Dorosh`
-  }
+Illia Dorosh`,
+  },
 ];
 
 const TYPE_COLORS = {
-  metrology: { bg: "rgba(0, 255, 170, 0.1)", border: "#00ffaa", label: "🏛️ Metrology Institute" },
-  grant: { bg: "rgba(255, 170, 0, 0.1)", border: "#ffaa00", label: "💰 Research Grant" },
-  research: { bg: "rgba(118, 75, 162, 0.1)", border: "#764ba2", label: "🔬 Academic Research" },
-  industry: { bg: "rgba(0, 170, 255, 0.1)", border: "#00aaff", label: "🚀 Industry" }
+  metrology: {
+    bg: "rgba(0, 255, 170, 0.1)",
+    border: "#00ffaa",
+    label: "🏛️ Metrology Institute",
+  },
+  grant: {
+    bg: "rgba(255, 170, 0, 0.1)",
+    border: "#ffaa00",
+    label: "💰 Research Grant",
+  },
+  research: {
+    bg: "rgba(118, 75, 162, 0.1)",
+    border: "#764ba2",
+    label: "🔬 Academic Research",
+  },
+  industry: {
+    bg: "rgba(0, 170, 255, 0.1)",
+    border: "#00aaff",
+    label: "🚀 Industry",
+  },
 };
 
 export default function CoverLettersPage() {
-  const [selectedLetter, setSelectedLetter] = useState<CoverLetterTemplate | null>(null);
+  const [selectedLetter, setSelectedLetter] =
+    useState<CoverLetterTemplate | null>(null);
   const [customizations, setCustomizations] = useState({
     recipientName: "",
     position: "",
     company: "",
-    specificProject: ""
+    specificProject: "",
   });
 
   const copyToClipboard = async (text: string) => {
@@ -273,50 +293,82 @@ export default function CoverLettersPage() {
   };
 
   return (
-    <div style={{
-      height: "100vh",
-      background: "linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%)",
-      color: "#e0e0e0",
-      padding: "40px 20px",
-      overflowY: "auto",
-      boxSizing: "border-box"
-    }}>
+    <div
+      style={{
+        height: "100vh",
+        background:
+          "linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%)",
+        color: "#e0e0e0",
+        padding: "40px 20px",
+        overflowY: "auto",
+        boxSizing: "border-box",
+      }}
+    >
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         {/* Header */}
         <div style={{ marginBottom: 40 }}>
-          <Link href="/cv" style={{ color: "#00ffaa", textDecoration: "none", fontSize: "0.9rem" }}>
+          <Link
+            href="/cv"
+            style={{
+              color: "#00ffaa",
+              textDecoration: "none",
+              fontSize: "0.9rem",
+            }}
+          >
             ← Back to CV
           </Link>
-          <h1 style={{ 
-            fontSize: "2.5rem", 
-            marginTop: 20,
-            background: "linear-gradient(135deg, #00ffaa, #764ba2)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent"
-          }}>
+          <h1
+            style={{
+              fontSize: "2.5rem",
+              marginTop: 20,
+              background: "linear-gradient(135deg, #00ffaa, #764ba2)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
             Cover Letter Generator
           </h1>
           <p style={{ color: "#aaa", maxWidth: 700, lineHeight: 1.6 }}>
-            Tailored cover letters for precision measurement positions, research grants, and quantum technology roles. 
-            All centered on the fine-structure constant α and fundamental physics.
+            Tailored cover letters for precision measurement positions, research
+            grants, and quantum technology roles. All centered on the
+            fine-structure constant α and fundamental physics.
           </p>
         </div>
 
         {/* Funding Context */}
-        <div style={{
-          background: "rgba(255, 170, 0, 0.05)",
-          border: "1px solid rgba(255, 170, 0, 0.2)",
-          borderRadius: 12,
-          padding: 24,
-          marginBottom: 40
-        }}>
-          <h2 style={{ color: "#ffaa00", fontSize: "1.3rem", marginBottom: 16 }}>
+        <div
+          style={{
+            background: "rgba(255, 170, 0, 0.05)",
+            border: "1px solid rgba(255, 170, 0, 0.2)",
+            borderRadius: 12,
+            padding: 24,
+            marginBottom: 40,
+          }}
+        >
+          <h2
+            style={{ color: "#ffaa00", fontSize: "1.3rem", marginBottom: 16 }}
+          >
             💡 Who Funds α Experiments?
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 20 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+              gap: 20,
+            }}
+          >
             <div>
-              <h3 style={{ color: "#fff", fontSize: "1rem", marginBottom: 8 }}>🏛️ National Metrology Institutes</h3>
-              <ul style={{ color: "#aaa", fontSize: "0.9rem", paddingLeft: 20, margin: 0 }}>
+              <h3 style={{ color: "#fff", fontSize: "1rem", marginBottom: 8 }}>
+                🏛️ National Metrology Institutes
+              </h3>
+              <ul
+                style={{
+                  color: "#aaa",
+                  fontSize: "0.9rem",
+                  paddingLeft: 20,
+                  margin: 0,
+                }}
+              >
                 <li>NIST (USA)</li>
                 <li>PTB (Germany)</li>
                 <li>NPL (UK)</li>
@@ -325,8 +377,17 @@ export default function CoverLettersPage() {
               </ul>
             </div>
             <div>
-              <h3 style={{ color: "#fff", fontSize: "1rem", marginBottom: 8 }}>💰 Research Councils</h3>
-              <ul style={{ color: "#aaa", fontSize: "0.9rem", paddingLeft: 20, margin: 0 }}>
+              <h3 style={{ color: "#fff", fontSize: "1rem", marginBottom: 8 }}>
+                💰 Research Councils
+              </h3>
+              <ul
+                style={{
+                  color: "#aaa",
+                  fontSize: "0.9rem",
+                  paddingLeft: 20,
+                  margin: 0,
+                }}
+              >
                 <li>NSF (USA)</li>
                 <li>ERC (Europe)</li>
                 <li>DFG (Germany)</li>
@@ -335,8 +396,17 @@ export default function CoverLettersPage() {
               </ul>
             </div>
             <div>
-              <h3 style={{ color: "#fff", fontSize: "1rem", marginBottom: 8 }}>🎯 Why They Fund</h3>
-              <ul style={{ color: "#aaa", fontSize: "0.9rem", paddingLeft: 20, margin: 0 }}>
+              <h3 style={{ color: "#fff", fontSize: "1rem", marginBottom: 8 }}>
+                🎯 Why They Fund
+              </h3>
+              <ul
+                style={{
+                  color: "#aaa",
+                  fontSize: "0.9rem",
+                  paddingLeft: 20,
+                  margin: 0,
+                }}
+              >
                 <li>SI unit realization</li>
                 <li>Standard Model tests</li>
                 <li>Quantum technology R&D</li>
@@ -348,7 +418,13 @@ export default function CoverLettersPage() {
 
         {/* Letter Grid */}
         {!selectedLetter ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))", gap: 20 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))",
+              gap: 20,
+            }}
+          >
             {COVER_LETTER_TEMPLATES.map((letter) => {
               const typeStyle = TYPE_COLORS[letter.type];
               return (
@@ -372,16 +448,40 @@ export default function CoverLettersPage() {
                     e.currentTarget.style.transform = "translateY(0)";
                   }}
                 >
-                  <div style={{ fontSize: "0.75rem", color: typeStyle.border, marginBottom: 8 }}>
+                  <div
+                    style={{
+                      fontSize: "0.75rem",
+                      color: typeStyle.border,
+                      marginBottom: 8,
+                    }}
+                  >
                     {typeStyle.label}
                   </div>
-                  <h3 style={{ color: "#fff", fontSize: "1.2rem", marginBottom: 8 }}>
+                  <h3
+                    style={{
+                      color: "#fff",
+                      fontSize: "1.2rem",
+                      marginBottom: 8,
+                    }}
+                  >
                     {letter.title}
                   </h3>
-                  <div style={{ color: "#aaa", fontSize: "0.85rem", marginBottom: 12 }}>
+                  <div
+                    style={{
+                      color: "#aaa",
+                      fontSize: "0.85rem",
+                      marginBottom: 12,
+                    }}
+                  >
                     {letter.target}
                   </div>
-                  <p style={{ color: "#888", fontSize: "0.85rem", lineHeight: 1.5 }}>
+                  <p
+                    style={{
+                      color: "#888",
+                      fontSize: "0.85rem",
+                      lineHeight: 1.5,
+                    }}
+                  >
                     {letter.description}
                   </p>
                 </div>
@@ -400,43 +500,61 @@ export default function CoverLettersPage() {
                 padding: "8px 16px",
                 borderRadius: 8,
                 cursor: "pointer",
-                marginBottom: 20
+                marginBottom: 20,
               }}
             >
               ← Back to all letters
             </button>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 30 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 300px",
+                gap: 30,
+              }}
+            >
               {/* Letter Content */}
-              <div style={{
-                background: "rgba(255,255,255,0.02)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 12,
-                padding: 30
-              }}>
-                <div style={{ 
-                  fontSize: "0.75rem", 
-                  color: TYPE_COLORS[selectedLetter.type].border, 
-                  marginBottom: 8 
-                }}>
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.02)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 12,
+                  padding: 30,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "0.75rem",
+                    color: TYPE_COLORS[selectedLetter.type].border,
+                    marginBottom: 8,
+                  }}
+                >
                   {TYPE_COLORS[selectedLetter.type].label}
                 </div>
-                <h2 style={{ color: "#fff", marginBottom: 8 }}>{selectedLetter.title}</h2>
-                <div style={{ color: "#aaa", marginBottom: 24 }}>{selectedLetter.target}</div>
-                
-                <pre style={{
-                  whiteSpace: "pre-wrap",
-                  fontFamily: "inherit",
-                  fontSize: "0.95rem",
-                  lineHeight: 1.7,
-                  color: "#e0e0e0"
-                }}>
+                <h2 style={{ color: "#fff", marginBottom: 8 }}>
+                  {selectedLetter.title}
+                </h2>
+                <div style={{ color: "#aaa", marginBottom: 24 }}>
+                  {selectedLetter.target}
+                </div>
+
+                <pre
+                  style={{
+                    whiteSpace: "pre-wrap",
+                    fontFamily: "inherit",
+                    fontSize: "0.95rem",
+                    lineHeight: 1.7,
+                    color: "#e0e0e0",
+                  }}
+                >
                   {selectedLetter.content}
                 </pre>
               </div>
 
               {/* Actions Sidebar */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 16 }}
+              >
                 <button
                   onClick={() => copyToClipboard(selectedLetter.content)}
                   style={{
@@ -447,12 +565,12 @@ export default function CoverLettersPage() {
                     borderRadius: 8,
                     fontWeight: "bold",
                     cursor: "pointer",
-                    fontSize: "1rem"
+                    fontSize: "1rem",
                   }}
                 >
                   📋 Copy to Clipboard
                 </button>
-                
+
                 <button
                   onClick={() => downloadLetter(selectedLetter)}
                   style={{
@@ -461,41 +579,73 @@ export default function CoverLettersPage() {
                     border: "none",
                     padding: "14px 20px",
                     borderRadius: 8,
-                    cursor: "pointer"
+                    cursor: "pointer",
                   }}
                 >
                   ⬇️ Download .txt
                 </button>
 
-                <div style={{
-                  background: "rgba(118, 75, 162, 0.1)",
-                  border: "1px solid rgba(118, 75, 162, 0.3)",
-                  borderRadius: 12,
-                  padding: 16,
-                  marginTop: 20
-                }}>
-                  <h4 style={{ color: "#764ba2", marginBottom: 12, fontSize: "0.9rem" }}>
+                <div
+                  style={{
+                    background: "rgba(118, 75, 162, 0.1)",
+                    border: "1px solid rgba(118, 75, 162, 0.3)",
+                    borderRadius: 12,
+                    padding: 16,
+                    marginTop: 20,
+                  }}
+                >
+                  <h4
+                    style={{
+                      color: "#764ba2",
+                      marginBottom: 12,
+                      fontSize: "0.9rem",
+                    }}
+                  >
                     ✏️ Customization Tips
                   </h4>
-                  <ul style={{ color: "#aaa", fontSize: "0.8rem", paddingLeft: 16, margin: 0, lineHeight: 1.6 }}>
+                  <ul
+                    style={{
+                      color: "#aaa",
+                      fontSize: "0.8rem",
+                      paddingLeft: 16,
+                      margin: 0,
+                      lineHeight: 1.6,
+                    }}
+                  >
                     <li>Replace [bracketed text] with specifics</li>
-                    <li>Research the PI's recent papers</li>
+                    <li>Research the PI&#039;s recent papers</li>
                     <li>Mention specific experiments</li>
                     <li>Align with funding call language</li>
                     <li>Keep under 1 page for industry</li>
                   </ul>
                 </div>
 
-                <div style={{
-                  background: "rgba(0, 255, 170, 0.05)",
-                  border: "1px solid rgba(0, 255, 170, 0.2)",
-                  borderRadius: 12,
-                  padding: 16
-                }}>
-                  <h4 style={{ color: "#00ffaa", marginBottom: 12, fontSize: "0.9rem" }}>
+                <div
+                  style={{
+                    background: "rgba(0, 255, 170, 0.05)",
+                    border: "1px solid rgba(0, 255, 170, 0.2)",
+                    borderRadius: 12,
+                    padding: 16,
+                  }}
+                >
+                  <h4
+                    style={{
+                      color: "#00ffaa",
+                      marginBottom: 12,
+                      fontSize: "0.9rem",
+                    }}
+                  >
                     🎯 Key Selling Points
                   </h4>
-                  <ul style={{ color: "#aaa", fontSize: "0.8rem", paddingLeft: 16, margin: 0, lineHeight: 1.6 }}>
+                  <ul
+                    style={{
+                      color: "#aaa",
+                      fontSize: "0.8rem",
+                      paddingLeft: 16,
+                      margin: 0,
+                      lineHeight: 1.6,
+                    }}
+                  >
                     <li>Fine-structure constant obsession</li>
                     <li>Szilard-Landauer thermodynamics</li>
                     <li>Entropic gravity framework</li>
@@ -509,18 +659,21 @@ export default function CoverLettersPage() {
         )}
 
         {/* Footer */}
-        <div style={{ 
-          marginTop: 60, 
-          paddingTop: 30, 
-          borderTop: "1px solid rgba(255,255,255,0.1)",
-          textAlign: "center",
-          color: "#666"
-        }}>
+        <div
+          style={{
+            marginTop: 60,
+            paddingTop: 30,
+            borderTop: "1px solid rgba(255,255,255,0.1)",
+            textAlign: "center",
+            color: "#666",
+          }}
+        >
           <p style={{ fontSize: "0.85rem" }}>
-            "Why is α ≈ 1/137? Nobody knows. But measuring it precisely is one of our best probes of fundamental physics."
+            &quot;Why is α ≈ 1/137? Nobody knows. But measuring it precisely is
+            one of our best probes of fundamental physics.&quot;
           </p>
           <p style={{ fontSize: "0.75rem", marginTop: 8 }}>
-            — Feynman's greatest mystery, my career obsession
+            — Feynman&#039;s greatest mystery, my career obsession
           </p>
         </div>
       </div>
