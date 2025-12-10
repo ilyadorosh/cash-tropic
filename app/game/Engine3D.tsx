@@ -1357,11 +1357,12 @@ export default function GTAEngine3D() {
       // Handle dialogue options (1, 2, 3 keys)
       if (currentDialogueOptions && ["1", "2", "3"].includes(e.key)) {
         const optionIndex = parseInt(e.key) - 1;
-        if (currentDialogueOptions[optionIndex]) {
-          if (
-            typeof currentDialogueOptions[optionIndex].action === "function"
-          ) {
-            currentDialogueOptions[optionIndex]?.action();
+        const opt = currentDialogueOptions[optionIndex];
+        if (opt) {
+          // Narrow to local variable before calling the action so TypeScript
+          // can infer it's defined and callable.
+          if (typeof opt.action === "function") {
+            opt.action();
           }
           currentDialogueOptions = null;
           return;
