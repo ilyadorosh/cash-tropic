@@ -24,7 +24,7 @@ export class AIAgentSystem {
       currentGoal: this.generateInitialGoal(personality),
       shortTermMemory: [],
       longTermMemory: [],
-      relationships: new Map(),
+      relationships: {},
       lastAction: "idle",
       nextActionTime: Date.now(),
     };
@@ -190,10 +190,10 @@ Respond in character.  Keep it brief (1-2 sentences).  Be authentic to your pers
   updateRelationship(agentId: string, targetId: string, delta: number) {
     const agent = this.agents.get(agentId);
     if (agent) {
-      const current = agent.relationships.get(targetId) || 50;
-      agent.relationships.set(
-        targetId,
-        Math.max(0, Math.min(100, current + delta)),
+      const current = agent.relationships[targetId] ?? 50;
+      agent.relationships[targetId] = Math.max(
+        0,
+        Math.min(100, current + delta),
       );
     }
   }
