@@ -1361,7 +1361,7 @@ export default function GTAEngine3D() {
           if (
             typeof currentDialogueOptions[optionIndex].action === "function"
           ) {
-            currentDialogueOptions[optionIndex].action();
+            currentDialogueOptions[optionIndex]?.action();
           }
           currentDialogueOptions = null;
           return;
