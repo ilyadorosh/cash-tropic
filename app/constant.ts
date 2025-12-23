@@ -84,6 +84,7 @@ export enum StoreKey {
   Update = "chat-update",
   Sync = "sync",
   SdList = "sd-list",
+  SavedMessage = "saved-message-store",
 }
 
 export const DEFAULT_SIDEBAR_WIDTH = 300;

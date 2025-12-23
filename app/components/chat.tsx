@@ -72,6 +72,7 @@ import dynamic from "next/dynamic";
 
 import { ChatControllerPool } from "../client/controller";
 import { Prompt, usePromptStore } from "../store/prompt";
+import { useSavedMessageStore } from "../store/saved-messages";
 import Locale from "../locales";
 
 import { IconButton } from "./button";
@@ -805,6 +806,7 @@ function ChatInner() {
 
   // prompt hints
   const promptStore = usePromptStore();
+  const savedMessageStore = useSavedMessageStore();
   const [promptHints, setPromptHints] = useState<RenderPrompt[]>([]);
   const onSearch = useDebouncedCallback(
     (text: string) => {
@@ -862,7 +864,17 @@ function ChatInner() {
       setPromptHints(chatCommands.search(text));
     } else if (!config.disablePromptHint && n < SEARCH_TEXT_LIMIT) {
       // check if need to trigger auto completion
-      if (text.startsWith("/")) {
+      if (text.startsWith("/saved")) {
+        // Show saved messages
+        let searchText = text.slice(6).trim(); // Remove "/saved"
+        const savedMessages = savedMessageStore.search(searchText);
+        const savedPrompts: RenderPrompt[] = savedMessages.map((msg) => ({
+          title: `💾 ${msg.content.substring(0, 30)}...`,
+          content: msg.content,
+          id: msg.id,
+        }));
+        setPromptHints(savedPrompts);
+      } else if (text.startsWith("/")) {
         let searchText = text.slice(1);
         onSearch(searchText);
       }
@@ -1071,6 +1083,53 @@ function ChatInner() {
         setShowPromptModal(true);
       },
     });
+  };
+
+  const onSaveMessage = async (message: ChatMessage) => {
+    try {
+      const content = getMessageTextContent(message);
+      
+      // Save to backend (Redis + file) first to get the new ID
+      const response = await fetch("/api/save-message", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: content,
+          role: message.role,
+          sessionId: session.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save message to server");
+      }
+
+      const result = await response.json();
+      
+      // Save to local store with the ID from backend
+      if (result.success && result.message) {
+        savedMessageStore.add(result.message);
+      }
+
+      showToast("Message saved successfully! Use /saved to access it.", {
+        text: "Show Saved",
+        onClick: () => {
+          setUserInput("/saved ");
+          inputRef.current?.focus();
+        },
+      });
+    } catch (error) {
+      console.error("[Chat] Failed to save message:", error);
+      showToast("Failed to save message. Please try again.");
+    }
+  };
+
+  const onInsertMessage = (message: ChatMessage) => {
+    const content = getMessageTextContent(message);
+    setUserInput(content);
+    inputRef.current?.focus();
   };
 
   const context: RenderMessage[] = useMemo(() => {
@@ -1522,11 +1581,12 @@ function ChatInner() {
                               <ChatAction
                                 icon={<UploadIcon />}
                                 text={"Save"}
-                                onClick={() => {
-                                  console.log(
-                                    "Will save. also, Jackpot $200 000 Calculate energy in Joules",
-                                  );
-                                }}
+                                onClick={() => onSaveMessage(message)}
+                              />
+                              <ChatAction
+                                icon={<ReturnIcon />}
+                                text={"Insert"}
+                                onClick={() => onInsertMessage(message)}
                               />
                               <ChatAction
                                 icon={<ResetIcon />}
