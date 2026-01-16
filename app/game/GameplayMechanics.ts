@@ -298,8 +298,8 @@ export class GameplayManager {
   animateComputers(time: number) {
     this.computerMeshes.forEach((mesh) => {
       const floatOffset = mesh.userData.floatOffset || 0;
-      mesh.position.y =
-        mesh.userData.baseY || 2 + Math.sin(time * 0.002 + floatOffset) * 0.3;
+      const baseY = 2; // Base height for computers
+      mesh.position.y = baseY + Math.sin(time * 0.002 + floatOffset) * 0.3;
       mesh.rotation.y += 0.01;
     });
   }

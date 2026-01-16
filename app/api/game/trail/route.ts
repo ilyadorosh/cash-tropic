@@ -2,6 +2,7 @@ import { Redis } from "@upstash/redis";
 import { NextRequest, NextResponse } from "next/server";
 
 const REDIS_KEY_PREFIX = "game:trail:";
+const TRAIL_EXPIRATION_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 export async function GET(req: NextRequest) {
   try {
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     // Store trail with expiration (7 days)
     await kv.set(`${REDIS_KEY_PREFIX}${playerId}`, JSON.stringify(points), {
-      ex: 60 * 60 * 24 * 7,
+      ex: TRAIL_EXPIRATION_SECONDS,
     });
 
     return NextResponse.json({ success: true });

@@ -2,6 +2,7 @@ import { Redis } from "@upstash/redis";
 import { NextRequest, NextResponse } from "next/server";
 
 const REDIS_KEY_PREFIX = "game:map_mod:";
+const MAP_MODIFICATION_EXPIRATION_SECONDS = 30 * 24 * 60 * 60; // 30 days
 
 export interface MapModification {
   x: number;
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     // Store with 30 days expiration
     await kv.set(gridKey, JSON.stringify(trimmedMods), {
-      ex: 60 * 60 * 24 * 30,
+      ex: MAP_MODIFICATION_EXPIRATION_SECONDS,
     });
 
     return NextResponse.json({ success: true, modification });

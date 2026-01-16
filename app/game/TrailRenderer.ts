@@ -16,6 +16,7 @@ export class TrailRenderer {
   private trails: Map<string, THREE.Line> = new Map();
   private trailPoints: Map<string, PlayerTrailPoint[]> = new Map();
   private config: TrailConfig;
+  private playerColors: Map<string, number> = new Map(); // Per-player colors
 
   constructor(scene: THREE.Scene, config?: Partial<TrailConfig>) {
     this.scene = scene;
@@ -96,7 +97,9 @@ export class TrailRenderer {
       const fadeProgress = Math.min(age / this.config.fadeTime, 1);
       const opacity = this.config.opacity * (1 - fadeProgress * 0.7);
 
-      const color = new THREE.Color(this.config.color);
+      // Use player-specific color or default
+      const playerColor = this.playerColors.get(playerId) || this.config.color;
+      const color = new THREE.Color(playerColor);
       colors.push(color.r * opacity, color.g * opacity, color.b * opacity);
     });
 
@@ -213,12 +216,12 @@ export class TrailRenderer {
   }
 
   /**
-   * Set trail color
+   * Set trail color for a specific player
    */
   setColor(playerId: string, color: number) {
+    this.playerColors.set(playerId, color);
     const points = this.trailPoints.get(playerId);
     if (points) {
-      this.config.color = color;
       this.updateTrailMesh(playerId);
     }
   }
