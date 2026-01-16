@@ -36,6 +36,20 @@ export interface PlayerProgress {
   unlockedZones: string[];
   ownedProperties: string[];
 
+  // New gameplay mechanics
+  inventory: {
+    computers: string[]; // Computer IDs
+    dataMined: number; // Total data units
+    luxuryItems: string[]; // Luxury item IDs
+    prestige: number; // Status from luxury items
+  };
+
+  dataMining: {
+    activeSessions: string[]; // Active mining session IDs
+    totalDataMined: number;
+    miningPowerLevel: number;
+  };
+
   // Meta
   playTime: number;
   createdAt: string;
@@ -118,6 +132,19 @@ export function createDefaultProgress(
 
     unlockedZones: ["Südstadt", "Innenstadt", "Gostenhof"],
     ownedProperties: [],
+
+    inventory: {
+      computers: [],
+      dataMined: 0,
+      luxuryItems: [],
+      prestige: 0,
+    },
+
+    dataMining: {
+      activeSessions: [],
+      totalDataMined: 0,
+      miningPowerLevel: 1,
+    },
 
     playTime: 0,
     createdAt: new Date().toISOString(),
