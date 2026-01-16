@@ -43,6 +43,11 @@ import MobileControls from "./MobileControls";
 import MissionOverview from "./MissionOverviewClean";
 import { PrayerModal } from "./PrayerModal";
 import { NeuralCity } from "./NeuralCity";
+// New gameplay mechanics imports
+import { RedisMapLoader } from "./RedisMapLoader";
+import { TrailRenderer } from "./TrailRenderer";
+import { GameplayManager } from "./GameplayMechanics";
+import type { Computer, LuxuryItem } from "./types";
 
 // === AUDIO UTILITIES ===
 const speak = (text: string, pitch = 1, rate = 1) => {
@@ -149,7 +154,15 @@ export default function GTAEngine3D() {
   const [notifications, setNotifications] = useState<
     Array<{
       id: string;
-      type: "location" | "business" | "zone" | "money" | "mission";
+      type:
+        | "location"
+        | "business"
+        | "zone"
+        | "money"
+        | "mission"
+        | "computer"
+        | "data"
+        | "luxury";
       title: string;
       subtitle?: string;
       opacity: number;
@@ -177,6 +190,17 @@ export default function GTAEngine3D() {
   // Add state
   const [showPrayerModal, setShowPrayerModal] = useState(false);
 
+  // New gameplay mechanics refs
+  const mapLoaderRef = useRef<RedisMapLoader | null>(null);
+  const trailRendererRef = useRef<TrailRenderer | null>(null);
+  const gameplayManagerRef = useRef<GameplayManager | null>(null);
+  const lastTrailPointRef = useRef<{ x: number; z: number }>({ x: 0, z: 0 });
+
+  // New gameplay state
+  const [dataMined, setDataMined] = useState(0);
+  const [prestige, setPrestige] = useState(0);
+  const [collectedComputers, setCollectedComputers] = useState<string[]>([]);
+
   // Dialogue handler with options support
   const handleDialogue = useCallback((d: Dialogue) => {
     setDialogue(d);
@@ -197,7 +221,15 @@ export default function GTAEngine3D() {
   // Add this helper function inside the component (before useEffect):
   const showNotification = useCallback(
     (
-      type: "location" | "business" | "zone" | "money" | "mission",
+      type:
+        | "location"
+        | "business"
+        | "zone"
+        | "money"
+        | "mission"
+        | "computer"
+        | "data"
+        | "luxury",
       title: string,
       subtitle?: string,
       duration: number = 6000,
@@ -492,8 +524,8 @@ export default function GTAEngine3D() {
           road.type === "autobahn"
             ? 0x333333
             : road.type === "hauptstrasse"
-            ? 0x444444
-            : 0x555555;
+              ? 0x444444
+              : 0x555555;
 
         // Draw road segments
         for (let i = 0; i < road.points.length - 1; i++) {
@@ -764,6 +796,36 @@ export default function GTAEngine3D() {
 
     // In useEffect after scene setup:
     neuralCityRef.current = new NeuralCity(scene);
+
+    // === NEW GAMEPLAY SYSTEMS ===
+    // Initialize Redis map loader
+    mapLoaderRef.current = new RedisMapLoader();
+
+    // Initialize trail renderer with custom color
+    trailRendererRef.current = new TrailRenderer(scene, {
+      color: 0x00ff88,
+      opacity: 0.7,
+      width: 3,
+      maxPoints: 500,
+      fadeTime: 300000, // 5 minutes
+    });
+
+    // Initialize gameplay manager (computers, mining, luxury)
+    gameplayManagerRef.current = new GameplayManager(scene);
+    gameplayManagerRef.current.renderComputers();
+    gameplayManagerRef.current.renderLuxuryShops();
+
+    // Load map data from Redis
+    (async () => {
+      const mapData = await mapLoaderRef.current?.loadMap();
+      console.log("Map loaded:", mapData?.name);
+
+      // Load player trails
+      const trails = await mapLoaderRef.current?.loadPlayerTrails();
+      if (trails) {
+        trailRendererRef.current?.loadTrails(trails);
+      }
+    })();
 
     // === PROCEDURAL CITY ===
     cityRef.current = new ProceduralCity(scene, colliders, interactables);
@@ -1552,6 +1614,86 @@ export default function GTAEngine3D() {
             }
           }
 
+          // === L KEY - LUXURY SHOP INTERACTION ===
+          if (e.key.toLowerCase() === "l" && playerState === "walking") {
+            const shops = gameplayManagerRef.current?.getLuxuryShops() || [];
+            const pPos = playerGroup.position;
+
+            // Find nearby luxury shop
+            const nearbyShop = shops.find((shop) => {
+              const dx = pPos.x - shop.position[0];
+              const dz = pPos.z - shop.position[2];
+              const distance = Math.sqrt(dx * dx + dz * dz);
+              return distance < 15 && shop.unlocked;
+            });
+
+            if (nearbyShop) {
+              // Show shop menu
+              const items = nearbyShop.items.filter((item) => !item.owned);
+
+              if (items.length === 0) {
+                handleDialogue({
+                  title: nearbyShop.name,
+                  text: "You already own everything here! Come back when we have new stock.",
+                });
+                setTimeout(() => setDialogue(null), 2000);
+                return;
+              }
+
+              const itemsList = items
+                .slice(0, 3)
+                .map(
+                  (item, idx) =>
+                    `${idx + 1}. ${item.name} - €${item.price.toLocaleString()} (+${item.prestigeBonus} prestige)`,
+                )
+                .join("\n");
+
+              handleDialogue({
+                title: `${nearbyShop.name} - Luxury Items`,
+                text: `Welcome to the finest shop in Nürnberg!\n\n${itemsList}\n\nPress 1-3 to purchase, or Space to leave.`,
+              });
+
+              currentDialogueOptions = items.slice(0, 3).map((item) => ({
+                text: `Buy ${item.name}`,
+                action: () => {
+                  const canPurchase = gameplayManagerRef.current?.canPurchase(
+                    item.id,
+                    money,
+                    stats.respect,
+                    dataMined,
+                  );
+
+                  if (canPurchase?.canPurchase) {
+                    gameplayManagerRef.current?.purchaseItem(item.id);
+                    money -= item.price;
+                    setPrestige((prev) => prev + item.prestigeBonus);
+
+                    handleDialogue({
+                      title: "Purchase Complete!",
+                      text: `You purchased ${item.name}!`,
+                    });
+
+                    trailRendererRef.current?.addActionMarker(
+                      pPos.x,
+                      pPos.z,
+                      "purchased_luxury",
+                    );
+
+                    setTimeout(() => setDialogue(null), 2000);
+                  } else {
+                    handleDialogue({
+                      title: "Cannot Purchase",
+                      text: canPurchase?.reason || "Cannot afford.",
+                    });
+                    setTimeout(() => setDialogue(null), 2000);
+                  }
+                },
+              }));
+
+              return;
+            }
+          }
+
           // Church altar interaction
           // Search for "altar" in your onKeyDown handler
           // It should be in the walking interactions section (when playerState !== 'driving')
@@ -1868,8 +2010,8 @@ export default function GTAEngine3D() {
               npc.id === "MARIA"
                 ? "#ff69b4"
                 : npc.id === "THE_THIEF"
-                ? "#333"
-                : "#fff";
+                  ? "#333"
+                  : "#fff";
             ctx.beginPath();
             ctx.arc(dx * 0.5, dz * 0.5, 3, 0, Math.PI * 2);
             ctx.fill();
@@ -2378,6 +2520,90 @@ export default function GTAEngine3D() {
         neuralCityRef.current.update(deltaTime, playerGroup.position);
       }
 
+      // === NEW GAMEPLAY MECHANICS UPDATE ===
+      const currentPos =
+        playerState === "driving" ? activeCar.position : playerGroup.position;
+
+      // Update trail renderer
+      if (trailRendererRef.current) {
+        trailRendererRef.current.update();
+
+        // Record trail point every 2 seconds
+        if (frame % 120 === 0) {
+          const lastPoint = lastTrailPointRef.current;
+          const distance = Math.sqrt(
+            Math.pow(currentPos.x - lastPoint.x, 2) +
+              Math.pow(currentPos.z - lastPoint.z, 2),
+          );
+
+          // Only record if player moved more than 5 units
+          if (distance > 5) {
+            trailRendererRef.current.addPoint(
+              "player_1",
+              currentPos.x,
+              currentPos.z,
+            );
+            lastTrailPointRef.current = { x: currentPos.x, z: currentPos.z };
+
+            // Save to Redis every 30 seconds
+            if (frame % 1800 === 0 && mapLoaderRef.current) {
+              const points =
+                trailRendererRef.current.getTrailPoints("player_1");
+              mapLoaderRef.current.savePlayerTrail("player_1", points);
+            }
+          }
+        }
+      }
+
+      // Animate computers (floating effect)
+      if (gameplayManagerRef.current) {
+        gameplayManagerRef.current.animateComputers(now);
+
+        // Check for computer collection
+        if (frame % 30 === 0) {
+          const collected = gameplayManagerRef.current.checkComputerCollection(
+            [currentPos.x, currentPos.y, currentPos.z],
+            (computer) => {
+              // Handle computer collection
+              setCollectedComputers((prev) => [...prev, computer.id]);
+              money += computer.value;
+
+              // Show notification
+              showNotification(
+                "computer",
+                `Collected ${computer.brand}!`,
+                `+€${computer.value.toLocaleString()} | Mining Power: ${computer.miningPower}`,
+                5000,
+              );
+
+              // Add action marker
+              trailRendererRef.current?.addActionMarker(
+                currentPos.x,
+                currentPos.z,
+                "collected_computer",
+              );
+
+              // Start mining session automatically
+              const session = gameplayManagerRef.current?.startMining(
+                computer.id,
+                120000,
+              ); // 2 min
+              if (session) {
+                console.log("Started mining session:", session.id);
+              }
+            },
+          );
+        }
+
+        // Update mining sessions
+        const newData = gameplayManagerRef.current.updateMiningSessions(
+          deltaTime * 1000,
+        );
+        if (newData > 0) {
+          setDataMined((prev) => prev + newData);
+        }
+      }
+
       renderer.render(scene, camera);
     }
 
@@ -2489,6 +2715,37 @@ export default function GTAEngine3D() {
             </div>
           )}
 
+          {/* New Gameplay Stats */}
+          <div
+            style={{
+              marginTop: "10px",
+              fontSize: "14px",
+              color: "#fff",
+              background: "rgba(0,0,0,0.7)",
+              padding: "8px",
+              borderRadius: "4px",
+              minWidth: "200px",
+            }}
+          >
+            <div style={{ color: "#3498db", marginBottom: "3px" }}>
+              💻 Computers: {collectedComputers.length}
+            </div>
+            <div style={{ color: "#9b59b6", marginBottom: "3px" }}>
+              📊 Data Mined: {Math.floor(dataMined)} units
+              {(gameplayManagerRef.current?.getActiveMiningPower() || 0) >
+                0 && (
+                <span style={{ color: "#2ecc71", marginLeft: "5px" }}>
+                  (+
+                  {(
+                    gameplayManagerRef.current?.getActiveMiningPower() || 0
+                  ).toFixed(1)}
+                  /s)
+                </span>
+              )}
+            </div>
+            <div style={{ color: "#f39c12" }}>⭐ Prestige: {prestige}</div>
+          </div>
+
           {/* Controls */}
           <div
             style={{
@@ -2500,8 +2757,8 @@ export default function GTAEngine3D() {
               padding: "5px",
             }}
           >
-            [E] {onFoot ? "ENTER CAR / INTERACT" : "EXIT CAR"} | [F] SHOOT |
-            [WASD] MOVE
+            [E] {onFoot ? "ENTER CAR / INTERACT" : "EXIT CAR"} | [F] SHOOT | [L]
+            LUXURY SHOP | [WASD] MOVE
           </div>
 
           {/* Minimap */}

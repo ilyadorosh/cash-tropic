@@ -18,7 +18,7 @@ export type ZoneType =
   | "oststadt"
   | "langwasser";
 
-export type RoadType = "autobahn" | "hauptstrasse" | "nebenstrasse";
+export type RoadType = "autobahn" | "hauptstrasse" | "nebenstrasse" | "alley";
 
 export type BuildingType =
   | "factory"
@@ -265,9 +265,79 @@ export interface AIAgent {
 
 export interface Notification {
   id: string;
-  type: "location" | "business" | "zone" | "money" | "mission";
+  type:
+    | "location"
+    | "business"
+    | "zone"
+    | "money"
+    | "mission"
+    | "computer"
+    | "data"
+    | "luxury";
   title: string;
   subtitle?: string;
   duration: number;
   startTime: number;
+}
+
+// New gameplay mechanics types
+
+export interface Computer {
+  id: string;
+  position: Vec3;
+  type: "laptop" | "desktop" | "server" | "supercomputer";
+  brand: string;
+  value: number; // Cash value
+  miningPower: number; // Data mining capability
+  collected: boolean;
+  respawnTime?: number;
+}
+
+export interface DataMiningSession {
+  id: string;
+  computerId: string;
+  startTime: number;
+  duration: number; // milliseconds
+  dataYield: number; // data units per second
+  totalMined: number;
+  active: boolean;
+}
+
+export interface LuxuryItem {
+  id: string;
+  name: string;
+  brand: string;
+  category: "fashion" | "jewelry" | "vehicle" | "property" | "tech";
+  price: number; // Always expensive (10k+)
+  prestigeBonus: number; // Status/prestige points
+  description: string;
+  unlockRequirement?: {
+    type: "money" | "respect" | "data" | "mission";
+    value: number | string;
+  };
+  owned: boolean;
+}
+
+export interface LuxuryShop {
+  id: string;
+  name: string;
+  position: Vec3;
+  items: LuxuryItem[];
+  theme: "high-tech" | "fashion" | "automotive" | "real-estate";
+  unlocked: boolean;
+}
+
+export interface PlayerInventory {
+  computers: Computer[];
+  dataMined: number; // Total data units collected
+  luxuryItems: LuxuryItem[];
+  prestige: number; // Status level from luxury items
+}
+
+export interface TrailVisualization {
+  playerId: string;
+  points: Vec3[];
+  color: number;
+  opacity: number;
+  width: number;
 }
