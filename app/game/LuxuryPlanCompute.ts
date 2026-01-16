@@ -9,7 +9,7 @@ export enum PlanTier {
 
 export interface PlanFeatures {
   // Game features
-  maxSaveSl ots: number;
+  maxSaveSlots: number;
   cloudSaveEnabled: boolean;
   multiplayerEnabled: boolean;
   customizationLevel: number; // 0-3
@@ -120,7 +120,10 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanFeatures> = {
 };
 
 // Pricing information
-export const PLAN_PRICING: Record<PlanTier, { monthly: number; yearly: number }> = {
+export const PLAN_PRICING: Record<
+  PlanTier,
+  { monthly: number; yearly: number }
+> = {
   [PlanTier.FREE]: { monthly: 0, yearly: 0 },
   [PlanTier.BASIC]: { monthly: 4.99, yearly: 49.99 },
   [PlanTier.LUXURY]: { monthly: 9.99, yearly: 99.99 },
