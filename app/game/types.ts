@@ -18,7 +18,7 @@ export type ZoneType =
   | "oststadt"
   | "langwasser";
 
-export type RoadType = "autobahn" | "hauptstrasse" | "nebenstrasse";
+export type RoadType = "autobahn" | "hauptstrasse" | "nebenstrasse" | "alley";
 
 export type BuildingType =
   | "factory"

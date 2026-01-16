@@ -154,7 +154,15 @@ export default function GTAEngine3D() {
   const [notifications, setNotifications] = useState<
     Array<{
       id: string;
-      type: "location" | "business" | "zone" | "money" | "mission";
+      type:
+        | "location"
+        | "business"
+        | "zone"
+        | "money"
+        | "mission"
+        | "computer"
+        | "data"
+        | "luxury";
       title: string;
       subtitle?: string;
       opacity: number;
@@ -213,7 +221,15 @@ export default function GTAEngine3D() {
   // Add this helper function inside the component (before useEffect):
   const showNotification = useCallback(
     (
-      type: "location" | "business" | "zone" | "money" | "mission",
+      type:
+        | "location"
+        | "business"
+        | "zone"
+        | "money"
+        | "mission"
+        | "computer"
+        | "data"
+        | "luxury",
       title: string,
       subtitle?: string,
       duration: number = 6000,
@@ -2553,7 +2569,7 @@ export default function GTAEngine3D() {
               money += computer.value;
 
               // Show notification
-              addNotification(
+              showNotification(
                 "computer",
                 `Collected ${computer.brand}!`,
                 `+€${computer.value.toLocaleString()} | Mining Power: ${computer.miningPower}`,
@@ -2716,10 +2732,13 @@ export default function GTAEngine3D() {
             </div>
             <div style={{ color: "#9b59b6", marginBottom: "3px" }}>
               📊 Data Mined: {Math.floor(dataMined)} units
-              {gameplayManagerRef.current?.getActiveMiningPower() > 0 && (
+              {(gameplayManagerRef.current?.getActiveMiningPower() || 0) >
+                0 && (
                 <span style={{ color: "#2ecc71", marginLeft: "5px" }}>
                   (+
-                  {gameplayManagerRef.current.getActiveMiningPower().toFixed(1)}
+                  {(
+                    gameplayManagerRef.current?.getActiveMiningPower() || 0
+                  ).toFixed(1)}
                   /s)
                 </span>
               )}
