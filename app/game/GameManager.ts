@@ -1,12 +1,16 @@
 // GameManager.ts - Handles loading, saving, and game loop integration
 
 import { PlayerProgress, WorldState, createDefaultProgress } from "./GameState";
+import { LuxuryPlanCompute, PLAN_DEFINITIONS } from "./LuxuryPlanCompute";
+import { MoneyGather } from "./MoneyGather";
 
 export class GameManager {
   private progress: PlayerProgress | null = null;
   private worldState: WorldState | null = null;
   private saveInterval: ReturnType<typeof setInterval> | null = null;
   private isDirty: boolean = false;
+  private planCompute: LuxuryPlanCompute | null = null;
+  private moneyGather: MoneyGather | null = null;
 
   // Load game - tries cloud first, falls back to local
   async loadGame(
@@ -29,6 +33,30 @@ export class GameManager {
     }
 
     this.progress = progress;
+
+    // Initialize plan compute system
+    if (this.progress.plan) {
+      // Ensure features are computed from tier
+      this.progress.plan.features = PLAN_DEFINITIONS[this.progress.plan.tier];
+      this.planCompute = new LuxuryPlanCompute(this.progress.plan);
+    } else {
+      this.planCompute = new LuxuryPlanCompute();
+    }
+
+    // Initialize money gather system
+    if (this.progress.moneyGatherState) {
+      this.moneyGather = MoneyGather.deserialize(
+        this.progress.moneyGatherState,
+        this.planCompute,
+      );
+    } else {
+      this.moneyGather = new MoneyGather(this.progress.money, this.planCompute);
+      // Add property sources
+      const propertySources = MoneyGather.createPropertySources(
+        this.progress.ownedProperties,
+      );
+      propertySources.forEach((source) => this.moneyGather!.addSource(source));
+    }
 
     // Load or generate world
     this.worldState = await this.loadWorld(userId);
@@ -100,6 +128,15 @@ export class GameManager {
 
     this.progress.lastSaved = new Date().toISOString();
 
+    // Save meta features state
+    if (this.planCompute) {
+      this.progress.plan = this.planCompute.getPlan();
+    }
+    if (this.moneyGather) {
+      this.progress.moneyGatherState = this.moneyGather.serialize();
+      this.progress.money = this.moneyGather.getBalance();
+    }
+
     // Save to localStorage immediately (fast)
     this.saveToLocal();
 
@@ -160,8 +197,13 @@ export class GameManager {
 
   // Update methods
   updateMoney(delta: number) {
-    if (!this.progress) return;
-    this.progress.money = Math.max(0, this.progress.money + delta);
+    if (!this.progress || !this.moneyGather) return;
+    if (delta > 0) {
+      this.moneyGather.addMoney(delta, "game_event");
+    } else {
+      this.moneyGather.spendMoney(Math.abs(delta));
+    }
+    this.progress.money = this.moneyGather.getBalance();
     this.markDirty();
   }
 
@@ -282,6 +324,35 @@ export class GameManager {
 
   getProgress(): PlayerProgress | null {
     return this.progress;
+  }
+
+  // Money Gather methods
+  collectPassiveIncome(): number {
+    if (!this.moneyGather) return 0;
+    const results = this.moneyGather.autoCollect();
+    const totalCollected = results.reduce((sum, r) => sum + r.amount, 0);
+    if (totalCollected > 0 && this.progress) {
+      this.progress.money = this.moneyGather.getBalance();
+      this.markDirty();
+    }
+    return totalCollected;
+  }
+
+  getMoneyStats() {
+    return this.moneyGather?.getStats();
+  }
+
+  // Plan management methods
+  getPlanFeature<K extends keyof import("./LuxuryPlanCompute").PlanFeatures>(
+    feature: K,
+  ) {
+    return this.planCompute?.getFeature(feature);
+  }
+
+  hasFeature(
+    feature: keyof import("./LuxuryPlanCompute").PlanFeatures,
+  ): boolean {
+    return this.planCompute?.hasFeature(feature) ?? false;
   }
 
   cleanup() {

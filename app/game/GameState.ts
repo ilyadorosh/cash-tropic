@@ -1,4 +1,6 @@
-// GameState. ts - Central state management for the game
+// GameState.ts - Central state management for the game
+
+import { PlanTier, UserPlan } from "./LuxuryPlanCompute";
 
 export interface PlayerProgress {
   userId: string;
@@ -8,6 +10,10 @@ export interface PlayerProgress {
   health: number;
   respect: number;
   wantedLevel: number;
+
+  // Meta features
+  plan?: UserPlan;
+  moneyGatherState?: string; // Serialized MoneyGather state
 
   // Learning progress
   learning: {
@@ -89,6 +95,15 @@ export function createDefaultProgress(
     health: 100,
     respect: 0,
     wantedLevel: 0,
+
+    // Meta features - start with free tier
+    plan: {
+      tier: PlanTier.FREE,
+      features: undefined as any, // Will be computed
+      startDate: new Date().toISOString(),
+      autoRenew: false,
+    },
+    moneyGatherState: undefined,
 
     learning: {
       physics: createDefaultTrack(),
