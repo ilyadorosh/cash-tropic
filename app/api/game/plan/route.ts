@@ -1,6 +1,10 @@
 // API route for luxury plan management
 import { NextRequest, NextResponse } from "next/server";
-import { LuxuryPlanCompute, PlanTier, PLAN_PRICING } from "@/app/game/LuxuryPlanCompute";
+import {
+  LuxuryPlanCompute,
+  PlanTier,
+  PLAN_PRICING,
+} from "@/app/game/LuxuryPlanCompute";
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
@@ -57,7 +61,9 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // Create plan compute instance (in real app, load from DB)
+        // Create plan compute instance
+        // TODO: In production, load user's current plan from database
+        // Example: const userPlan = await loadPlanFromDB(userId);
         const planCompute = new LuxuryPlanCompute();
 
         // Upgrade the plan
@@ -66,8 +72,9 @@ export async function POST(req: NextRequest) {
           durationMonths || 1,
         );
 
-        // In production, save to database here
-        // await savePlanToDatabase(userId, newPlan);
+        // TODO: In production, persist the plan to database
+        // Example: await savePlanToDB(userId, newPlan);
+        console.log(`Plan upgraded for user ${userId}: ${planTier}`);
 
         return NextResponse.json({
           success: true,

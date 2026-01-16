@@ -1,5 +1,8 @@
 // LuxuryPlanCompute.ts - Subscription tier system with feature computation
 
+// Constants for special values
+export const UNLIMITED = -1;
+
 export enum PlanTier {
   FREE = "free",
   BASIC = "basic",
@@ -100,7 +103,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanFeatures> = {
     adFree: true,
   },
   [PlanTier.PREMIUM]: {
-    maxSaveSlots: -1, // unlimited
+    maxSaveSlots: UNLIMITED, // unlimited
     cloudSaveEnabled: true,
     multiplayerEnabled: true,
     customizationLevel: 3,
@@ -110,9 +113,9 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanFeatures> = {
     exclusiveMissions: true,
     advancedLearningModules: true,
     premiumInteriors: true,
-    friendsLimit: -1, // unlimited
+    friendsLimit: UNLIMITED, // unlimited
     canCreateGuilds: true,
-    chatHistoryDays: -1, // unlimited
+    chatHistoryDays: UNLIMITED, // unlimited
     prioritySupport: true,
     betaAccess: true,
     adFree: true,

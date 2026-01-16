@@ -9,15 +9,17 @@ export async function GET(req: NextRequest) {
   const action = searchParams.get("action");
 
   if (!userId) {
-    return NextResponse.json(
-      { error: "userId is required" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "userId is required" }, { status: 400 });
   }
 
   try {
-    // In production, load from database
-    // For now, create a demo instance
+    // NOTE: This is a demo implementation
+    // In production, load user-specific data from database:
+    // const moneyGatherState = await loadMoneyStateFromDB(userId);
+    // const userPlan = await loadUserPlanFromDB(userId);
+    // const planCompute = new LuxuryPlanCompute(userPlan);
+    // const moneyGather = MoneyGather.deserialize(moneyGatherState, planCompute);
+
     const planCompute = new LuxuryPlanCompute();
     const moneyGather = new MoneyGather(500, planCompute);
 
@@ -67,7 +69,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // In production, load from database
+    // NOTE: This is a demo implementation
+    // In production, load user-specific data from database:
+    // const moneyGatherState = await loadMoneyStateFromDB(userId);
+    // const userPlan = await loadUserPlanFromDB(userId);
+    // const planCompute = new LuxuryPlanCompute(userPlan);
+    // const moneyGather = MoneyGather.deserialize(moneyGatherState, planCompute);
+
     const planCompute = new LuxuryPlanCompute();
     const moneyGather = new MoneyGather(500, planCompute);
 
@@ -169,10 +177,7 @@ export async function POST(req: NextRequest) {
       }
 
       default:
-        return NextResponse.json(
-          { error: "Invalid action" },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
   } catch (error: any) {
     return NextResponse.json(

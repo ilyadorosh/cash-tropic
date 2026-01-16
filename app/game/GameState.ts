@@ -1,4 +1,4 @@
-// GameState. ts - Central state management for the game
+// GameState.ts - Central state management for the game
 
 import { PlanTier, UserPlan } from "./LuxuryPlanCompute";
 

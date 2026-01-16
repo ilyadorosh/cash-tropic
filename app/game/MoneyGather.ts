@@ -33,10 +33,7 @@ export class MoneyGather {
   private planCompute: LuxuryPlanCompute;
   private gatherHistory: GatherResult[] = [];
 
-  constructor(
-    initialBalance: number = 500,
-    planCompute?: LuxuryPlanCompute,
-  ) {
+  constructor(initialBalance: number = 500, planCompute?: LuxuryPlanCompute) {
     this.stats = {
       totalEarned: 0,
       totalSpent: 0,
@@ -122,7 +119,8 @@ export class MoneyGather {
   // Auto-collect (for passive income)
   autoCollect(): GatherResult[] {
     const passiveSources = this.getActiveSources().filter(
-      (s) => s.type === "passive" || s.type === "property" || s.type === "business",
+      (s) =>
+        s.type === "passive" || s.type === "property" || s.type === "business",
     );
 
     const results: GatherResult[] = [];
@@ -140,6 +138,8 @@ export class MoneyGather {
   addMoney(amount: number, reason: string = "misc"): void {
     this.stats.currentBalance += amount;
     this.stats.totalEarned += amount;
+    // Note: reason parameter available for future logging/tracking
+    console.log(`Added ${amount} money: ${reason}`);
   }
 
   // Spend money
@@ -185,7 +185,12 @@ export class MoneyGather {
     let activeCount = 0;
 
     for (const source of this.sources.values()) {
-      if (source.active && (source.type === "passive" || source.type === "property" || source.type === "business")) {
+      if (
+        source.active &&
+        (source.type === "passive" ||
+          source.type === "property" ||
+          source.type === "business")
+      ) {
         const periodsPerHour = 3600000 / source.frequency;
         incomePerHour += source.baseIncome * periodsPerHour;
         activeCount++;
@@ -211,14 +216,17 @@ export class MoneyGather {
       office: { income: 300, frequency: 3600000 }, // 300 per hour
     };
 
+    let counter = 0;
     return ownedProperties.map((propName) => {
       const def = propertyDefinitions[propName] ?? {
         income: 100,
         frequency: 3600000,
       };
 
+      // Use counter to ensure unique IDs even in rapid succession
+      counter++;
       return {
-        id: `property_${propName}_${Date.now()}`,
+        id: `property_${propName}_${Date.now()}_${counter}`,
         name: propName,
         type: "property" as const,
         baseIncome: def.income,
