@@ -270,6 +270,7 @@ const groqModels = [
 const sambanovaModels = [
   "openai/gpt-oss-120b",
   "llama-3.3-70b-versatile",
+  "DeepSeek-R1-0528",
   // "llama-3.3-70b-instruct",
   "Qwen3-32B",
 ];
@@ -282,13 +283,10 @@ const googleModels = [
 ];
 
 const anthropicModels = [
-  "claude-instant-1.2",
-  "claude-2.0",
-  "claude-2.1",
-  "claude-3-sonnet-20240229",
-  "claude-3-opus-20240229",
+  "claude-opus-4-1-20250805",
+  // "claude-3-opus-20240229",
   "claude-3-haiku-20240307",
-  "claude-3-5-sonnet-20240620",
+  "claude-sonnet-4-5-20250929",
 ];
 
 const baiduModels = [
@@ -371,15 +369,15 @@ export const DEFAULT_MODELS = [
   //     providerType: "google",
   //   },
   // })),
-  // ...anthropicModels.map((name) => ({
-  //   name,
-  //   available: true,
-  //   provider: {
-  //     id: "anthropic",
-  //     providerName: "Anthropic",
-  //     providerType: "anthropic",
-  //   },
-  // })),
+  ...anthropicModels.map((name) => ({
+    name,
+    available: true,
+    provider: {
+      id: "anthropic",
+      providerName: "Anthropic",
+      providerType: "anthropic",
+    },
+  })),
   // ...baiduModels.map((name) => ({
   //   name,
   //   available: true,
