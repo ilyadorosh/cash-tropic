@@ -1,6 +1,4 @@
 "use client";
-import { useWallet, useConnection } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useState } from "react";
 import { user } from "../lib/schema";
 
@@ -9,14 +7,10 @@ export function PrayButton({
 }: {
   onPrayerComplete?: () => void;
 }) {
-  const { publicKey, connected } = useWallet();
-  const { connection } = useConnection();
   const [praying, setPraying] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
   const pray = async () => {
-    if (!publicKey) return;
-
     setPraying(true);
     setResult(null);
 
@@ -25,7 +19,6 @@ export function PrayButton({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          walletAddress: publicKey.toBase58(),
           action: "prayer",
           timestamp: Date.now(),
           prayerType: "altar",
@@ -56,9 +49,7 @@ export function PrayButton({
         gap: 10,
       }}
     >
-      {!connected ? (
-        <WalletMultiButton />
-      ) : (
+      {
         <button
           onClick={pray}
           disabled={praying}
@@ -77,7 +68,7 @@ export function PrayButton({
         >
           {praying ? "🙏 Beten..." : "🙏 BETEN (+SOL)"}
         </button>
-      )}
+      }
 
       {result && (
         <div
