@@ -1,7 +1,5 @@
 "use client";
 import { useState } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import Link from "next/link";
 
 interface PrayerModalProps {
@@ -10,13 +8,10 @@ interface PrayerModalProps {
 }
 
 export function PrayerModal({ onClose, onPrayerComplete }: PrayerModalProps) {
-  const { publicKey, connected } = useWallet();
   const [praying, setPraying] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
   const pray = async () => {
-    if (!publicKey) return;
-
     setPraying(true);
 
     try {
@@ -24,8 +19,6 @@ export function PrayerModal({ onClose, onPrayerComplete }: PrayerModalProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          odor: `player_${publicKey.toBase58().slice(0, 8)}`,
-          walletAddress: publicKey.toBase58(),
           prayerType: "altar",
         }),
       });
@@ -78,12 +71,11 @@ export function PrayerModal({ onClose, onPrayerComplete }: PrayerModalProps) {
       <h1 style={{ color: "white", fontSize: 48, marginBottom: 20 }}>⛪</h1>
       <h2 style={{ color: "white", marginBottom: 30 }}>Gebet am Altar</h2>
 
-      {!connected ? (
+      {
         <>
           <p style={{ color: "#aaa", marginBottom: 20 }}>
             Verbinde deine Wallet um SOL zu verdienen
           </p>
-          <WalletMultiButton />
           <button
             onClick={() => {
               onPrayerComplete();
@@ -102,31 +94,7 @@ export function PrayerModal({ onClose, onPrayerComplete }: PrayerModalProps) {
             Ohne Wallet beten
           </button>
         </>
-      ) : (
-        <>
-          <p style={{ color: "#14F195", marginBottom: 20 }}>
-            ✓ Wallet verbunden
-          </p>
-          <button
-            onClick={pray}
-            disabled={praying}
-            style={{
-              background: praying
-                ? "#444"
-                : "linear-gradient(135deg, #9945FF, #14F195)",
-              border: "none",
-              borderRadius: 12,
-              padding: "16px 48px",
-              color: "white",
-              fontSize: 24,
-              fontWeight: "bold",
-              cursor: praying ? "wait" : "pointer",
-            }}
-          >
-            {praying ? "🙏 Beten.. ." : "🙏 BETEN"}
-          </button>
-        </>
-      )}
+      }
 
       {result && (
         <p
