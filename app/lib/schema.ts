@@ -166,3 +166,31 @@ export const contextInteractions = pgTable("context_interactions", {
   y: integer("y"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Todo items for dashboard
+export const todoItem = pgTable("TodoItem", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("userId").references(() => user.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  completed: boolean("completed").notNull().default(false),
+  priority: integer("priority").default(0),
+  createdAt: timestamp("createdAt").notNull(),
+  updatedAt: timestamp("updatedAt"),
+});
+
+export type TodoItem = InferSelectModel<typeof todoItem>;
+
+// Text snippets for clipboard persistence in Postgres
+export const textSnippet = pgTable("TextSnippet", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("userId").references(() => user.id),
+  content: text("content").notNull(),
+  title: varchar("title", { length: 256 }),
+  tags: text("tags"), // JSON array stored as text
+  pinned: boolean("pinned").notNull().default(false),
+  createdAt: timestamp("createdAt").notNull(),
+  updatedAt: timestamp("updatedAt"),
+});
+
+export type TextSnippet = InferSelectModel<typeof textSnippet>;

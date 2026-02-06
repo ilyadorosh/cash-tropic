@@ -45,6 +45,7 @@ export enum Path {
   Artifacts = "/artifacts",
   Experimental = "/safespace",
   NCA = "/nca",
+  Love = "/love",
 }
 
 export enum ApiPath {
