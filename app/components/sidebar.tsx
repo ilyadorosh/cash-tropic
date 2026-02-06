@@ -12,6 +12,7 @@ import DeleteIcon from "../icons/delete.svg";
 import MaskIcon from "../icons/mask.svg";
 import DragIcon from "../icons/drag.svg";
 import DiscoveryIcon from "../icons/discovery.svg";
+import LightningIcon from "../icons/lightning.svg";
 
 import Locale from "../locales";
 
@@ -309,6 +310,15 @@ export function SideBar(props: { className?: string }) {
                 <IconButton icon={<SettingsIcon />} shadow />
               </Link>
             </div>
+            <div className={styles["sidebar-action"]}>
+              <Link to={Path.Love}>
+                <IconButton
+                  icon={<MaskIcon />}
+                  shadow
+                  title="36 Questions to Fall in Love"
+                />
+              </Link>
+            </div>
             {/* <div className={styles["sidebar-action"]}>
               <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
                 <IconButton icon={<GithubIcon />} shadow />
@@ -322,19 +332,28 @@ export function SideBar(props: { className?: string }) {
           </>
         }
         secondaryAction={
-          <IconButton
-            icon={<AddIcon />}
-            text={shouldNarrow ? undefined : Locale.Home.NewChat}
-            onClick={() => {
-              if (config.dontShowMaskSplashScreen) {
-                chatStore.newSession();
-                navigate(Path.Chat);
-              } else {
-                navigate(Path.NewChat, { state: { fromHome: true } });
-              }
-            }}
-            shadow
-          />
+          <>
+            <a href="/dashboard" style={{ textDecoration: "none" }}>
+              <IconButton
+                icon={<LightningIcon />}
+                text={shouldNarrow ? undefined : "Dashboard"}
+                shadow
+              />
+            </a>
+            <IconButton
+              icon={<AddIcon />}
+              text={shouldNarrow ? undefined : Locale.Home.NewChat}
+              onClick={() => {
+                if (config.dontShowMaskSplashScreen) {
+                  chatStore.newSession();
+                  navigate(Path.Chat);
+                } else {
+                  navigate(Path.NewChat, { state: { fromHome: true } });
+                }
+              }}
+              shadow
+            />
+          </>
         }
       />
     </SideBarContainer>
