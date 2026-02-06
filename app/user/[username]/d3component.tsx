@@ -90,8 +90,6 @@ export function D3component() {
               {/* <Route path={Path.Experimental} element={<About />} /> */}
             </Routes>
           </div>
-          <AuthPage />
-          <Sd />
         </Router>
       </div>
       <p>
