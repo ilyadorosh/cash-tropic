@@ -1,5 +1,5 @@
-import GTAEngine3D from "./game/Engine3D";
+import { Home } from "./components/home";
 
 export default function Page() {
-  return <GTAEngine3D />;
+  return <Home />;
 }
