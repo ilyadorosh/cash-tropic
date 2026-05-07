@@ -197,20 +197,6 @@ async function persistLatestUserMessage({
 //   }
 // }
 
-// 3. Store Messages into PostgreSQL
-async function storeMessagesInDB(messages: any[]) {
-  const formattedMessages = messages.map((msg) => ({
-    id: msg.id, // Ensure the ID matches your schema
-    chatId: msg.chatId,
-    role: msg.role,
-    content: JSON.stringify(msg.content), // Convert content to JSON if necessary
-    createdAt: new Date(msg.createdAt),
-  }));
-
-  // Insert into PostgreSQL using Drizzle ORM
-  await db.insert(message).values(formattedMessages).onConflictDoNothing();
-}
-
 export function generateUUID(): string {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
     const r = (Math.random() * 16) | 0;
