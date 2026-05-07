@@ -18,6 +18,7 @@ import { ChatMessage } from "../store";
 
 const serverConfig = getServerSideConfig();
 console.log("configserver: ", serverConfig);
+const MAX_CHAT_HISTORY_LENGTH = 500;
 
 function getRedis() {
   return Redis.fromEnv();
@@ -62,7 +63,7 @@ async function persistLatestUserMessage({
     await redis
       .multi()
       .rpush("chat:messages", JSON.stringify(payload))
-      .ltrim("chat:messages", -500, -1)
+      .ltrim("chat:messages", -MAX_CHAT_HISTORY_LENGTH, -1)
       .exec();
   } catch (error) {
     console.error("[Chat Persistence] Failed to persist in Redis:", {
@@ -251,7 +252,7 @@ export async function requestGroq(req: NextRequest) {
     10 * 60 * 1000,
   );
 
-  const notclonedBody = await req
+  const requestBody = await req
     .clone()
     .json()
     .catch(() => undefined);
@@ -320,16 +321,16 @@ export async function requestGroq(req: NextRequest) {
 
     // await kv.set("mystate", notclonedBody);
     // await kv.lpush("mylist", notclonedBody);
-    console.log("[sending this to Groq] ", notclonedBody);
+    console.log("[sending this to Groq] ", requestBody);
 
-    const filteredMessages = (notclonedBody?.messages ?? []).filter(
+    const filteredMessages = (requestBody?.messages ?? []).filter(
       (message: ChatMessage) => message.role === "user",
     );
     const latestUserMessage = filteredMessages.at(-1);
     console.log("[sending first message to Groq] ", latestUserMessage);
     await persistLatestUserMessage({
       provider: "groq",
-      model: notclonedBody?.model,
+      model: requestBody?.model,
       latestUserMessage,
     });
 
@@ -408,7 +409,7 @@ export async function requestSambanova(req: NextRequest) {
     10 * 60 * 1000,
   );
 
-  const notclonedBody = await req
+  const requestBody = await req
     .clone()
     .json()
     .catch(() => undefined);
@@ -474,16 +475,16 @@ export async function requestSambanova(req: NextRequest) {
 
     // await kv.set("mystate", notclonedBody);
     // await kv.lpush("mylist", notclonedBody);
-    console.log("[sending this to Sambanova] ", notclonedBody);
+    console.log("[sending this to Sambanova] ", requestBody);
 
-    const filteredMessages = (notclonedBody?.messages ?? []).filter(
+    const filteredMessages = (requestBody?.messages ?? []).filter(
       (message: ChatMessage) => message.role === "user",
     );
     const latestUserMessage = filteredMessages.at(-1);
     console.log("[sending first message to Sambanova] ", latestUserMessage);
     await persistLatestUserMessage({
       provider: "sambanova",
-      model: notclonedBody?.model,
+      model: requestBody?.model,
       latestUserMessage,
     });
 
