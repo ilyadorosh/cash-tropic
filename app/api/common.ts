@@ -54,22 +54,35 @@ async function persistLatestUserMessage({
       provider: payload.provider,
       model: payload.model,
       role: payload.role,
+      contentPreview: payload.content.slice(0, 200),
       error,
     });
   }
 
   try {
     const redis = getRedis();
-    await redis
+    const txResult = await redis
       .multi()
       .rpush("chat:messages", JSON.stringify(payload))
       .ltrim("chat:messages", -MAX_CHAT_HISTORY_LENGTH, -1)
       .exec();
+
+    if (!txResult) {
+      console.error(
+        "[Chat Persistence] Redis transaction returned no result:",
+        {
+          provider: payload.provider,
+          model: payload.model,
+          role: payload.role,
+        },
+      );
+    }
   } catch (error) {
     console.error("[Chat Persistence] Failed to persist in Redis:", {
       provider: payload.provider,
       model: payload.model,
       role: payload.role,
+      contentPreview: payload.content.slice(0, 200),
       error,
     });
   }
@@ -255,7 +268,10 @@ export async function requestGroq(req: NextRequest) {
   const requestBody = await req
     .clone()
     .json()
-    .catch(() => undefined);
+    .catch((error) => {
+      console.error("[Groq] Failed to parse request JSON:", error);
+      return undefined;
+    });
 
   const fetchUrl = cloudflareAIGatewayUrl(`${baseUrl}/${path}`);
   console.log("fetchUrl", fetchUrl);
@@ -412,7 +428,10 @@ export async function requestSambanova(req: NextRequest) {
   const requestBody = await req
     .clone()
     .json()
-    .catch(() => undefined);
+    .catch((error) => {
+      console.error("[Sambanova] Failed to parse request JSON:", error);
+      return undefined;
+    });
 
   const fetchUrl = cloudflareAIGatewayUrl(`${baseUrl}/${path}`);
   console.log("fetchUrl", fetchUrl);
