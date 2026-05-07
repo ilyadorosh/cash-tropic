@@ -10,23 +10,56 @@ import {
 } from "../constant";
 import { isModelAvailableInServer } from "../utils/model";
 import { cloudflareAIGatewayUrl } from "../utils/cloudflare";
+import { Redis } from "@upstash/redis";
 
-import { sql, QueryResult } from "@vercel/postgres";
-import { db, saveMessages } from "@/app/lib/drizzle";
-import { and, asc, desc, eq, gt } from "drizzle-orm";
-import {
-  message,
-  user,
-  chat,
-  document,
-  suggestion,
-  Message,
-  vote,
-} from "@/app/lib/schema";
+import { db } from "@/app/lib/drizzle";
+import { messages } from "@/app/lib/schema";
 import { ChatMessage } from "../store";
 
 const serverConfig = getServerSideConfig();
 console.log("configserver: ", serverConfig);
+
+function getRedis() {
+  return Redis.fromEnv();
+}
+
+function serializeMessageContent(content: ChatMessage["content"]): string {
+  return typeof content === "string" ? content : JSON.stringify(content);
+}
+
+async function persistLatestUserMessage({
+  provider,
+  model,
+  latestUserMessage,
+}: {
+  provider: "groq" | "sambanova";
+  model?: string;
+  latestUserMessage?: ChatMessage;
+}) {
+  if (!latestUserMessage) return;
+
+  const payload = {
+    provider,
+    model: model ?? "",
+    role: latestUserMessage.role,
+    content: serializeMessageContent(latestUserMessage.content),
+    createdAt: new Date().toISOString(),
+  };
+
+  try {
+    await db.insert(messages).values({ message: JSON.stringify(payload) });
+  } catch (error) {
+    console.error("[Chat Persistence] Failed to persist in DB:", error);
+  }
+
+  try {
+    const redis = getRedis();
+    await redis.rpush("chat:messages", JSON.stringify(payload));
+    await redis.ltrim("chat:messages", -500, -1);
+  } catch (error) {
+    console.error("[Chat Persistence] Failed to persist in Redis:", error);
+  }
+}
 
 // export async function requestOpenai(req: NextRequest) {
 //   const controller = new AbortController();
@@ -219,7 +252,13 @@ export async function requestGroq(req: NextRequest) {
     10 * 60 * 1000,
   );
 
-  const notclonedBody = await req.clone().json();
+  const notclonedBody = await req
+    .clone()
+    .json()
+    .catch(
+      () =>
+        undefined as { messages?: ChatMessage[]; model?: string } | undefined,
+    );
 
   const fetchUrl = cloudflareAIGatewayUrl(`${baseUrl}/${path}`);
   console.log("fetchUrl", fetchUrl);
@@ -287,20 +326,16 @@ export async function requestGroq(req: NextRequest) {
     // await kv.lpush("mylist", notclonedBody);
     console.log("[sending this to Groq] ", notclonedBody);
 
-    const filteredMessages = notclonedBody.messages.filter(
+    const filteredMessages = (notclonedBody?.messages ?? []).filter(
       (message: ChatMessage) => message.role === "user",
     );
-    console.log(
-      "[sending first message to Groq] ",
-      filteredMessages.slice(-1)[0],
-    );
-    // storeMessagesInDB(filteredMessages.slice(-1));
-    const id = "b9b1d0e7-ac54-4856-ac52-2308a58e91a1";
-    // await saveMessages({
-    //   messages: [
-    //     { ...filteredMessages.slice(-1)[0], id: generateUUID(), createdAt: new Date(), chatId: id },
-    //   ],
-    // });
+    const latestUserMessage = filteredMessages.at(-1);
+    console.log("[sending first message to Groq] ", latestUserMessage);
+    await persistLatestUserMessage({
+      provider: "groq",
+      model: notclonedBody?.model,
+      latestUserMessage,
+    });
 
     // console.log ("[got this response from Groq] ", res.body);
 
@@ -377,7 +412,13 @@ export async function requestSambanova(req: NextRequest) {
     10 * 60 * 1000,
   );
 
-  const notclonedBody = await req.clone().json();
+  const notclonedBody = await req
+    .clone()
+    .json()
+    .catch(
+      () =>
+        undefined as { messages?: ChatMessage[]; model?: string } | undefined,
+    );
 
   const fetchUrl = cloudflareAIGatewayUrl(`${baseUrl}/${path}`);
   console.log("fetchUrl", fetchUrl);
@@ -442,13 +483,16 @@ export async function requestSambanova(req: NextRequest) {
     // await kv.lpush("mylist", notclonedBody);
     console.log("[sending this to Sambanova] ", notclonedBody);
 
-    const filteredMessages = notclonedBody.messages.filter(
+    const filteredMessages = (notclonedBody?.messages ?? []).filter(
       (message: ChatMessage) => message.role === "user",
     );
-    console.log(
-      "[sending first message to Sambanova] ",
-      filteredMessages.slice(-1)[0],
-    );
+    const latestUserMessage = filteredMessages.at(-1);
+    console.log("[sending first message to Sambanova] ", latestUserMessage);
+    await persistLatestUserMessage({
+      provider: "sambanova",
+      model: notclonedBody?.model,
+      latestUserMessage,
+    });
 
     // to prevent browser prompt for credentials
     const newHeaders = new Headers(res.headers);
