@@ -49,15 +49,28 @@ async function persistLatestUserMessage({
   try {
     await db.insert(messages).values({ message: JSON.stringify(payload) });
   } catch (error) {
-    console.error("[Chat Persistence] Failed to persist in DB:", error);
+    console.error("[Chat Persistence] Failed to persist in DB:", {
+      provider: payload.provider,
+      model: payload.model,
+      role: payload.role,
+      error,
+    });
   }
 
   try {
     const redis = getRedis();
-    await redis.rpush("chat:messages", JSON.stringify(payload));
-    await redis.ltrim("chat:messages", -500, -1);
+    await redis
+      .multi()
+      .rpush("chat:messages", JSON.stringify(payload))
+      .ltrim("chat:messages", -500, -1)
+      .exec();
   } catch (error) {
-    console.error("[Chat Persistence] Failed to persist in Redis:", error);
+    console.error("[Chat Persistence] Failed to persist in Redis:", {
+      provider: payload.provider,
+      model: payload.model,
+      role: payload.role,
+      error,
+    });
   }
 }
 
@@ -241,10 +254,7 @@ export async function requestGroq(req: NextRequest) {
   const notclonedBody = await req
     .clone()
     .json()
-    .catch(
-      () =>
-        undefined as { messages?: ChatMessage[]; model?: string } | undefined,
-    );
+    .catch(() => undefined);
 
   const fetchUrl = cloudflareAIGatewayUrl(`${baseUrl}/${path}`);
   console.log("fetchUrl", fetchUrl);
@@ -401,10 +411,7 @@ export async function requestSambanova(req: NextRequest) {
   const notclonedBody = await req
     .clone()
     .json()
-    .catch(
-      () =>
-        undefined as { messages?: ChatMessage[]; model?: string } | undefined,
-    );
+    .catch(() => undefined);
 
   const fetchUrl = cloudflareAIGatewayUrl(`${baseUrl}/${path}`);
   console.log("fetchUrl", fetchUrl);
