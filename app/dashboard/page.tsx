@@ -38,6 +38,100 @@ const projectMilestones = [
   { id: 7, title: "Community Contributions", progress: 10, status: "planned" },
 ];
 
+// AI Stack Layers - from silicon to users
+const aiStackLayers = [
+  {
+    id: "users",
+    name: "👥 Users & Communities",
+    description: "Meme substrate carriers, agentic application drivers",
+    color: "#00ff88",
+    companies: ["You", "Communities", "Creators"],
+    position: "top",
+    isUs: true,
+  },
+  {
+    id: "apps",
+    name: "🚀 Agentic Applications",
+    description: "Cash Tropic, ActInLove, AI interfaces",
+    color: "#00d9ff",
+    companies: ["Cash Tropic", "ChatGPT", "Claude", "Copilot"],
+    position: "high",
+    isUs: true,
+  },
+  {
+    id: "models",
+    name: "🧠 Foundation Models",
+    description: "LLMs, multimodal, reasoning engines",
+    color: "#d4a574",
+    companies: ["OpenAI", "Anthropic", "Google", "Meta"],
+    position: "mid-high",
+  },
+  {
+    id: "infra",
+    name: "☁️ Cloud & Inference",
+    description: "Serving infrastructure, optimization",
+    color: "#4285f4",
+    companies: ["AWS", "Azure", "Groq", "Sambanova"],
+    position: "mid",
+  },
+  {
+    id: "chips",
+    name: "⚡ AI Chips & GPUs",
+    description: "Training and inference hardware",
+    color: "#76b900",
+    companies: ["NVIDIA", "AMD", "Intel", "Cerebras"],
+    position: "low",
+  },
+  {
+    id: "fabs",
+    name: "🏭 Chip Fabrication",
+    description: "Semiconductor manufacturing",
+    color: "#ff6b35",
+    companies: ["TSMC", "Samsung", "Intel Foundry"],
+    position: "base",
+  },
+  {
+    id: "equipment",
+    name: "🔬 Fab Equipment",
+    description: "Lithography, etching, deposition",
+    color: "#9333ea",
+    companies: ["ASML", "Applied Materials", "Lam Research", "KLA"],
+    position: "foundation",
+  },
+];
+
+// Key insights / situational awareness
+const situationalInsights = [
+  {
+    title: "Compute is Growing 4x/year",
+    description:
+      "AI training compute doubles every 6 months. We're in the steep part of the S-curve.",
+    icon: "📈",
+    source: "Epoch AI",
+  },
+  {
+    title: "Energy is the Bottleneck",
+    description:
+      "Data centers need gigawatts. Nuclear renaissance incoming. Control energy = control AI.",
+    icon: "⚡",
+    source: "IEA Reports",
+  },
+  {
+    title: "Agentic is Next",
+    description:
+      "From chat to agents. Autonomous systems that take actions. We build the interfaces.",
+    icon: "🤖",
+    source: "Industry Consensus",
+  },
+  {
+    title: "Open Source Accelerating",
+    description:
+      "Llama, Mistral, Qwen closing the gap. Commoditization at the model layer = opportunity at app layer.",
+    icon: "🔓",
+    source: "HuggingFace",
+  },
+];
+
 const navItems: NavItem[] = [
   {
     href: "/",
@@ -149,6 +243,9 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
+  const [expandedLayer, setExpandedLayer] = useState<string | null>(null);
+  const [visionImages, setVisionImages] = useState<string[]>([]);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const modelGroups = useMemo(() => groupModelsByProvider(DEFAULT_MODELS), []);
 
@@ -472,6 +569,192 @@ export default function DashboardPage() {
               Contributing to how AI is used—one interface to rule them all. git
               hope. let&apos;s go.
             </p>
+          </div>
+        </section>
+
+        {/* AI Future Situational Awareness */}
+        <section className={styles.aiStackSection}>
+          <h2>🔮 AI Stack Situational Awareness</h2>
+          <p className={styles.sectionDesc}>
+            Where we are in the stack. Autocatalytic growth from silicon to
+            users.
+          </p>
+
+          <div className={styles.stackVisualization}>
+            {aiStackLayers.map((layer, index) => (
+              <div
+                key={layer.id}
+                className={`${styles.stackLayer} ${layer.isUs ? styles.ourLayer : ""}`}
+                style={{
+                  borderColor: layer.color,
+                  animationDelay: `${index * 0.1}s`,
+                }}
+                onClick={() =>
+                  setExpandedLayer(expandedLayer === layer.id ? null : layer.id)
+                }
+              >
+                <div className={styles.layerHeader}>
+                  <span className={styles.layerName}>{layer.name}</span>
+                  {layer.isUs && (
+                    <span className={styles.usIndicator}>← WE ARE HERE</span>
+                  )}
+                </div>
+                <p className={styles.layerDesc}>{layer.description}</p>
+
+                {expandedLayer === layer.id && (
+                  <div className={styles.layerCompanies}>
+                    {layer.companies.map((company) => (
+                      <span
+                        key={company}
+                        className={`${styles.companyTag} ${company === "Cash Tropic" || company === "You" ? styles.highlight : ""}`}
+                        style={{ borderColor: layer.color }}
+                      >
+                        {company}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Situational Insights */}
+          <div className={styles.insightsGrid}>
+            {situationalInsights.map((insight) => (
+              <div key={insight.title} className={styles.insightCard}>
+                <span className={styles.insightIcon}>{insight.icon}</span>
+                <div className={styles.insightContent}>
+                  <h4>{insight.title}</h4>
+                  <p>{insight.description}</p>
+                  <span className={styles.insightSource}>{insight.source}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Energy Control Function */}
+          <div className={styles.energySection}>
+            <h3>⚡ Energy Control Function</h3>
+            <div className={styles.energyViz}>
+              <div className={styles.energyFlow}>
+                <span className={styles.energyNode}>🌍 Grid</span>
+                <span className={styles.energyArrow}>→</span>
+                <span className={styles.energyNode}>🏭 Data Center</span>
+                <span className={styles.energyArrow}>→</span>
+                <span className={styles.energyNode}>⚡ GPUs</span>
+                <span className={styles.energyArrow}>→</span>
+                <span className={styles.energyNode}>🧠 Intelligence</span>
+                <span className={styles.energyArrow}>→</span>
+                <span className={styles.energyNode}>💰 Value</span>
+              </div>
+              <p className={styles.energyNote}>
+                Whoever controls energy controls compute. Whoever controls
+                compute controls AI. Whoever controls AI controls value
+                creation. The stack is the strategy.
+              </p>
+            </div>
+          </div>
+
+          {/* Resources & Videos */}
+          <div className={styles.resourcesSection}>
+            <h3>📺 Key Resources</h3>
+            <div className={styles.resourcesGrid}>
+              <a
+                href="https://situational-awareness.ai/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.resourceCard}
+              >
+                <span className={styles.resourceIcon}>📄</span>
+                <div>
+                  <strong>Situational Awareness</strong>
+                  <p>Leopold Aschenbrenner&apos;s thesis on AGI timelines</p>
+                </div>
+              </a>
+              <a
+                href="https://www.youtube.com/watch?v=6-hx3r9X4qk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.resourceCard}
+              >
+                <span className={styles.resourceIcon}>🎥</span>
+                <div>
+                  <strong>Elon on AI</strong>
+                  <p>xAI, Grok, and the race to AGI</p>
+                </div>
+              </a>
+              <a
+                href="https://epochai.org/trends"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.resourceCard}
+              >
+                <span className={styles.resourceIcon}>📊</span>
+                <div>
+                  <strong>Epoch AI Trends</strong>
+                  <p>Compute growth and AI progress tracking</p>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          {/* Image Upload Section */}
+          <div className={styles.imageUploadSection}>
+            <h3>🖼️ Vision Board</h3>
+            <p className={styles.sectionDesc}>
+              Add images to visualize your AI future
+            </p>
+
+            <div className={styles.imageUploadArea}>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={async (e) => {
+                  const files = e.target.files;
+                  if (!files) return;
+
+                  setIsUploadingImage(true);
+                  // For now, use local URLs - can integrate with Vercel Blob later
+                  const newImages = Array.from(files).map((file) =>
+                    URL.createObjectURL(file),
+                  );
+                  setVisionImages([...visionImages, ...newImages]);
+                  setIsUploadingImage(false);
+                }}
+                className={styles.fileInput}
+                id="vision-upload"
+              />
+              <label htmlFor="vision-upload" className={styles.uploadLabel}>
+                {isUploadingImage
+                  ? "Uploading..."
+                  : "📎 Drop images or click to upload"}
+              </label>
+            </div>
+
+            {visionImages.length > 0 && (
+              <div className={styles.visionBoard}>
+                {visionImages.map((img, idx) => (
+                  <div key={idx} className={styles.visionImageWrapper}>
+                    <img
+                      src={img}
+                      alt={`Vision ${idx + 1}`}
+                      className={styles.visionImage}
+                    />
+                    <button
+                      className={styles.removeImage}
+                      onClick={() =>
+                        setVisionImages(
+                          visionImages.filter((_, i) => i !== idx),
+                        )
+                      }
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       </div>

@@ -620,6 +620,343 @@
   }
 }
 
+/* AI Stack Situational Awareness Section */
+.aiStackSection {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  h2 {
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    color: #e2e8f0;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    margin: 1.5rem 0 1rem;
+    color: #e2e8f0;
+  }
+
+  .sectionDesc {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+}
+
+.stackVisualization {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.stackLayer {
+  padding: 1rem 1.25rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-left: 4px solid;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  animation: slideIn 0.3s ease forwards;
+  opacity: 0;
+  transform: translateX(-20px);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(5px);
+  }
+
+  &.ourLayer {
+    background: rgba(0, 255, 136, 0.08);
+    border-width: 4px;
+    
+    .layerName {
+      color: #00ff88;
+    }
+  }
+}
+
+@keyframes slideIn {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.layerHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.layerName {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #fff;
+}
+
+.usIndicator {
+  font-size: 0.75rem;
+  color: #00ff88;
+  background: rgba(0, 255, 136, 0.2);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.layerDesc {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.layerCompanies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.companyTag {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid;
+  border-radius: 4px;
+  color: #e2e8f0;
+
+  &.highlight {
+    background: rgba(0, 255, 136, 0.15);
+    color: #00ff88;
+    font-weight: 600;
+  }
+}
+
+/* Insights Grid */
+.insightsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.insightCard {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(0, 217, 255, 0.3);
+  }
+}
+
+.insightIcon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.insightContent {
+  h4 {
+    font-size: 0.95rem;
+    color: #fff;
+    margin-bottom: 0.25rem;
+  }
+
+  p {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin: 0 0 0.5rem;
+    line-height: 1.4;
+  }
+}
+
+.insightSource {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+/* Energy Section */
+.energySection {
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.05), rgba(0, 217, 255, 0.05));
+  border-radius: 12px;
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 107, 53, 0.2);
+  margin-bottom: 1.5rem;
+}
+
+.energyViz {
+  margin-top: 0.75rem;
+}
+
+.energyFlow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.energyNode {
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+.energyArrow {
+  color: #ff6b35;
+  font-weight: bold;
+}
+
+.energyNote {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  text-align: center;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* Resources Section */
+.resourcesSection {
+  margin-bottom: 1.5rem;
+}
+
+.resourcesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.resourceCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(0, 217, 255, 0.3);
+    transform: translateY(-2px);
+  }
+
+  strong {
+    display: block;
+    color: #fff;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+  }
+
+  p {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin: 0;
+  }
+}
+
+.resourceIcon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+/* Image Upload Section */
+.imageUploadSection {
+  margin-top: 1.5rem;
+}
+
+.imageUploadArea {
+  margin-top: 0.75rem;
+}
+
+.fileInput {
+  display: none;
+}
+
+.uploadLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 217, 255, 0.05);
+    border-color: rgba(0, 217, 255, 0.4);
+    color: #00d9ff;
+  }
+}
+
+.visionBoard {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.visionImageWrapper {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 1;
+}
+
+.visionImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+.removeImage {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: rgba(255, 100, 100, 0.8);
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+
+  .visionImageWrapper:hover & {
+    opacity: 1;
+  }
+}
+
 @media (max-width: 768px) {
   .dashboard {
     padding: 1rem;
@@ -666,5 +1003,25 @@
 
   .chatLink {
     margin-left: 0;
+  }
+
+  .energyFlow {
+    flex-direction: column;
+  }
+
+  .energyArrow {
+    transform: rotate(90deg);
+  }
+
+  .insightsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .resourcesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .visionBoard {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
