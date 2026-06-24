@@ -1,31 +1,35 @@
-import { sql } from "@vercel/postgres";
 import { Redis } from "@upstash/redis";
-
 import Link from "next/link";
 import React from "react";
-import { useEffect } from "react";
 import dynamic from "next/dynamic";
+import type { Metadata } from "next";
 
 import styles from "@/app/components/chat.module.scss";
+import { ChatMessage } from "@/app/store";
 
-import {
-  ChatMessage,
-  ModelType,
-  useAppConfig,
-  useChatStore,
-} from "@/app/store";
-
-import About from "@/app/components/about";
-import D3component from "./d3component";
-import ChatGptIcon from "@/app/icons/InferiorAI.svg";
-import BotIcon from "@/app/icons/bot.svg";
-
-// Dynamically import the client-side D3 component
 const D3Chart = dynamic(() => import("./d3component"), {
-  ssr: false, // Ensure it's only rendered client-side
+  ssr: false,
 });
 
-export default async function Cart({
+export async function generateMetadata({
+  params,
+}: {
+  params: { username: string };
+}): Promise<Metadata> {
+  const { username } = params;
+  return {
+    title: `${username}'s conversations`,
+    description: `View AI conversations and shared content from ${username} on CzatBoltzmannPlanck.`,
+    openGraph: {
+      title: `${username} on CzatBoltzmannPlanck`,
+      description: `AI conversations and generated content from ${username}.`,
+      type: "profile",
+    },
+    robots: { index: true, follow: true },
+  };
+}
+
+export default async function UserPage({
   params,
 }: {
   params: { username: string };
@@ -35,7 +39,6 @@ export default async function Cart({
   const userCacheString: string | null = await redis.get(
     "userCache:" + params.username,
   );
-  const htmlText = userCacheString?.replace(/\n/g, "<br>");
 
   const keys = await redis.keys("userCache:" + "*");
 
@@ -43,8 +46,7 @@ export default async function Cart({
     .map((item) => {
       try {
         return typeof item === "string" ? JSON.parse(item) : item;
-      } catch (error) {
-        console.error("Failed to parse item:", item, error);
+      } catch {
         return null;
       }
     })
@@ -53,35 +55,37 @@ export default async function Cart({
   return (
     <div className={styles.chat}>
       <div className={styles["chat-body"]}>
-        <ChatGptIcon></ChatGptIcon>
-        <h1> Любовь! </h1>
-        <h2> {params.username} </h2>
+        <h1>{params.username}</h1>
 
-        {keys.map((key: string, index: number) => {
-          const keyUsername = key.replace("userCache:", "") as string;
-          return (
-            <div key={index}>
-              <Link href={`/user/${keyUsername}`}>{keyUsername}</Link>
-            </div>
-          );
-        })}
-        <hr></hr>
-        <div className={styles["chat-body-text"]}>
-          {userCacheString as React.ReactNode}
-        </div>
+        <nav>
+          {keys.map((key: string, index: number) => {
+            const keyUsername = key.replace("userCache:", "") as string;
+            return (
+              <div key={index}>
+                <Link href={`/user/${keyUsername}`}>{keyUsername}</Link>
+              </div>
+            );
+          })}
+        </nav>
+
+        <hr />
+
+        {userCacheString && (
+          <div className={styles["chat-body-text"]}>{userCacheString}</div>
+        )}
+
         {conversations.slice(0, 13).map((conversation, index) => (
           <div className={styles["chat-message-container"]} key={index}>
             <div className={styles["chat-message-item"]}>
-              {conversation.messages.map((message: ChatMessage, i: number) => {
-                return (
-                  <div className={styles["chat-message-item"]} key={i}>
-                    {message.content && <>{message.content}</>}
-                  </div>
-                );
-              })}
+              {conversation.messages.map((message: ChatMessage, i: number) => (
+                <div className={styles["chat-message-item"]} key={i}>
+                  {message.content && <>{message.content}</>}
+                </div>
+              ))}
             </div>
           </div>
         ))}
+
         <D3Chart />
       </div>
     </div>

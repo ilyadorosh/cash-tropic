@@ -1,6 +1,7 @@
 {
-  "name": "NextChat",
-  "short_name": "NextChat",
+  "name": "CzatBoltzmannPlanck",
+  "short_name": "CzatBP",
+  "description": "AI-powered personal pages and chat — connecting people through generative content.",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",

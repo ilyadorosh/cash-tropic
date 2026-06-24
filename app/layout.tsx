@@ -10,10 +10,45 @@ import { GoogleTagManager } from "@next/third-parties/google";
 const serverConfig = getServerSideConfig();
 
 export const metadata: Metadata = {
-  title: "CzatBoltzmannPlanck",
-  description: "CzatGPT that cares.",
+  title: {
+    default: "CzatBoltzmannPlanck",
+    template: "%s | CzatBoltzmannPlanck",
+  },
+  description:
+    "AI-powered personal pages and chat. Generate heartfelt connections, explore conversations, and connect with people through generative content.",
+  keywords: [
+    "AI chat",
+    "generative pages",
+    "personal AI",
+    "ActInLove",
+    "AI connections",
+  ],
+  authors: [{ name: "CzatBoltzmannPlanck" }],
+  metadataBase: new URL("https://cash-tropic.vercel.app"),
+  openGraph: {
+    title: "CzatBoltzmannPlanck",
+    description:
+      "AI-powered personal pages and chat. Generate heartfelt connections through generative content.",
+    type: "website",
+    locale: "en_US",
+    siteName: "CzatBoltzmannPlanck",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CzatBoltzmannPlanck",
+    description:
+      "AI-powered personal pages and chat. Generate heartfelt connections through generative content.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
   appleWebApp: {
-    title: "NextChat",
+    title: "CzatBoltzmannPlanck",
     statusBarStyle: "default",
   },
 };

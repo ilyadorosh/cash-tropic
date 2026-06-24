@@ -1,4 +1,10 @@
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+
 User-agent: vitals.vercel-insights.com
 Allow: /
+
+Sitemap: https://cash-tropic.vercel.app/sitemap.xml
