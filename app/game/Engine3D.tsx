@@ -21,6 +21,11 @@ import {
   EDUCATIONAL_NPCS,
 } from "./Characters";
 import { AIAgentSystem } from "./AIAgentSystem";
+import {
+  createPlayer as createNcaPlayer,
+  fetchWeights as fetchNcaWeights,
+  type Player as NcaPlayer,
+} from "@/app/nca/player/engine";
 import { PoliceSystem } from "./PoliceSystem";
 import { MissionSystem } from "./MissionSystem";
 import { ProceduralCity, Building } from "./ProceduralCity";
@@ -121,6 +126,8 @@ async function callLLM(
 
 export default function GTAEngine3D() {
   const mountRef = useRef<HTMLDivElement>(null);
+  // the living terrain: a neural cellular automaton rising out of the city
+  const ncaLifeRef = useRef<NcaPlayer | null>(null);
   const minimapRef = useRef<HTMLCanvasElement>(null);
   const cityRef = useRef<ProceduralCity | null>(null);
 
@@ -338,6 +345,68 @@ export default function GTAEngine3D() {
     const interactables: any[] = [];
     initWorld(scene, colliders, interactables);
 
+    // === THE LIVING TERRAIN — a neural net IS part of the world ===
+    // Same trained NCA weights as BLØB, run on a 96×96 grid draped over the
+    // city as displaced 3D terrain: organisms rise vertically out of the
+    // ground, in real time, in the browser. Minimal proof for NCA-in-3D.
+    let ncaTex: THREE.CanvasTexture | null = null;
+    let ncaMirrorCtx: CanvasRenderingContext2D | null = null;
+    let ncaSrc: HTMLCanvasElement | null = null;
+    {
+      const NCA_GS = 96;
+      const srcCanvas = document.createElement("canvas");
+      fetchNcaWeights()
+        .then((weights) => {
+          if (!weights) return;
+          const nca = createNcaPlayer(
+            srcCanvas,
+            () => {},
+            () => {},
+            { preserveDrawingBuffer: true },
+          );
+          if (!nca) return;
+          const meta = nca.loadModel(weights, {
+            gridSize: NCA_GS,
+            seeds: 14,
+            canvasScale: 1,
+            background: "#000000", // dead cells cut away via alphaTest
+          });
+          if (!meta) return;
+          ncaLifeRef.current = nca;
+          nca.params.speed = 1;
+          nca.params.stepEvery = 2; // gentle on weak GPUs
+          nca.setPlaying(true);
+
+          const mirror = document.createElement("canvas");
+          mirror.width = srcCanvas.width;
+          mirror.height = srcCanvas.height;
+          const mctx = mirror.getContext("2d");
+          if (!mctx) return;
+          mctx.drawImage(srcCanvas, 0, 0);
+
+          const tex = new THREE.CanvasTexture(mirror);
+          const geo = new THREE.PlaneGeometry(300, 300, NCA_GS, NCA_GS);
+          const mat = new THREE.MeshStandardMaterial({
+            map: tex,
+            displacementMap: tex, // brightness → height: life literally rises
+            displacementScale: 26,
+            alphaMap: tex,
+            alphaTest: 0.14,
+            roughness: 0.85,
+          });
+          const living = new THREE.Mesh(geo, mat);
+          living.rotation.x = -Math.PI / 2;
+          living.position.y = 0.08;
+          living.name = "living-terrain";
+          scene.add(living);
+
+          ncaTex = tex;
+          ncaMirrorCtx = mctx;
+          ncaSrc = srcCanvas;
+        })
+        .catch((e) => console.warn("living terrain (3D) failed:", e));
+    }
+
     // After creating neuralCityRef:
     neuralCityRef.current = new NeuralCity(scene);
 
@@ -492,8 +561,8 @@ export default function GTAEngine3D() {
           road.type === "autobahn"
             ? 0x333333
             : road.type === "hauptstrasse"
-            ? 0x444444
-            : 0x555555;
+              ? 0x444444
+              : 0x555555;
 
         // Draw road segments
         for (let i = 0; i < road.points.length - 1; i++) {
@@ -1787,6 +1856,12 @@ export default function GTAEngine3D() {
       lastFrameTime = now;
       frame++;
 
+      // the living terrain breathes (throttled texture upload)
+      if (ncaTex && ncaMirrorCtx && ncaSrc && frame % 3 === 0) {
+        ncaMirrorCtx.drawImage(ncaSrc, 0, 0);
+        ncaTex.needsUpdate = true;
+      }
+
       // Audio
       if (wantedLevel > 0 && frame % 60 === 0 && audioCtx && sirenOsc) {
         const now = audioCtx.currentTime;
@@ -1868,8 +1943,8 @@ export default function GTAEngine3D() {
               npc.id === "MARIA"
                 ? "#ff69b4"
                 : npc.id === "THE_THIEF"
-                ? "#333"
-                : "#fff";
+                  ? "#333"
+                  : "#fff";
             ctx.beginPath();
             ctx.arc(dx * 0.5, dz * 0.5, 3, 0, Math.PI * 2);
             ctx.fill();
@@ -2393,6 +2468,8 @@ export default function GTAEngine3D() {
 
     // Then at the END, in the cleanup function, use the captured values:
     return () => {
+      ncaLifeRef.current?.destroy();
+      ncaLifeRef.current = null;
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);

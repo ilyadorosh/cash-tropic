@@ -35,8 +35,6 @@ export default function GameEngine() {
   const sceneRef = useRef<any>(null);
   // BLØB — the living one: a real neural cellular automaton, in-game
   const ncaBossRef = useRef<NcaPlayer | null>(null);
-  // the living city: an NCA as the terrain of the whole map
-  const ncaTerrainRef = useRef<NcaPlayer | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -107,8 +105,6 @@ export default function GameEngine() {
     return () => {
       ncaBossRef.current?.destroy();
       ncaBossRef.current = null;
-      ncaTerrainRef.current?.destroy();
-      ncaTerrainRef.current = null;
       if (gameRef.current) {
         gameRef.current.destroy(true);
         gameRef.current = null;
@@ -223,7 +219,6 @@ export default function GameEngine() {
         mapData.height,
         0x1a472a,
       );
-      bg.setDepth(-30);
 
       // Draw zones
       mapData.zones?.forEach((zone: any) => {
@@ -393,67 +388,6 @@ export default function GameEngine() {
         0x48bb78,
       );
 
-      // ── THE LIVING CITY: the ground itself is a neural cellular automaton ──
-      // One big NCA grid stretched across the whole map. The same trained
-      // local rule, just on a larger world (NCAs are translation-invariant).
-      // Walking wounds the tissue; it heals behind you. The AI is the room.
-      {
-        const TGS = 128; // terrain grid size (cells)
-        const terrainCanvas = document.createElement("canvas");
-        fetchNcaWeights()
-          .then((weights) => {
-            if (!weights || !sceneRef.current) return;
-            const terra = createNcaPlayer(
-              terrainCanvas,
-              () => {},
-              () => {},
-              { preserveDrawingBuffer: true },
-            );
-            if (!terra) return;
-            const meta = terra.loadModel(weights, {
-              gridSize: TGS,
-              seeds: 20,
-              canvasScale: 2,
-              background: "#1a472a", // dead cells blend into the grass
-            });
-            if (!meta) return;
-            ncaTerrainRef.current = terra;
-            terra.params.speed = 1;
-            terra.params.stepEvery = 2; // MX250-friendly
-            terra.setPlaying(true);
-
-            const mirror = document.createElement("canvas");
-            mirror.width = terrainCanvas.width;
-            mirror.height = terrainCanvas.height;
-            const mctx = mirror.getContext("2d");
-            if (!mctx) return;
-            mctx.drawImage(terrainCanvas, 0, 0);
-
-            const tex = scene.textures.addCanvas("nca-terrain", mirror);
-            const img = scene.add
-              .image(mapData.width / 2, mapData.height / 2, "nca-terrain")
-              .setDisplaySize(mapData.width, mapData.height)
-              .setAlpha(0.92)
-              .setDepth(-20);
-            img.setInteractive();
-            img.on("pointerdown", (pointer: any) => {
-              terra.damageAtCell(
-                (pointer.worldX / mapData.width) * TGS,
-                (pointer.worldY / mapData.height) * TGS,
-                6,
-              );
-            });
-            scene.ncaTerrain = {
-              nca: terra,
-              tex,
-              ctx: mctx,
-              src: terrainCanvas,
-              gs: TGS,
-            };
-          })
-          .catch((e) => console.warn("living terrain failed:", e));
-      }
-
       // ── BLØB: a live neural cellular automaton as an in-world creature ──
       // Its sprite IS the NCA's GPU canvas, refreshed every frame.
       // Poke it: real damage to the substrate — and it regrows. In-browser
@@ -599,10 +533,6 @@ export default function GameEngine() {
         scene.ncaMirrorCtx.drawImage(scene.ncaSrc, 0, 0);
         scene.ncaTex.refresh();
       }
-      if (scene.ncaTerrain) {
-        scene.ncaTerrain.ctx.drawImage(scene.ncaTerrain.src, 0, 0);
-        scene.ncaTerrain.tex.refresh();
-      }
 
       const speed = 250;
       let vx = 0;
@@ -618,20 +548,6 @@ export default function GameEngine() {
       if (scene.mobileInput.x !== 0 || scene.mobileInput.y !== 0) {
         vx = scene.mobileInput.x * speed;
         vy = scene.mobileInput.y * speed;
-      }
-
-      // you move through living tissue — it parts, then heals behind you
-      if (
-        scene.ncaTerrain &&
-        (vx !== 0 || vy !== 0) &&
-        Date.now() - (scene.ncaWoundAt || 0) > 200
-      ) {
-        scene.ncaWoundAt = Date.now();
-        scene.ncaTerrain.nca.damageAtCell(
-          (scene.player.x / mapData.width) * scene.ncaTerrain.gs,
-          (scene.player.y / mapData.height) * scene.ncaTerrain.gs,
-          2.5,
-        );
       }
 
       scene.player.body.setVelocity(vx, vy);
