@@ -1707,6 +1707,14 @@ export default function LoveUniverse({
     return () => document.removeEventListener("keydown", onKey);
   }, [strike, startStop, applyStyle, applySwing, applyStreaks, locrian]);
 
+  /* legacy NextChat deep links are hash-routed (/#/chat, /#/settings…) —
+     forward them to /chat so nobody's bookmark breaks */
+  useEffect(() => {
+    if (window.location.hash.startsWith("#/")) {
+      window.location.replace("/chat" + window.location.hash);
+    }
+  }, []);
+
   /* set the opening chord's color as the world's accent */
   useEffect(() => {
     setAccent(PAL[0].chords[0]);
