@@ -341,6 +341,97 @@ export default function GTAEngine3D() {
     renderer.shadowMap.enabled = true;
     mountRef.current.appendChild(renderer.domElement);
 
+    // === ATMOSPHERE — day/night cycle + weather. Cheap on purpose:
+    // color lerps, one directional sun, one Points cloud for rain.
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    const sun = new THREE.DirectionalLight(0xfff3e0, 0.7);
+    sun.position.set(60, 80, 30);
+    scene.add(sun);
+    // t, sky, fog, sun intensity, exposure
+    const atmoStops: [number, number, number, number, number][] = [
+      [0.0, 0x0a1226, 0x0a1430, 0.05, 0.5],
+      [0.25, 0xf5b880, 0xd8a070, 0.5, 0.85],
+      [0.5, 0x87ceeb, 0x9fc4e0, 0.75, 1.1],
+      [0.75, 0xe98a5a, 0xc07850, 0.45, 0.8],
+      [1.0, 0x0a1226, 0x0a1430, 0.05, 0.5],
+    ];
+    const DAY_LEN = 240; // seconds per in-game day
+    let atmoT = DAY_LEN * 0.35; // start mid-morning
+    const _atmoA = new THREE.Color(),
+      _atmoB = new THREE.Color();
+    let raining = false;
+    let weatherNext = performance.now() + 45000 + Math.random() * 60000;
+    const RAIN_N = 1100;
+    const rainGeo = new THREE.BufferGeometry();
+    const rainPos = new Float32Array(RAIN_N * 3);
+    for (let i = 0; i < RAIN_N; i++) {
+      rainPos[i * 3] = (Math.random() - 0.5) * 120;
+      rainPos[i * 3 + 1] = Math.random() * 50;
+      rainPos[i * 3 + 2] = (Math.random() - 0.5) * 120;
+    }
+    rainGeo.setAttribute("position", new THREE.BufferAttribute(rainPos, 3));
+    const rain = new THREE.Points(
+      rainGeo,
+      new THREE.PointsMaterial({
+        color: 0xa8c4e6,
+        size: 0.14,
+        transparent: true,
+        opacity: 0.55,
+        depthWrite: false,
+      }),
+    );
+    rain.visible = false;
+    scene.add(rain);
+    function updateAtmosphere(dt: number) {
+      atmoT += dt;
+      const t = (atmoT % DAY_LEN) / DAY_LEN;
+      let i = 0;
+      while (i < atmoStops.length - 2 && t > atmoStops[i + 1][0]) i++;
+      const a = atmoStops[i],
+        b = atmoStops[i + 1];
+      const f = (t - a[0]) / (b[0] - a[0] || 1);
+      const sky = _atmoA.setHex(a[1]).lerp(_atmoB.setHex(b[1]), f).clone();
+      const fogC = _atmoA.setHex(a[2]).lerp(_atmoB.setHex(b[2]), f).clone();
+      let sunI = a[3] + (b[3] - a[3]) * f;
+      let expo = a[4] + (b[4] - a[4]) * f;
+      if (raining) {
+        sky.multiplyScalar(0.55);
+        fogC.multiplyScalar(0.55);
+        sunI *= 0.5;
+        expo *= 0.85;
+      }
+      if (scene.background instanceof THREE.Color) scene.background.copy(sky);
+      if (scene.fog instanceof THREE.Fog) {
+        scene.fog.color.copy(fogC);
+        scene.fog.near = raining ? 18 : 50;
+        scene.fog.far = raining ? 150 : 300;
+      }
+      sun.intensity = sunI;
+      const ang = (t - 0.25) * Math.PI * 2;
+      sun.position.set(Math.cos(ang) * 80, Math.max(6, Math.sin(ang) * 90), 30);
+      renderer.toneMappingExposure = expo;
+      if (performance.now() > weatherNext) {
+        raining = !raining;
+        rain.visible = raining;
+        weatherNext =
+          performance.now() +
+          (raining
+            ? 30000 + Math.random() * 45000
+            : 60000 + Math.random() * 90000);
+      }
+      if (raining) {
+        rain.position.set(camera.position.x, 0, camera.position.z);
+        const p = rainGeo.attributes.position as THREE.BufferAttribute;
+        for (let k = 0; k < RAIN_N; k++) {
+          let y = p.getY(k) - dt * 42;
+          if (y < 0) y = 45 + Math.random() * 5;
+          p.setY(k, y);
+        }
+        p.needsUpdate = true;
+      }
+    }
+
     const colliders: THREE.Mesh[] = [];
     const interactables: any[] = [];
     initWorld(scene, colliders, interactables);
@@ -450,6 +541,7 @@ export default function GTAEngine3D() {
           fetch("/api/game/map"),
           fetch("/api/game/buildings"),
         ]);
+        console.log("editor city fetch:", mapRes.status, bRes.status);
         if (!mapRes.ok || !bRes.ok) return;
         const map2d = await mapRes.json();
         const blds = await bRes.json();
@@ -458,6 +550,10 @@ export default function GTAEngine3D() {
         const S = 300 / Math.max(mw, mh);
         const ox = mw / 2,
           oz = mh / 2;
+        // one city: the editor's work is its own district east of the old
+        // town, connected by road — no overlap, one continuous world
+        const DX = 340,
+          DZ = 0;
         const g = new THREE.Group();
         g.name = "editor-city";
         const rimMat = new THREE.MeshStandardMaterial({
@@ -484,9 +580,9 @@ export default function GTAEngine3D() {
             }),
           );
           mesh.position.set(
-            (b.position.x + (b.width || 40) / 2 - ox) * S,
+            (b.position.x + (b.width || 40) / 2 - ox) * S + DX,
             h / 2,
-            (b.position.y + (b.height || 40) / 2 - oz) * S,
+            (b.position.y + (b.height || 40) / 2 - oz) * S + DZ,
           );
           mesh.castShadow = true;
           mesh.receiveShadow = true;
@@ -503,10 +599,10 @@ export default function GTAEngine3D() {
         (map2d.roads || []).forEach((r: any) => {
           const pts = r?.points || [];
           for (let i = 0; i + 1 < pts.length; i++) {
-            const ax = (pts[i].x - ox) * S,
-              az = (pts[i].y - oz) * S;
-            const bx = (pts[i + 1].x - ox) * S,
-              bz = (pts[i + 1].y - oz) * S;
+            const ax = (pts[i].x - ox) * S + DX,
+              az = (pts[i].y - oz) * S + DZ;
+            const bx = (pts[i + 1].x - ox) * S + DX,
+              bz = (pts[i + 1].y - oz) * S + DZ;
             const len = Math.hypot(bx - ax, bz - az);
             if (len < 0.01) continue;
             const seg = new THREE.Mesh(
@@ -518,6 +614,25 @@ export default function GTAEngine3D() {
             g.add(seg);
           }
         });
+        // the road east, and a gate so you know you're entering your own work
+        const conn = new THREE.Mesh(new THREE.BoxGeometry(60, 0.1, 8), roadMat);
+        conn.position.set(165, 0.05, DZ);
+        g.add(conn);
+        for (const side of [-1, 1]) {
+          const pillar = new THREE.Mesh(
+            new THREE.BoxGeometry(0.8, 9, 0.8),
+            rimMat,
+          );
+          pillar.position.set(192, 4.5, DZ + 6 * side);
+          g.add(pillar);
+        }
+        const lintel = new THREE.Mesh(
+          new THREE.BoxGeometry(0.8, 0.8, 13.5),
+          rimMat,
+        );
+        lintel.position.set(192, 9.2, DZ);
+        g.add(lintel);
+
         scene.add(g);
         console.log(
           `editor city: ${Array.isArray(blds) ? blds.length : 0} buildings, ${(map2d.roads || []).length} roads`,
@@ -1980,6 +2095,8 @@ export default function GTAEngine3D() {
       const deltaTime = (now - lastFrameTime) / 1000;
       lastFrameTime = now;
       frame++;
+
+      updateAtmosphere(deltaTime);
 
       // the living terrain breathes (throttled texture upload)
       if (ncaTex && ncaMirrorCtx && ncaSrc && frame % 3 === 0) {
