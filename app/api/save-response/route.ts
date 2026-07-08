@@ -1,25 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { saveUserResponse } from "@/app/lib/drizzle";
+import { trackResponse } from "@/app/lib/redis";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    console.log("[Save Response] Received body:", body); // Debug log
-
     let { fromUsername, toUsername, responseText } = body;
 
-    // Log each field
-    console.log("[Save Response] fromUsername:", fromUsername);
-    console.log("[Save Response] toUsername:", toUsername);
-    console.log("[Save Response] responseText:", responseText);
-
-    // Validate input - check for empty strings too
     if (!fromUsername || !toUsername || !responseText) {
-      console.error("[Save Response] Missing required fields:", {
-        fromUsername: fromUsername ? "✓" : "✗",
-        toUsername: toUsername ? "✓" : "✗",
-        responseText: responseText ? "✓" : "✗",
-      });
       return NextResponse.json(
         {
           error: "Missing required fields",
@@ -29,20 +17,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Trim whitespace
     fromUsername = fromUsername.trim();
     toUsername = toUsername.trim();
     responseText = responseText.trim();
 
-    console.log("[Save Response] Validated fields, saving...");
-
-    const result = await saveUserResponse({
-      fromUsername,
-      toUsername,
-      responseText,
-    });
-
-    console.log("[Save Response] Success:", result);
+    await Promise.all([
+      saveUserResponse({ fromUsername, toUsername, responseText }),
+      trackResponse(fromUsername, toUsername, responseText),
+    ]);
 
     return NextResponse.json({
       success: true,
