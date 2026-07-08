@@ -184,6 +184,14 @@ export default function GTAEngine3D() {
   // Add state
   const [showPrayerModal, setShowPrayerModal] = useState(false);
 
+  // key handlers live in a once-registered closure — they need a ref,
+  // not React state, to know whether a dialogue is open (stale-closure fix:
+  // Space-to-skip never worked because `dialogue` was frozen at null)
+  const dialogueOpenRef = useRef<Dialogue | null>(null);
+  useEffect(() => {
+    dialogueOpenRef.current = dialogue;
+  }, [dialogue]);
+
   // Dialogue handler with options support
   const handleDialogue = useCallback((d: Dialogue) => {
     setDialogue(d);
@@ -731,6 +739,80 @@ export default function GTAEngine3D() {
         );
       } catch (e) {
         console.warn("editor city failed:", e);
+      }
+    })();
+
+    // === THE PEOPLE FROM YOUR DATABASE ===
+    // /api/game/npcs (Redis-backed, static fallback) was only ever spawned
+    // in the 2D engine. Here they live in 3D: placed at their map positions
+    // in the east district, named, and they talk when you WALK UP to them —
+    // their full dialogue trees, answered with the 1/2/3 keys.
+    const dbNpcs: { mesh: THREE.Group; npc: any; near: boolean }[] = [];
+
+    function openDbDialogue(npc: any, dialogueId?: string) {
+      const dlg = dialogueId
+        ? (npc.dialogues || []).find((d: any) => d.id === dialogueId)
+        : (npc.dialogues || [])[0];
+      if (!dlg) return;
+      const opts = (dlg.responses || []).map((r: any) => ({
+        text: r.text,
+        action: () => openDbDialogue(npc, r.nextDialogueId),
+      }));
+      currentDialogueOptions = opts.length ? opts : null;
+      handleDialogue({
+        title: npc.name,
+        text: dlg.text,
+        options: opts.length ? opts : undefined,
+      });
+      if (!opts.length) setTimeout(() => setDialogue(null), 6000);
+    }
+
+    (async () => {
+      try {
+        const res = await fetch("/api/game/npcs");
+        if (!res.ok) return;
+        const list = await res.json();
+        if (!Array.isArray(list)) return;
+        const S = 300 / 2000,
+          ox = 1000,
+          oz = 1000,
+          DX = 340;
+        for (const npc of list) {
+          if (!npc?.position) continue;
+          const grp = new THREE.Group();
+          const bodyMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(1, 3, 0.8),
+            new THREE.MeshLambertMaterial({
+              color: new THREE.Color(npc.color || "#f6e05e"),
+            }),
+          );
+          bodyMesh.position.y = 1.5;
+          grp.add(bodyMesh);
+          const headMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(0.5, 8, 8),
+            new THREE.MeshLambertMaterial({ color: 0xffdbac }),
+          );
+          headMesh.position.y = 3.5;
+          grp.add(headMesh);
+          grp.add(
+            makeTextSprite(
+              "💬 " + (npc.name || "???"),
+              npc.isHistorical ? "#ffd76e" : "#9fe8ff",
+            ),
+          );
+          grp.position.set(
+            (npc.position.x - ox) * S + DX,
+            0,
+            (npc.position.y - oz) * S,
+          );
+          scene.add(grp);
+          dbNpcs.push({ mesh: grp, npc, near: false });
+        }
+        console.log(
+          `db characters: ${dbNpcs.length} spawned in the east district (walk up to talk)`,
+        );
+      } catch (e) {
+        console.warn("db npcs failed:", e);
       }
     })();
 
@@ -1770,9 +1852,10 @@ export default function GTAEngine3D() {
       // === SPACE KEY - BRAKE / SURRENDER ===
       if (e.key === " " || e.code === "Space") {
         e.preventDefault();
-        // If dialogue is showing, dismiss it
-        if (dialogue) {
+        // If dialogue is showing, dismiss it (via ref — state here is stale)
+        if (dialogueOpenRef.current) {
           setDialogue(null);
+          currentDialogueOptions = null;
           return; // Don't do anything else!
         }
 
@@ -2207,6 +2290,25 @@ export default function GTAEngine3D() {
           }
         } catch (err) {
           console.warn("labels failed:", err);
+        }
+      }
+
+      // real-life rule: walking up to someone starts the conversation
+      if (!interiorRef.current?.isInside()) {
+        for (const d of dbNpcs) {
+          const dist = playerGroup.position.distanceTo(d.mesh.position);
+          if (dist < 4.5 && !d.near) {
+            d.near = true;
+            openDbDialogue(d.npc);
+          } else if (dist > 9 && d.near) {
+            d.near = false;
+          }
+          if (dist < 40)
+            d.mesh.lookAt(
+              playerGroup.position.x,
+              d.mesh.position.y,
+              playerGroup.position.z,
+            );
         }
       }
 
@@ -3273,27 +3375,6 @@ export default function GTAEngine3D() {
           // />
         )} */}
 
-      {/* Debug: Add Money Button */}
-      <button
-        style={{
-          position: "absolute",
-          top: 20,
-          right: 20,
-          zIndex: 100,
-          background: "#4caf50",
-          color: "#fff",
-          fontWeight: "bold",
-          border: "none",
-          borderRadius: 6,
-          padding: "10px 18px",
-          fontSize: 18,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-          cursor: "pointer",
-        }}
-        onClick={() => setStats((s) => ({ ...s, money: s.money + 10000 }))}
-      >
-        +$10,000
-      </button>
       {/* Update the controls hint for desktop */}
       {!isMobile && (
         <div
