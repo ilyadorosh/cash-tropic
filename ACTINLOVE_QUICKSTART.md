@@ -13,8 +13,9 @@ Generate beautiful, personalized webpages using AI. Perfect for sending heartfel
 ## 📋 Prerequisites
 
 - PostgreSQL database
-- OpenAI API key
-- Node.js environment
+- Upstash Redis
+- Groq API key
+- Node.js and Bun
 
 ## ⚡ Quick Setup
 
@@ -28,22 +29,26 @@ psql $POSTGRES_URL -f drizzle/migrations/001_actinlove_tables.sql
 
 ```bash
 export POSTGRES_URL="your_postgres_url"
-export OPENAI_API_KEY="your_openai_key"
+export GROQ_API_KEY="your_groq_key"
+export UPSTASH_REDIS_REST_URL="your_upstash_rest_url"
+export UPSTASH_REDIS_REST_TOKEN="your_upstash_rest_token"
 ```
 
 ### 3. Start Development Server
 
 ```bash
-npm run dev
+bun run dev
 ```
 
-### 4. Create Your First Profile
+### 4. Create Your First Profiles
 
 Visit: `http://localhost:3000/admin/profiles`
 
-Click "Create New Profile" and add:
+Click "Create New Profile" and add two profiles:
 - **Username:** ilya
 - **Context:** Loves cinema and meaningful conversations
+- **Username:** mideia
+- **Context:** Enjoys thoughtful experiences and warm, honest messages
 
 ### 5. Generate Your First Page
 
@@ -76,7 +81,7 @@ node scripts/test-actinlove-api.js
 ## 🎯 What You Get
 
 - ✅ Profile management system
-- ✅ AI-powered page generation (GPT-4)
+- ✅ AI-powered page generation with Groq
 - ✅ Automatic caching
 - ✅ Beautiful admin UI
 - ✅ RESTful API
@@ -113,11 +118,11 @@ See the full documentation in the `docs/` directory for:
 
 ## 🎯 Next Steps
 
-Phase 2 will add:
-- Dynamic routing (`/from/X/to/Y`)
-- Frontend display pages
-- Loading animations
-- URL sharing
+Useful follow-up work:
+- Add authentication to `/admin/profiles`
+- Add rate limiting to generated-page endpoints
+- Sanitize or sandbox generated HTML
+- Clean up the remaining historical docs
 
 ---
 

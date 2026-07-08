@@ -1,4 +1,7 @@
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
+
+ENV BUN_VERSION=1.3.14
+RUN npm install -g bun@$BUN_VERSION
 
 FROM base AS deps
 
@@ -6,10 +9,9 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-COPY package.json yarn.lock ./
+COPY package.json bun.lock ./
 
-RUN yarn config set registry 'https://registry.npmmirror.com/'
-RUN yarn install
+RUN bun install --frozen-lockfile
 
 FROM base AS builder
 
@@ -23,7 +25,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN yarn build
+RUN bun run build
 
 FROM base AS runner
 WORKDIR /app

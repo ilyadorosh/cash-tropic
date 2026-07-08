@@ -19,8 +19,9 @@ The page will:
 ## 📋 Prerequisites
 
 - PostgreSQL database
-- OpenAI API key
-- Node.js environment
+- Groq API key
+- Upstash Redis
+- Node.js and Bun
 - Next.js application
 
 ## ⚡ Quick Setup (5 Minutes)
@@ -35,13 +36,15 @@ psql $POSTGRES_URL -f drizzle/migrations/001_actinlove_tables.sql
 
 ```bash
 export POSTGRES_URL="your_postgres_url"
-export OPENAI_API_KEY="your_openai_key"
+export GROQ_API_KEY="your_groq_key"
+export UPSTASH_REDIS_REST_URL="your_upstash_rest_url"
+export UPSTASH_REDIS_REST_TOKEN="your_upstash_rest_token"
 ```
 
 ### 3. Start Development Server
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 ### 4. Create Your First Profiles
@@ -71,7 +74,7 @@ Watch the magic happen! ✨
 
 ### Phase 1 (Backend) ✅
 - ✅ Profile management system
-- ✅ AI-powered page generation (GPT-4)
+- ✅ AI-powered page generation with Groq
 - ✅ Automatic caching in database
 - ✅ Beautiful admin UI
 - ✅ RESTful API
@@ -257,10 +260,10 @@ For production deployment:
 
 ## 📚 Documentation
 
-- **[Phase 1 Docs](./ACTINLOVE_PHASE1.md)** - Backend implementation details
-- **[Phase 2 Docs](./ACTINLOVE_PHASE2.md)** - Frontend implementation details
-- **[Examples](./ACTINLOVE_EXAMPLES.md)** - Code samples and usage
-- **[Summary](./ACTINLOVE_SUMMARY.md)** - High-level overview
+- **[Phase 1 Docs](./docs/ACTINLOVE_PHASE1.md)** - Backend implementation details
+- **[Phase 2 Docs](./docs/ACTINLOVE_PHASE2.md)** - Frontend implementation details
+- **[Examples](./docs/ACTINLOVE_EXAMPLES.md)** - Code samples and usage
+- **[Summary](./docs/ACTINLOVE_SUMMARY.md)** - High-level overview
 
 ## 🐛 Troubleshooting
 
@@ -281,16 +284,16 @@ For production deployment:
 **Problem**: API key not configured or LLM error
 
 **Solution**: 
-- Check `OPENAI_API_KEY` environment variable
+- Check `GROQ_API_KEY` environment variable
 - Check server logs for errors
-- Verify OpenAI API is accessible
+- Verify the Groq API is accessible
 
 ### Styles Not Working
 
 **Problem**: SCSS not compiling
 
 **Solution**: 
-- Ensure `sass` is installed: `npm install sass`
+- Ensure dependencies are installed: `bun install`
 - Restart dev server
 
 ## 🎉 You're All Set!

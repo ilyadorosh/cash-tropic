@@ -26,7 +26,6 @@ import {
 import { ChatMessage } from "../store";
 
 const serverConfig = getServerSideConfig();
-console.log("configserver: ", serverConfig);
 
 // export async function requestOpenai(req: NextRequest) {
 //   const controller = new AbortController();
