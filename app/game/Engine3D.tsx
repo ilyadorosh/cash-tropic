@@ -352,6 +352,7 @@ export default function GTAEngine3D() {
     let ncaTex: THREE.CanvasTexture | null = null;
     let ncaMirrorCtx: CanvasRenderingContext2D | null = null;
     let ncaSrc: HTMLCanvasElement | null = null;
+    let ncaHeights: Uint8ClampedArray | null = null;
     {
       const NCA_GS = 96;
       const srcCanvas = document.createElement("canvas");
@@ -406,6 +407,125 @@ export default function GTAEngine3D() {
         })
         .catch((e) => console.warn("living terrain (3D) failed:", e));
     }
+
+    // Height of the living terrain at a world point. Reads the same red
+    // channel THREE's displacementMap uses, from the CPU-side mirror pixels —
+    // one array lookup, no GPU readback, no physics engine. You can drive
+    // up a neural network.
+    function terrainHeightAt(wx: number, wz: number): number {
+      if (!ncaHeights || !ncaSrc) return 0;
+      const W = ncaSrc.width,
+        H = ncaSrc.height;
+      const mx = Math.min(
+        W - 1,
+        Math.max(0, Math.floor(((wx + 150) / 300) * W)),
+      );
+      const my = Math.min(
+        H - 1,
+        Math.max(0, Math.floor(((wz + 150) / 300) * H)),
+      );
+      const r = ncaHeights[(my * W + mx) * 4] / 255;
+      // below alphaTest the mesh is cut away — flat ground there
+      return r > 0.14 ? r * 26 + 0.08 : 0;
+    }
+
+    // wound the living terrain at a world point (gunfire, explosions, …)
+    function woundTerrainAt(wx: number, wz: number, r = 4) {
+      const nca = ncaLifeRef.current;
+      if (!nca || !ncaSrc) return;
+      nca.damageAtCell(
+        ((wx + 150) / 300) * ncaSrc.width,
+        ((wz + 150) / 300) * ncaSrc.height,
+        r,
+      );
+    }
+
+    // === YOUR CITY, FROM THE 2D EDITOR ===
+    // The same /api/game map+buildings the 2D editor writes, extruded into
+    // the 3D world at true scale (2000px map -> 300 world units). Cyan rims
+    // mark what was born in the editor.
+    (async () => {
+      try {
+        const [mapRes, bRes] = await Promise.all([
+          fetch("/api/game/map"),
+          fetch("/api/game/buildings"),
+        ]);
+        if (!mapRes.ok || !bRes.ok) return;
+        const map2d = await mapRes.json();
+        const blds = await bRes.json();
+        const mw = map2d.width || 2000,
+          mh = map2d.height || 2000;
+        const S = 300 / Math.max(mw, mh);
+        const ox = mw / 2,
+          oz = mh / 2;
+        const g = new THREE.Group();
+        g.name = "editor-city";
+        const rimMat = new THREE.MeshStandardMaterial({
+          color: 0x06121e,
+          emissive: 0x46e0ff,
+          emissiveIntensity: 1.2,
+        });
+        const roadMat = new THREE.MeshStandardMaterial({
+          color: 0x2b3444,
+          roughness: 0.95,
+        });
+        (Array.isArray(blds) ? blds : []).forEach((b: any) => {
+          if (!b?.position) return;
+          const w = Math.max(2, (b.width || 40) * S);
+          const d = Math.max(2, (b.height || 40) * S);
+          const h =
+            5 + Math.min(22, ((b.width || 40) + (b.height || 40)) * 0.055);
+          const mesh = new THREE.Mesh(
+            new THREE.BoxGeometry(w, h, d),
+            new THREE.MeshStandardMaterial({
+              color: new THREE.Color(b.color || "#718096"),
+              metalness: 0.4,
+              roughness: 0.7,
+            }),
+          );
+          mesh.position.set(
+            (b.position.x + (b.width || 40) / 2 - ox) * S,
+            h / 2,
+            (b.position.y + (b.height || 40) / 2 - oz) * S,
+          );
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          mesh.name = "editor:" + (b.name || b.id || "building");
+          g.add(mesh);
+          colliders.push(mesh);
+          const rim = new THREE.Mesh(
+            new THREE.BoxGeometry(w + 0.15, 0.14, d + 0.15),
+            rimMat,
+          );
+          rim.position.set(mesh.position.x, h, mesh.position.z);
+          g.add(rim);
+        });
+        (map2d.roads || []).forEach((r: any) => {
+          const pts = r?.points || [];
+          for (let i = 0; i + 1 < pts.length; i++) {
+            const ax = (pts[i].x - ox) * S,
+              az = (pts[i].y - oz) * S;
+            const bx = (pts[i + 1].x - ox) * S,
+              bz = (pts[i + 1].y - oz) * S;
+            const len = Math.hypot(bx - ax, bz - az);
+            if (len < 0.01) continue;
+            const seg = new THREE.Mesh(
+              new THREE.BoxGeometry(Math.max(1, (r.width || 20) * S), 0.1, len),
+              roadMat,
+            );
+            seg.position.set((ax + bx) / 2, 0.05, (az + bz) / 2);
+            seg.rotation.y = Math.atan2(bx - ax, bz - az);
+            g.add(seg);
+          }
+        });
+        scene.add(g);
+        console.log(
+          `editor city: ${Array.isArray(blds) ? blds.length : 0} buildings, ${(map2d.roads || []).length} roads`,
+        );
+      } catch (e) {
+        console.warn("editor city failed:", e);
+      }
+    })();
 
     // After creating neuralCityRef:
     neuralCityRef.current = new NeuralCity(scene);
@@ -1724,6 +1844,11 @@ export default function GTAEngine3D() {
         );
         const end = start.clone().add(dir.multiplyScalar(50));
 
+        // the world is alive — gunfire wounds it (and it will heal)
+        woundTerrainAt(end.x, end.z, 4);
+        const mid = start.clone().lerp(end, 0.5);
+        woundTerrainAt(mid.x, mid.z, 3);
+
         const positions = new Float32Array([
           start.x,
           start.y,
@@ -1860,6 +1985,12 @@ export default function GTAEngine3D() {
       if (ncaTex && ncaMirrorCtx && ncaSrc && frame % 3 === 0) {
         ncaMirrorCtx.drawImage(ncaSrc, 0, 0);
         ncaTex.needsUpdate = true;
+        ncaHeights = ncaMirrorCtx.getImageData(
+          0,
+          0,
+          ncaSrc.width,
+          ncaSrc.height,
+        ).data;
       }
 
       // Audio
@@ -1870,10 +2001,15 @@ export default function GTAEngine3D() {
       }
       toggleSiren(wantedLevel > 0);
 
-      if (playerState === "driving") {
-        activeCar.position.y = Math.max(0, activeCar.position.y);
-      } else {
-        playerGroup.position.y = Math.max(0, playerGroup.position.y);
+      {
+        // ride the living hills: the terrain height comes from the NCA
+        const rider = playerState === "driving" ? activeCar : playerGroup;
+        const floorY = terrainHeightAt(rider.position.x, rider.position.z);
+        rider.position.y = Math.max(
+          0,
+          rider.position.y +
+            (floorY - rider.position.y) * Math.min(1, deltaTime * 6),
+        );
       }
 
       // Roof hiding for interiors
