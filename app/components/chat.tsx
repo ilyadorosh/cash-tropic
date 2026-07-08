@@ -782,6 +782,14 @@ function ChatInner() {
 
   const [showExport, setShowExport] = useState(false);
 
+  // header model chip — the model you're talking to is a first-class citizen
+  const [showHeaderModelSelector, setShowHeaderModelSelector] = useState(false);
+  const headerAllModels = useAllModels();
+  const headerModels = useMemo(
+    () => headerAllModels.filter((m) => m.available),
+    [headerAllModels],
+  );
+
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -1365,6 +1373,31 @@ function ChatInner() {
           <div className="window-header-sub-title">
             {Locale.Chat.SubTitle(session.messages.length)}
           </div>
+          <button
+            onClick={() => setShowHeaderModelSelector(true)}
+            title="Change model"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              marginTop: 4,
+              padding: "2px 10px",
+              fontSize: 12,
+              fontFamily: "monospace",
+              border: "1px solid var(--border-in-light, #ddd)",
+              borderRadius: 20,
+              background: "var(--white)",
+              color: "var(--black)",
+              cursor: "pointer",
+              maxWidth: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            🤖 {session.mask.modelConfig.model}
+            <span style={{ opacity: 0.5 }}>▾</span>
+          </button>
         </div>
         <div className="window-actions">
           {!isMobileScreen && (
@@ -1407,6 +1440,34 @@ function ChatInner() {
           setShowModal={setShowPromptModal}
         />
       </div>
+
+      {showHeaderModelSelector && (
+        <Selector
+          defaultSelectedValue={`${session.mask.modelConfig.model}@${
+            session.mask.modelConfig?.providerName || ServiceProvider.Groq
+          }`}
+          items={headerModels.map((m) => ({
+            title: `${m.displayName}${
+              m?.provider?.providerName
+                ? "(" + m?.provider?.providerName + ")"
+                : ""
+            }`,
+            value: `${m.name}@${m?.provider?.providerName}`,
+          }))}
+          onClose={() => setShowHeaderModelSelector(false)}
+          onSelection={(s) => {
+            if (s.length === 0) return;
+            const [model, providerName] = s[0].split("@");
+            chatStore.updateCurrentSession((session) => {
+              session.mask.modelConfig.model = model as ModelType;
+              session.mask.modelConfig.providerName =
+                providerName as ServiceProvider;
+              session.mask.syncGlobalConfig = false;
+            });
+            showToast(model);
+          }}
+        />
+      )}
 
       <div
         className={styles["chat-body"]}

@@ -178,7 +178,6 @@ export function SideBarHeader(props: {
   return (
     <Fragment>
       {/* <ActInLoveNav /> */}
-      <TtsControls />
 
       {/* <ConversationsPage /> */}
       {/* <div className={styles["sidebar-header"]} data-tauri-drag-region>
@@ -290,8 +289,9 @@ export function SideBar(props: { className?: string }) {
           }
         }}
       >
-        <ChatList narrow={shouldNarrow} />
+        {/* the chat map IS the list now — one memory, one view */}
       </SideBarBody>
+      <TtsControls />
       <SideBarTail
         primaryAction={
           <>
