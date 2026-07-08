@@ -12,6 +12,11 @@ import type {
 } from "./types";
 import MobileControls from "./MobileControls";
 import MissionOverview from "./MissionOverviewClean";
+import {
+  createPlayer as createNcaPlayer,
+  fetchWeights as fetchNcaWeights,
+  type Player as NcaPlayer,
+} from "@/app/nca/player/engine";
 
 // Generate a simple player ID based on timestamp and random
 function generatePlayerId(): string {
@@ -28,6 +33,8 @@ export default function GameEngine() {
   const gameRef = useRef<any>(null);
   const Phaser = useRef<any>(null);
   const sceneRef = useRef<any>(null);
+  // BLØB — the living one: a real neural cellular automaton, in-game
+  const ncaBossRef = useRef<NcaPlayer | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -96,6 +103,8 @@ export default function GameEngine() {
     loadGameData();
 
     return () => {
+      ncaBossRef.current?.destroy();
+      ncaBossRef.current = null;
       if (gameRef.current) {
         gameRef.current.destroy(true);
         gameRef.current = null;
@@ -245,8 +254,8 @@ export default function GameEngine() {
           road.type === "autobahn"
             ? 0x4a5568
             : road.type === "hauptstrasse"
-            ? 0x718096
-            : 0xa0aec0;
+              ? 0x718096
+              : 0xa0aec0;
 
         roadGraphics.lineStyle(road.width, color, 1);
         roadGraphics.beginPath();
@@ -379,6 +388,73 @@ export default function GameEngine() {
         0x48bb78,
       );
 
+      // ── BLØB: a live neural cellular automaton as an in-world creature ──
+      // Its sprite IS the NCA's GPU canvas, refreshed every frame.
+      // Poke it: real damage to the substrate — and it regrows. In-browser
+      // neural net as a game character.
+      {
+        const bx = spawnPos.x + 240;
+        const by = spawnPos.y - 150;
+        const ncaCanvas = document.createElement("canvas");
+        fetchNcaWeights()
+          .then((weights) => {
+            if (!weights || !sceneRef.current) return;
+            const nca = createNcaPlayer(
+              ncaCanvas,
+              () => {},
+              () => {},
+              { preserveDrawingBuffer: true },
+            );
+            if (!nca) return;
+            const meta = nca.loadModel(weights);
+            if (!meta) return;
+            ncaBossRef.current = nca;
+            nca.params.speed = 2;
+            nca.setPlaying(true);
+
+            // Phaser canvas textures need a 2D canvas; the NCA renders in
+            // WebGL2, so mirror it into a 2D canvas every frame
+            const mirror = document.createElement("canvas");
+            mirror.width = ncaCanvas.width;
+            mirror.height = ncaCanvas.height;
+            const mirrorCtx = mirror.getContext("2d");
+            if (!mirrorCtx) return;
+            mirrorCtx.drawImage(ncaCanvas, 0, 0);
+
+            const tex = scene.textures.addCanvas("bloeb-nca", mirror);
+            scene.ncaSrc = ncaCanvas;
+            scene.ncaMirrorCtx = mirrorCtx;
+            const spr = scene.add
+              .image(bx, by, "bloeb-nca")
+              .setDisplaySize(120, 120)
+              .setDepth(5);
+            spr.setInteractive({ useHandCursor: true });
+            spr.on("pointerdown", () => {
+              nca.damageCenter();
+              scene.cameras.main.shake(130, 0.004);
+            });
+            scene.ncaTex = tex;
+            scene.ncaSpr = spr;
+            scene.add
+              .text(bx, by - 78, "BLØB — the living one", {
+                fontSize: "13px",
+                fontFamily: "monospace",
+                color: "#76b900",
+              })
+              .setOrigin(0.5)
+              .setDepth(5);
+            scene.add
+              .text(bx, by + 74, "poke it · it heals", {
+                fontSize: "10px",
+                fontFamily: "monospace",
+                color: "#9ba798",
+              })
+              .setOrigin(0.5)
+              .setDepth(5);
+          })
+          .catch((e) => console.warn("BLØB failed to spawn:", e));
+      }
+
       // Camera follows player
       this.cameras.main.startFollow(player);
       this.cameras.main.setZoom(1);
@@ -451,6 +527,12 @@ export default function GameEngine() {
     function update(this: any) {
       const scene = this;
       if (!scene.player) return;
+
+      // BLØB lives: pull the latest NCA frame into the sprite texture
+      if (scene.ncaTex && scene.ncaMirrorCtx && scene.ncaSrc) {
+        scene.ncaMirrorCtx.drawImage(scene.ncaSrc, 0, 0);
+        scene.ncaTex.refresh();
+      }
 
       const speed = 250;
       let vx = 0;
@@ -596,8 +678,8 @@ export default function GameEngine() {
             {loadingProgress < 50
               ? "Loading game data..."
               : loadingProgress < 90
-              ? "Initializing engine..."
-              : "Starting game..."}
+                ? "Initializing engine..."
+                : "Starting game..."}
           </p>
         </div>
       )}

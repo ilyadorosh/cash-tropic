@@ -6,7 +6,13 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import styles from "./nca-player.module.scss";
-import { createPlayer, type Player, type WeightsJson } from "./engine";
+import {
+  createPlayer,
+  fetchWeights,
+  normalizeWeights,
+  type Player,
+  type WeightsJson,
+} from "./engine";
 
 export default function NcaPlayerPage() {
   const cvRef = useRef<HTMLCanvasElement>(null);
@@ -47,10 +53,9 @@ export default function NcaPlayerPage() {
     playerRef.current = player;
     if (!player) return;
 
-    // try auto-loading weights shipped in /public
-    fetch("/nca_weights.json")
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data: WeightsJson) => applyModel(data))
+    // try auto-loading weights shipped in /public (quantized first)
+    fetchWeights()
+      .then((data) => (data ? applyModel(data) : Promise.reject()))
       .catch(() =>
         setHint(
           "Load your <b>nca_weights.json</b> (exported from the notebook) to begin — or drop it into /public to auto-load.",
@@ -85,7 +90,7 @@ export default function NcaPlayerPage() {
     const rd = new FileReader();
     rd.onload = () => {
       try {
-        applyModel(JSON.parse(String(rd.result)));
+        applyModel(normalizeWeights(JSON.parse(String(rd.result))));
       } catch (parseErr: any) {
         setErr("JSON parse error: " + parseErr.message);
       }

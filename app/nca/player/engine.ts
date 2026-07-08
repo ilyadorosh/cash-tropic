@@ -14,14 +14,72 @@ export type Meta = {
   use_axons?: boolean;
 };
 
+type NumArray = number[] | Float32Array;
+
 export type WeightsJson = {
   meta: Meta;
-  w1: number[];
-  w2: number[];
-  b1: number[];
-  b2: number[];
-  embed: number[];
+  w1: NumArray;
+  w2: NumArray;
+  b1: NumArray;
+  b2: NumArray;
+  embed: NumArray;
 };
+
+/* uint16-quantized weights (nca_weights.q16.json): 8× smaller on the wire,
+   max reconstruction error ~3e-5 — lossless in practice */
+export type QuantizedWeights = {
+  meta: Meta;
+  q: 16;
+  arrays: Record<
+    "w1" | "w2" | "b1" | "b2" | "embed",
+    { lo: number; hi: number; n: number; b64: string }
+  >;
+};
+
+function dequantizeArray(a: {
+  lo: number;
+  hi: number;
+  n: number;
+  b64: string;
+}): Float32Array {
+  const bin = atob(a.b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const u16 = new Uint16Array(bytes.buffer, 0, a.n);
+  const out = new Float32Array(a.n);
+  const span = (a.hi - a.lo) / 65535;
+  for (let i = 0; i < a.n; i++) out[i] = a.lo + u16[i] * span;
+  return out;
+}
+
+export function normalizeWeights(
+  data: WeightsJson | QuantizedWeights,
+): WeightsJson {
+  if ((data as QuantizedWeights).q === 16) {
+    const q = data as QuantizedWeights;
+    return {
+      meta: q.meta,
+      w1: dequantizeArray(q.arrays.w1),
+      w2: dequantizeArray(q.arrays.w2),
+      b1: dequantizeArray(q.arrays.b1),
+      b2: dequantizeArray(q.arrays.b2),
+      embed: dequantizeArray(q.arrays.embed),
+    };
+  }
+  return data as WeightsJson;
+}
+
+/* quantized first, raw as fallback */
+export async function fetchWeights(): Promise<WeightsJson | null> {
+  for (const url of ["/nca_weights.q16.json", "/nca_weights.json"]) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      return normalizeWeights(await r.json());
+    } catch {}
+  }
+  return null;
+}
 
 export type Params = {
   A: number;
@@ -45,10 +103,13 @@ export function createPlayer(
   cv: HTMLCanvasElement,
   onErr: (t: string) => void,
   onStat: (t: string) => void,
+  opts?: { preserveDrawingBuffer?: boolean },
 ): Player | null {
   const gl = cv.getContext("webgl2", {
     antialias: false,
-    preserveDrawingBuffer: false,
+    // hosts that mirror this canvas elsewhere (e.g. into a Phaser texture)
+    // need the buffer to survive past the frame
+    preserveDrawingBuffer: opts?.preserveDrawingBuffer ?? false,
   });
   if (!gl) {
     onErr("WebGL2 is not available in this browser.");
@@ -118,7 +179,7 @@ export function createPlayer(
     return t;
   }
 
-  function weightTex(W: number, H: number, arr: number[]) {
+  function weightTex(W: number, H: number, arr: NumArray) {
     const t = gl!.createTexture()!;
     gl!.bindTexture(gl!.TEXTURE_2D, t);
     gl!.texImage2D(

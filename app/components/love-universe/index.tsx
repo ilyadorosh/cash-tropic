@@ -10,8 +10,8 @@ import Link from "next/link";
 import { Syne, Hanken_Grotesk } from "next/font/google";
 import {
   createPlayer,
+  fetchWeights,
   type Player as NcaPlayer,
-  type WeightsJson,
 } from "@/app/nca/player/engine";
 import styles from "./love-universe.module.scss";
 
@@ -1531,36 +1531,51 @@ export default function LoveUniverse({
     [ensure],
   );
 
-  /* the tama IS a neural cellular automaton, if weights are shipped */
+  /* the tama IS a neural cellular automaton, if weights are shipped.
+     Deferred to idle time — fetching weights and compiling the shader must
+     never delay the first paint of the homepage. */
   useEffect(() => {
     const cv = tamaCvRef.current;
     if (!cv) return;
     let cancelled = false;
     let cycle: ReturnType<typeof setInterval> | null = null;
-    fetch("/nca_weights.json")
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data: WeightsJson) => {
-        if (cancelled) return;
-        const player = createPlayer(
-          cv,
-          () => {},
-          () => {},
-        );
-        if (!player) return;
-        const m = player.loadModel(data);
-        if (!m) return;
-        tamaNcaRef.current = player;
-        player.params.speed = 2;
-        player.setPlaying(true);
-        setNcaAlive(true);
-        // slow wander through its learned classes
-        cycle = setInterval(() => {
-          player.params.A = (player.params.A + 1) % m.N;
-        }, 12_000);
-      })
-      .catch(() => {});
+    let idleId: number | undefined;
+    let timerId: ReturnType<typeof setTimeout> | undefined;
+
+    const boot = () => {
+      fetchWeights()
+        .then((data) => {
+          if (cancelled || !data) return;
+          const player = createPlayer(
+            cv,
+            () => {},
+            () => {},
+          );
+          if (!player) return;
+          const m = player.loadModel(data);
+          if (!m) return;
+          tamaNcaRef.current = player;
+          player.params.speed = 2;
+          player.setPlaying(true);
+          setNcaAlive(true);
+          // slow wander through its learned classes
+          cycle = setInterval(() => {
+            player.params.A = (player.params.A + 1) % m.N;
+          }, 12_000);
+        })
+        .catch(() => {});
+    };
+
+    if ("requestIdleCallback" in window) {
+      idleId = (window as any).requestIdleCallback(boot, { timeout: 6000 });
+    } else {
+      timerId = setTimeout(boot, 2500);
+    }
+
     return () => {
       cancelled = true;
+      if (idleId !== undefined) (window as any).cancelIdleCallback?.(idleId);
+      if (timerId !== undefined) clearTimeout(timerId);
       if (cycle) clearInterval(cycle);
       tamaNcaRef.current?.destroy();
       tamaNcaRef.current = null;
