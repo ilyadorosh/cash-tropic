@@ -383,6 +383,45 @@ export default function GTAEngine3D() {
     );
     rain.visible = false;
     scene.add(rain);
+
+    // floating name tags (canvas sprite — names make a city a society)
+    function makeTextSprite(text: string, color = "#ffffff") {
+      const pad = 10,
+        fs = 44;
+      const cnv = document.createElement("canvas");
+      const m = cnv.getContext("2d")!;
+      m.font = `600 ${fs}px monospace`;
+      cnv.width = Math.ceil(m.measureText(text).width) + pad * 2;
+      cnv.height = fs + pad * 2;
+      const c = cnv.getContext("2d")!;
+      c.font = `600 ${fs}px monospace`;
+      c.fillStyle = "rgba(6,9,18,0.72)";
+      c.fillRect(0, 0, cnv.width, cnv.height);
+      c.fillStyle = color;
+      c.textBaseline = "middle";
+      c.fillText(text, pad, cnv.height / 2);
+      const spr = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: new THREE.CanvasTexture(cnv),
+          transparent: true,
+          depthWrite: false,
+        }),
+      );
+      spr.scale.set(cnv.width / 28, cnv.height / 28, 1);
+      spr.position.y = 5;
+      return spr;
+    }
+
+    // GTA-style clock: in-game day/time + weather, top right
+    const clockEl = document.createElement("div");
+    clockEl.style.cssText =
+      "position:fixed;top:12px;right:14px;z-index:40;font:600 15px/1.4 monospace;" +
+      "color:#eaf6ff;background:rgba(6,9,18,.62);border:1px solid rgba(70,224,255,.25);" +
+      "border-radius:8px;padding:6px 12px;letter-spacing:.08em;pointer-events:none";
+    clockEl.textContent = "TAG 1 · 08:24 ☀️";
+    document.body.appendChild(clockEl);
+    let lastClockTick = -1;
+    let labelsDone = false;
     function updateAtmosphere(dt: number) {
       atmoT += dt;
       const t = (atmoT % DAY_LEN) / DAY_LEN;
@@ -405,12 +444,22 @@ export default function GTAEngine3D() {
       if (scene.fog instanceof THREE.Fog) {
         scene.fog.color.copy(fogC);
         scene.fog.near = raining ? 18 : 50;
-        scene.fog.far = raining ? 150 : 300;
+        scene.fog.far = raining ? 150 : 420; // clear days reveal the east district
       }
       sun.intensity = sunI;
       const ang = (t - 0.25) * Math.PI * 2;
       sun.position.set(Math.cos(ang) * 80, Math.max(6, Math.sin(ang) * 90), 30);
       renderer.toneMappingExposure = expo;
+      const clockTick = Math.floor(atmoT * 2);
+      if (clockTick !== lastClockTick) {
+        lastClockTick = clockTick;
+        const day = Math.floor(atmoT / DAY_LEN) + 1;
+        const hours = t * 24;
+        const hh = String(Math.floor(hours)).padStart(2, "0");
+        const mm = String(Math.floor((hours % 1) * 60)).padStart(2, "0");
+        const icon = raining ? "🌧️" : t < 0.23 || t > 0.77 ? "🌙" : "☀️";
+        clockEl.textContent = `TAG ${day} · ${hh}:${mm} ${icon}`;
+      }
       if (performance.now() > weatherNext) {
         raining = !raining;
         rain.visible = raining;
@@ -595,6 +644,22 @@ export default function GTAEngine3D() {
           );
           rim.position.set(mesh.position.x, h, mesh.position.z);
           g.add(rim);
+          const emoji =
+            (
+              {
+                factory: "🏭",
+                shop: "🏪",
+                house: "🏠",
+                church: "⛪",
+                office: "🏢",
+                school: "🏫",
+              } as Record<string, string>
+            )[b.type] || "🏢";
+          if (b.name) {
+            const tag = makeTextSprite(emoji + " " + b.name, "#9fe8ff");
+            tag.position.set(mesh.position.x, h + 3, mesh.position.z);
+            g.add(tag);
+          }
         });
         (map2d.roads || []).forEach((r: any) => {
           const pts = r?.points || [];
@@ -633,17 +698,44 @@ export default function GTAEngine3D() {
         lintel.position.set(192, 9.2, DZ);
         g.add(lintel);
 
+        // a pillar of light so the district is findable from anywhere
+        const beacon = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.6, 0.6, 90, 8, 1, true),
+          new THREE.MeshBasicMaterial({
+            color: 0x46e0ff,
+            transparent: true,
+            opacity: 0.35,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+          }),
+        );
+        beacon.position.set(192, 45, DZ);
+        g.add(beacon);
+        const beaconLight = new THREE.PointLight(0x46e0ff, 1.6, 60);
+        beaconLight.position.set(192, 12, DZ);
+        g.add(beaconLight);
+
+        // G = go to your city (teleport to the gate)
+        window.addEventListener("keydown", (ev) => {
+          if (ev.key.toLowerCase() !== "g") return;
+          try {
+            const rider = playerState === "driving" ? activeCar : playerGroup;
+            rider.position.x = 200;
+            rider.position.z = DZ;
+          } catch {}
+        });
+
         scene.add(g);
         console.log(
-          `editor city: ${Array.isArray(blds) ? blds.length : 0} buildings, ${(map2d.roads || []).length} roads`,
+          `editor city: ${Array.isArray(blds) ? blds.length : 0} buildings, ${(map2d.roads || []).length} roads — east district at x≈+340, drive +X through the cyan gate (or press G)`,
         );
       } catch (e) {
         console.warn("editor city failed:", e);
       }
     })();
 
-    // After creating neuralCityRef:
-    neuralCityRef.current = new NeuralCity(scene);
+    // (NeuralCity is created once later — a duplicate here leaked 25
+    // unmanaged buildings into the scene on every mount)
 
     // === CITY DATABASE ===
     let money = 500;
@@ -1506,6 +1598,7 @@ export default function GTAEngine3D() {
       lastWarningTime: number;
     }
     const policeCars: PoliceCar[] = [];
+    let lastBust = 0;
 
     function createPoliceCar(): PoliceCar {
       const pc = new THREE.Group();
@@ -2098,6 +2191,25 @@ export default function GTAEngine3D() {
 
       updateAtmosphere(deltaTime);
 
+      // label the people once everything exists — no more anonymous city
+      if (!labelsDone) {
+        labelsDone = true;
+        try {
+          for (const ped of pedestrians) {
+            if (ped.personality?.name)
+              ped.mesh.add(
+                makeTextSprite("💬 " + ped.personality.name, "#ffd76e"),
+              );
+          }
+          for (const n of storyNPCs) {
+            const nm = (n as any).character?.name;
+            if (nm) (n as any).mesh.add(makeTextSprite("★ " + nm, "#7dffb1"));
+          }
+        } catch (err) {
+          console.warn("labels failed:", err);
+        }
+      }
+
       // the living terrain breathes (throttled texture upload)
       if (ncaTex && ncaMirrorCtx && ncaSrc && frame % 3 === 0) {
         ncaMirrorCtx.drawImage(ncaSrc, 0, 0);
@@ -2573,6 +2685,32 @@ export default function GTAEngine3D() {
           const toPlayer = targetPos.clone().sub(pc.mesh.position);
           const distToPlayer = toPlayer.length();
 
+          // close enough + wanted = arrest: fine, respawn, wanted cleared
+          if (
+            wantedLevel > 0 &&
+            distToPlayer < 7 &&
+            !pc.hijacked &&
+            performance.now() - lastBust > 8000 &&
+            !interiorRef.current?.isInside()
+          ) {
+            lastBust = performance.now();
+            wantedLevel = 0;
+            money = Math.max(0, money - 150);
+            showNotification(
+              "location",
+              "🚔 BUSTED",
+              "Die Polizei hat dich erwischt — 150€ Strafe",
+              5000,
+            );
+            playerState = "walking";
+            playerGroup.visible = true;
+            setOnFoot(true);
+            playerGroup.position.set(
+              PLAYER_SPAWN.position.x,
+              0,
+              PLAYER_SPAWN.position.z,
+            );
+          }
           if (wantedLevel > 0 && distToPlayer < 250) {
             // Police state machine
             const now = Date.now();
@@ -2698,7 +2836,9 @@ export default function GTAEngine3D() {
       if (interiorRef.current?.isInside()) {
         interiorRef.current.updateFPVControls(camera, keys);
         renderer.render(scene, camera);
-        requestAnimationFrame(animate);
+        // NOTE: no requestAnimationFrame here — animate() already schedules
+        // itself at the top. A second one doubled the callbacks every frame
+        // (exponential) and froze the whole browser after ~1s inside.
         return; // Skip exterior game logic when inside
       }
 
@@ -2721,6 +2861,7 @@ export default function GTAEngine3D() {
 
     // Then at the END, in the cleanup function, use the captured values:
     return () => {
+      clockEl.remove();
       ncaLifeRef.current?.destroy();
       ncaLifeRef.current = null;
       window.removeEventListener("resize", handleResize);
