@@ -87,13 +87,29 @@ export type Params = {
   t: number;
   fire: number;
   speed: number;
+  /** run the sim every Nth animation frame (1 = every frame) */
+  stepEvery: number;
+};
+
+export type LoadOpts = {
+  /** run the trained local rule on a larger world than it was trained on —
+      NCAs are translation-invariant, so this Just Works */
+  gridSize?: number;
+  /** number of initial life seeds (1 = single center seed) */
+  seeds?: number;
+  /** canvas pixels per cell (default: auto ~560px) */
+  canvasScale?: number;
+  /** background color for dead cells, "#rrggbb" (default white) */
+  background?: string;
 };
 
 export type Player = {
-  loadModel: (data: WeightsJson) => Meta | null;
+  loadModel: (data: WeightsJson, o?: LoadOpts) => Meta | null;
   setPlaying: (v: boolean) => void;
   seed: () => void;
   damageCenter: () => void;
+  /** wound the substrate at grid coords (cells), custom radius in cells */
+  damageAtCell: (x: number, y: number, r?: number) => void;
   poke: (clientX: number, clientY: number) => void;
   params: Params;
   destroy: () => void;
@@ -123,6 +139,8 @@ export function createPlayer(
   }
 
   let M: Meta | null = null;
+  let GS = 0; // simulation grid size (may exceed the trained SIZE)
+  let seedCount = 1;
   let readIdx = 0;
   let playing = false;
   let raf = 0;
@@ -132,7 +150,14 @@ export function createPlayer(
   const wtex: Record<string, WebGLTexture> = {};
   let quadVAO: WebGLVertexArrayObject | null = null;
   const prog: Record<string, any> = {};
-  const params: Params = { A: 0, B: 0, t: 0, fire: 0.5, speed: 4 };
+  const params: Params = {
+    A: 0,
+    B: 0,
+    t: 0,
+    fire: 0.5,
+    speed: 4,
+    stepEvery: 1,
+  };
 
   function compile(type: number, src: string) {
     const s = gl!.createShader(type)!;
@@ -245,8 +270,8 @@ layout(location=0) in vec2 pos;
 out vec2 uv;
 void main(){ uv = pos*0.5+0.5; gl_Position = vec4(pos,0.0,1.0); }`;
 
-  function updateFS(m: Meta) {
-    const { IN, HID, COND, SIZE: W } = m;
+  function updateFS(m: Meta, W: number) {
+    const { IN, HID, COND } = m;
     const base = 3 * m.C;
     const condFill = Array.from(
       { length: COND },
@@ -339,21 +364,32 @@ void main(){
   }
 }`;
 
-  function renderFSsrc(m: Meta) {
+  function renderFSsrc(W: number, bg: [number, number, number]) {
+    const bgv = `vec3(${bg[0].toFixed(4)},${bg[1].toFixed(4)},${bg[2].toFixed(4)})`;
     return `#version 300 es
 precision highp float; precision highp int;
 uniform sampler2D s0;
 in vec2 uv;
 out vec4 frag;
-const int W=${m.SIZE};
-const int H=${m.SIZE};
+const int W=${W};
+const int H=${W};
 void main(){
   ivec2 p = clamp(ivec2(vec2(uv.x, 1.0-uv.y) * vec2(float(W), float(H))), ivec2(0), ivec2(W-1, H-1));
   vec4 s = texelFetch(s0, p, 0);
   float a = clamp(s.a, 0.0, 1.0);
-  vec3 rgb = clamp(vec3(1.0) - a + s.rgb, 0.0, 1.0);
+  vec3 rgb = clamp(${bgv} * (1.0 - a) + s.rgb, 0.0, 1.0);
   frag = vec4(rgb, 1.0);
 }`;
+  }
+
+  function parseBg(hex?: string): [number, number, number] {
+    if (!hex) return [1, 1, 1];
+    const h = hex.replace("#", "");
+    return [
+      parseInt(h.slice(0, 2), 16) / 255,
+      parseInt(h.slice(2, 4), 16) / 255,
+      parseInt(h.slice(4, 6), 16) / 255,
+    ];
   }
 
   function loc(p: WebGLProgram, name: string) {
@@ -388,20 +424,32 @@ void main(){
 
   function seedTextures() {
     if (!M) return;
-    const W = M.SIZE,
-      cx = W >> 1,
-      cy = W >> 1;
+    const W = GS;
     const z = () => new Float32Array(W * W * 4);
     const d0 = z(),
       d1 = z(),
       d2 = z(),
       d3 = z();
-    const idx = (cy * W + cx) * 4;
-    d0[idx + 3] = 1.0; // alpha (channel 3)
-    for (let k = 0; k < 4; k++) {
-      d1[idx + k] = 1.0;
-      d2[idx + k] = 1.0;
-      d3[idx + k] = 1.0;
+    const pts: [number, number][] = [];
+    if (seedCount <= 1) {
+      pts.push([W >> 1, W >> 1]);
+    } else {
+      const margin = Math.max(2, Math.floor(W * 0.08));
+      for (let i = 0; i < seedCount; i++) {
+        pts.push([
+          margin + Math.floor(Math.random() * (W - 2 * margin)),
+          margin + Math.floor(Math.random() * (W - 2 * margin)),
+        ]);
+      }
+    }
+    for (const [cx, cy] of pts) {
+      const idx = (cy * W + cx) * 4;
+      d0[idx + 3] = 1.0; // alpha (channel 3)
+      for (let k = 0; k < 4; k++) {
+        d1[idx + k] = 1.0;
+        d2[idx + k] = 1.0;
+        d3[idx + k] = 1.0;
+      }
     }
     const set = texSets[readIdx]!;
     const datas = [d0, d1, d2, d3];
@@ -446,7 +494,7 @@ void main(){
 
   function stepOnce() {
     if (!M) return;
-    const W = M.SIZE;
+    const W = GS;
     gl!.bindFramebuffer(gl!.FRAMEBUFFER, fbos[1 - readIdx]);
     gl!.viewport(0, 0, W, W);
     gl!.useProgram(prog.update.p);
@@ -462,15 +510,15 @@ void main(){
     readIdx = 1 - readIdx;
   }
 
-  function damageAt(cx: number, cy: number) {
+  function damageAt(cx: number, cy: number, r?: number) {
     if (!M) return;
-    const W = M.SIZE;
+    const W = GS;
     gl!.bindFramebuffer(gl!.FRAMEBUFFER, fbos[1 - readIdx]);
     gl!.viewport(0, 0, W, W);
     gl!.useProgram(prog.damage.p);
     bindRead();
     gl!.uniform2f(prog.damage.center, cx + 0.5, cy + 0.5);
-    gl!.uniform1f(prog.damage.radius, Math.max(3, W * 0.18));
+    gl!.uniform1f(prog.damage.radius, r ?? Math.max(3, W * 0.18));
     gl!.bindVertexArray(quadVAO);
     gl!.drawArrays(gl!.TRIANGLES, 0, 6);
     readIdx = 1 - readIdx;
@@ -488,22 +536,24 @@ void main(){
 
   function frame() {
     if (!playing || !M) return;
-    const n = params.speed;
-    const t0 = performance.now();
-    for (let k = 0; k < n; k++) stepOnce();
-    renderToScreen();
-    if (frameCount++ % 15 === 0) {
-      const dt = performance.now() - t0;
-      onStat(
-        `${M.SIZE}×${M.SIZE} · ${n} steps/frame · ${dt.toFixed(1)} ms (GPU)`,
-      );
+    frameCount++;
+    const every = Math.max(1, params.stepEvery | 0);
+    if (frameCount % every === 0) {
+      const n = params.speed;
+      const t0 = performance.now();
+      for (let k = 0; k < n; k++) stepOnce();
+      renderToScreen();
+      if (frameCount % 30 < every) {
+        const dt = performance.now() - t0;
+        onStat(`${GS}×${GS} · ${n} steps/frame · ${dt.toFixed(1)} ms (GPU)`);
+      }
     }
     raf = requestAnimationFrame(frame);
   }
 
   return {
     params,
-    loadModel(data: WeightsJson) {
+    loadModel(data: WeightsJson, o?: LoadOpts) {
       try {
         const m = data.meta;
         if (m.C !== 16) {
@@ -511,6 +561,8 @@ void main(){
           return null;
         }
         M = m;
+        GS = Math.max(16, Math.floor(o?.gridSize ?? m.SIZE));
+        seedCount = Math.max(1, Math.floor(o?.seeds ?? 1));
         onErr("");
         wtex.w1 = weightTex(m.IN, m.HID, data.w1);
         wtex.w2 = weightTex(m.HID, m.C, data.w2);
@@ -518,7 +570,7 @@ void main(){
         wtex.b2 = weightTex(m.C, 1, data.b2);
         wtex.emb = weightTex(m.COND, m.N, data.embed);
 
-        const W = m.SIZE;
+        const W = GS;
         texSets[0] = [
           stateTex(W, W, null),
           stateTex(W, W, null),
@@ -535,12 +587,14 @@ void main(){
         fbos[1] = makeFBO(texSets[1]);
         if (!quadVAO) quadVAO = makeQuad();
 
-        prog.update = { p: program(VS, updateFS(m)) };
+        prog.update = { p: program(VS, updateFS(m, GS)) };
         prog.damage = { p: program(VS, damageSrc) };
-        prog.render = { p: program(VS, renderFSsrc(m)) };
+        prog.render = {
+          p: program(VS, renderFSsrc(GS, parseBg(o?.background))),
+        };
         cacheLocs();
 
-        const scale = Math.max(1, Math.floor(560 / W));
+        const scale = o?.canvasScale ?? Math.max(1, Math.floor(560 / W));
         cv.width = W * scale;
         cv.height = W * scale;
 
@@ -568,14 +622,19 @@ void main(){
     },
     damageCenter() {
       if (!M) return;
-      damageAt(M.SIZE >> 1, M.SIZE >> 1);
+      damageAt(GS >> 1, GS >> 1);
       renderToScreen();
+    },
+    damageAtCell(x: number, y: number, r?: number) {
+      if (!M) return;
+      damageAt(Math.floor(x), Math.floor(y), r);
+      if (!playing) renderToScreen();
     },
     poke(clientX: number, clientY: number) {
       if (!M) return;
       const r = cv.getBoundingClientRect();
-      const gx = Math.floor(((clientX - r.left) / r.width) * M.SIZE);
-      const gy = Math.floor(((clientY - r.top) / r.height) * M.SIZE);
+      const gx = Math.floor(((clientX - r.left) / r.width) * GS);
+      const gy = Math.floor(((clientY - r.top) / r.height) * GS);
       damageAt(gx, gy);
       if (!playing) renderToScreen();
     },
