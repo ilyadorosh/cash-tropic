@@ -1,0 +1,223 @@
+/* BLØB.haus — the NCA player, dressed in the ACT IN LOVE language */
+
+.root {
+  --ink: #181410;
+  --cream: #f7ecd8;
+  --cream2: #fff6e6;
+  --coral: #ff5e4d;
+  --yellow: #ffcb2e;
+  --mint: #34d6a0;
+  --lav: #9d86ff;
+  --hard: 6px 6px 0 var(--ink);
+  --hard-sm: 4px 4px 0 var(--ink);
+
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overflow-anchor: none;
+  user-select: text;
+  -webkit-user-select: text;
+
+  background: var(--cream);
+  color: var(--ink);
+  font-family: system-ui, sans-serif;
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+}
+
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 28px 16px 60px;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.back {
+  font-weight: 700;
+  font-size: 12.5px;
+  padding: 7px 13px;
+  border: 2px solid var(--ink);
+  border-radius: 30px;
+  background: var(--cream2);
+  color: var(--ink);
+  box-shadow: var(--hard-sm);
+  text-decoration: none;
+  transition: transform 0.12s, box-shadow 0.12s;
+
+  &:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 4px;
+  transform: rotate(-1deg);
+}
+
+.sub {
+  color: #5b5346;
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  font-weight: 500;
+  max-width: 60ch;
+}
+
+.stage {
+  background: var(--cream2);
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: var(--hard);
+}
+
+.stage canvas {
+  image-rendering: pixelated;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: #fff;
+  cursor: crosshair;
+  touch-action: none;
+  max-width: 100%;
+  height: auto;
+}
+
+.hint {
+  color: #7a7160;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-top: 12px;
+  text-align: center;
+}
+
+.err {
+  color: #b4231a;
+  font-size: 12px;
+  margin-top: 10px;
+  white-space: pre-wrap;
+  font-family: ui-monospace, monospace;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.warnbox {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--yellow);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  border: 2px solid var(--ink);
+  box-shadow: var(--hard-sm);
+}
+
+.controls {
+  background: var(--cream2);
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  padding: 16px 18px;
+  margin-top: 16px;
+  box-shadow: var(--hard);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 12px;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.btn {
+  background: var(--cream);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--hard-sm);
+  transition: transform 0.12s, box-shadow 0.12s;
+
+  &:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+
+  &:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 var(--ink);
+  }
+}
+
+.primary {
+  background: var(--mint);
+}
+
+.warn {
+  background: var(--coral);
+  color: var(--cream2);
+}
+
+.label {
+  color: #7a7160;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.row select {
+  background: #fff;
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 9px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.row input[type="range"] {
+  width: 150px;
+  vertical-align: middle;
+  accent-color: var(--coral);
+}
+
+.val {
+  min-width: 34px;
+  display: inline-block;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.badge {
+  font-size: 12px;
+  color: #7a7160;
+  font-weight: 600;
+}
