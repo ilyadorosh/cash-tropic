@@ -1636,7 +1636,10 @@
       "translate Deutsch",
       "You translate into/from German into Russian and English, give 2 translations"
     ],
-    []
+    [
+      "important",
+      "what is the most important thing I'm missing about the situation?"
+    ]
   ]
 }
 
