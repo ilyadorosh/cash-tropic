@@ -25,7 +25,8 @@ export class TrafficSystem {
   private scene: THREE.Scene;
   private nodes: TrafficNode[];
   private vehicles: TrafficVehicle[] = [];
-  private maxVehicles: number = 15;
+  private maxVehicles: number = 24;
+  private spawnTimer = 0;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -33,23 +34,69 @@ export class TrafficSystem {
     console.log(`Traffic network: ${this.nodes.length} nodes`);
   }
 
-  spawnVehicle() {
+  private distanceToNode(node: TrafficNode, point: THREE.Vector3) {
+    return Math.hypot(node.position.x - point.x, node.position.z - point.z);
+  }
+
+  private pickNode(point?: THREE.Vector3, radius = 220, excludeId?: string) {
+    const pool = point
+      ? this.nodes.filter(
+          (node) =>
+            node.id !== excludeId && this.distanceToNode(node, point) <= radius,
+        )
+      : this.nodes.filter((node) => node.id !== excludeId);
+    const candidates =
+      pool.length > 0
+        ? pool
+        : this.nodes.filter((node) => node.id !== excludeId);
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  private buildPath(startNode: TrafficNode, point?: THREE.Vector3) {
+    const destinationPool = this.nodes.filter(
+      (node) => node.id !== startNode.id,
+    );
+    const nearby = point
+      ? destinationPool.filter((node) => {
+          const distance = this.distanceToNode(node, point);
+          return distance > 60 && distance < 320;
+        })
+      : [];
+    const endNode =
+      nearby.length > 0
+        ? nearby[Math.floor(Math.random() * nearby.length)]
+        : destinationPool[Math.floor(Math.random() * destinationPool.length)];
+    if (!endNode) return [];
+    return findPath(this.nodes, startNode.id, endNode.id);
+  }
+
+  private routeVehicle(vehicle: TrafficVehicle, point?: THREE.Vector3) {
+    const startNode = this.pickNode(
+      point ??
+        new THREE.Vector3(vehicle.mesh.position.x, 0, vehicle.mesh.position.z),
+      240,
+      vehicle.currentNode.id,
+    );
+    if (!startNode) return false;
+    const path = this.buildPath(startNode, point);
+    if (path.length < 2) return false;
+
+    vehicle.currentNode = path[0];
+    vehicle.targetNode = path[1];
+    vehicle.path = path;
+    vehicle.pathIndex = 0;
+    vehicle.speed = Math.min(vehicle.speed, 0.05);
+    return true;
+  }
+
+  spawnVehicle(playerPosition?: THREE.Vector3) {
     if (this.vehicles.length >= this.maxVehicles) return;
     if (this.nodes.length < 2) return;
 
-    // Pick random start node
-    const startNode = this.nodes[Math.floor(Math.random() * this.nodes.length)];
+    const startNode = this.pickNode(playerPosition, 260);
+    if (!startNode) return;
 
-    // Pick random destination
-    let endNode = this.nodes[Math.floor(Math.random() * this.nodes.length)];
-    let attempts = 0;
-    while (endNode.id === startNode.id && attempts < 10) {
-      endNode = this.nodes[Math.floor(Math.random() * this.nodes.length)];
-      attempts++;
-    }
-
-    // Find path
-    const path = findPath(this.nodes, startNode.id, endNode.id);
+    const path = this.buildPath(startNode, playerPosition);
     if (path.length < 2) return;
 
     // Create vehicle mesh
@@ -67,7 +114,7 @@ export class TrafficSystem {
       speed: 0,
       maxSpeed: 0.3 + Math.random() * 0.2,
       color: Math.random() * 0xffffff,
-      type: "car",
+      type: path.length > 7 ? (Math.random() < 0.2 ? "bus" : "truck") : "car",
     };
 
     this.vehicles.push(vehicle);
@@ -119,16 +166,36 @@ export class TrafficSystem {
   }
 
   update(playerPosition: THREE.Vector3) {
-    // Spawn new vehicles occasionally
-    if (Math.random() < 0.01 && this.vehicles.length < this.maxVehicles) {
-      this.spawnVehicle();
+    this.spawnTimer += 1;
+
+    // Seed the city with some traffic right away, then keep a steady flow.
+    const targetPopulation = Math.min(
+      this.maxVehicles,
+      10 + Math.floor(Math.max(0, 220 - playerPosition.length()) / 55),
+    );
+
+    while (this.vehicles.length < Math.min(4, targetPopulation)) {
+      this.spawnVehicle(playerPosition);
+    }
+
+    const spawnEvery = this.vehicles.length < 8 ? 18 : 42;
+    if (
+      this.spawnTimer >= spawnEvery &&
+      this.vehicles.length < targetPopulation
+    ) {
+      this.spawnVehicle(playerPosition);
+      if (this.vehicles.length < targetPopulation && Math.random() < 0.45) {
+        this.spawnVehicle(playerPosition);
+      }
+      this.spawnTimer = 0;
     }
 
     // Update each vehicle
     this.vehicles.forEach((vehicle, index) => {
       if (!vehicle.targetNode) {
-        // Reached destination - remove or pick new path
-        this.removeVehicle(index);
+        if (!this.routeVehicle(vehicle, playerPosition)) {
+          this.removeVehicle(index);
+        }
         return;
       }
 
@@ -149,7 +216,11 @@ export class TrafficSystem {
           vehicle.currentNode = vehicle.targetNode;
           vehicle.targetNode = vehicle.path[vehicle.pathIndex];
         } else {
-          vehicle.targetNode = null; // Reached end
+          if (!this.routeVehicle(vehicle, playerPosition)) {
+            vehicle.targetNode = null;
+            this.removeVehicle(index);
+            return;
+          }
         }
       } else {
         // Move towards target
@@ -160,7 +231,7 @@ export class TrafficSystem {
 
         // Check distance to player - slow down if close
         const distToPlayer = current.distanceTo(playerPosition);
-        if (distToPlayer < 15) {
+        if (distToPlayer < 18) {
           vehicle.speed *= 0.8;
         }
 
@@ -172,6 +243,31 @@ export class TrafficSystem {
         vehicle.mesh.rotation.y = angle;
       }
     });
+
+    // Keep traffic from stacking on itself at intersections.
+    for (let i = 0; i < this.vehicles.length; i++) {
+      for (let j = i + 1; j < this.vehicles.length; j++) {
+        const a = this.vehicles[i];
+        const b = this.vehicles[j];
+        const dx = a.mesh.position.x - b.mesh.position.x;
+        const dz = a.mesh.position.z - b.mesh.position.z;
+        const distSq = dx * dx + dz * dz;
+        const minDist = a.type === "bus" || b.type === "bus" ? 8 : 5.5;
+
+        if (distSq > 0.001 && distSq < minDist * minDist) {
+          const dist = Math.sqrt(distSq);
+          const push = (minDist - dist) * 0.5;
+          const nx = dx / dist;
+          const nz = dz / dist;
+          a.mesh.position.x += nx * push;
+          a.mesh.position.z += nz * push;
+          b.mesh.position.x -= nx * push;
+          b.mesh.position.z -= nz * push;
+          a.speed *= 0.92;
+          b.speed *= 0.92;
+        }
+      }
+    }
 
     // Remove vehicles that are too far from player
     this.vehicles = this.vehicles.filter((v) => {
@@ -190,6 +286,13 @@ export class TrafficSystem {
       this.scene.remove(vehicle.mesh);
       this.vehicles.splice(index, 1);
     }
+  }
+
+  claimVehicle(id: string): TrafficVehicle | null {
+    const index = this.vehicles.findIndex((vehicle) => vehicle.id === id);
+    if (index < 0) return null;
+    const [vehicle] = this.vehicles.splice(index, 1);
+    return vehicle ?? null;
   }
 
   getVehicles(): TrafficVehicle[] {
@@ -213,8 +316,8 @@ export class TrafficSystem {
           street.type === "main"
             ? 0x333333
             : street.type === "side"
-            ? 0x444444
-            : 0x555555,
+              ? 0x444444
+              : 0x555555,
       });
       const road = new THREE.Mesh(roadGeo, roadMat);
       road.rotation.x = -Math.PI / 2;

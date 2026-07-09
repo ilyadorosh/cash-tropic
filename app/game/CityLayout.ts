@@ -178,6 +178,55 @@ export const NUERNBERG_STREETS: StreetSegment[] = [
   },
 ];
 
+function distancePointToSegment(
+  px: number,
+  pz: number,
+  ax: number,
+  az: number,
+  bx: number,
+  bz: number,
+) {
+  const abx = bx - ax;
+  const abz = bz - az;
+  const apx = px - ax;
+  const apz = pz - az;
+  const abLenSq = abx * abx + abz * abz;
+  if (abLenSq === 0) {
+    return Math.hypot(apx, apz);
+  }
+
+  const t = Math.max(0, Math.min(1, (apx * abx + apz * abz) / abLenSq));
+  const cx = ax + abx * t;
+  const cz = az + abz * t;
+  return Math.hypot(px - cx, pz - cz);
+}
+
+function isPointTooCloseToRoad(
+  x: number,
+  z: number,
+  width: number,
+  depth: number,
+  buffer = 2,
+) {
+  return NUERNBERG_STREETS.some((street) => {
+    const dx = street.end.x - street.start.x;
+    const dz = street.end.z - street.start.z;
+    const roadHalfWidth = street.width / 2;
+    const objectHalfSpan = Math.abs(dx) >= Math.abs(dz) ? depth / 2 : width / 2;
+    const neededDistance = roadHalfWidth + objectHalfSpan + buffer;
+    return (
+      distancePointToSegment(
+        x,
+        z,
+        street.start.x,
+        street.start.z,
+        street.end.x,
+        street.end.z,
+      ) < neededDistance
+    );
+  });
+}
+
 // Generate city blocks from streets
 export function generateCityBlocks(streets: StreetSegment[]): CityBlock[] {
   const blocks: CityBlock[] = [];
@@ -304,11 +353,18 @@ function generatePlotsForBlock(block: {
         row * (plotDepth + gap) +
         plotDepth / 2;
 
+      if (isPointTooCloseToRoad(x, z, plotWidth, plotDepth)) {
+        continue;
+      }
+
       // Determine rotation based on position (face nearest street)
       let rotation = 0;
-      if (row === 0) rotation = Math.PI; // Face south
-      else if (row === rows - 1) rotation = 0; // Face north
-      else if (col === 0) rotation = Math.PI / 2; // Face west
+      if (row === 0)
+        rotation = Math.PI; // Face south
+      else if (row === rows - 1)
+        rotation = 0; // Face north
+      else if (col === 0)
+        rotation = Math.PI / 2; // Face west
       else if (col === plotsPerRow - 1) rotation = -Math.PI / 2; // Face east
 
       plots.push({

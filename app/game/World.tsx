@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { NUERNBERG_STREETS } from "./CityLayout";
 
 export function createSignTexture(
   text: string,
@@ -24,6 +25,116 @@ export function createSignTexture(
   return new THREE.MeshLambertMaterial({
     map: new THREE.CanvasTexture(canvas),
   });
+}
+
+function distancePointToSegment(
+  px: number,
+  pz: number,
+  ax: number,
+  az: number,
+  bx: number,
+  bz: number,
+) {
+  const abx = bx - ax;
+  const abz = bz - az;
+  const apx = px - ax;
+  const apz = pz - az;
+  const abLenSq = abx * abx + abz * abz;
+  if (abLenSq === 0) {
+    return Math.hypot(apx, apz);
+  }
+
+  const t = Math.max(0, Math.min(1, (apx * abx + apz * abz) / abLenSq));
+  const cx = ax + abx * t;
+  const cz = az + abz * t;
+  return Math.hypot(px - cx, pz - cz);
+}
+
+function resolveLayoutPosition(obj: {
+  type: string;
+  x: number;
+  z: number;
+  w?: number;
+  d?: number;
+}): { x: number; z: number } {
+  const width = obj.w ?? (obj.type === "church" ? 30 : 20);
+  const depth = obj.d ?? (obj.type === "church" ? 60 : 20);
+  let centerX = obj.x;
+  let centerZ = obj.z;
+
+  for (let pass = 0; pass < 2; pass++) {
+    let nearest: {
+      dist: number;
+      cx: number;
+      cz: number;
+      roadHalfWidth: number;
+      dx: number;
+      dz: number;
+    } | null = null;
+
+    for (const street of NUERNBERG_STREETS) {
+      const dx = street.end.x - street.start.x;
+      const dz = street.end.z - street.start.z;
+      const roadHalfWidth = street.width / 2;
+      const objectHalfSpan =
+        Math.abs(dx) >= Math.abs(dz) ? depth / 2 : width / 2;
+      const neededDistance = roadHalfWidth + objectHalfSpan + 2;
+      const dist = distancePointToSegment(
+        centerX,
+        centerZ,
+        street.start.x,
+        street.start.z,
+        street.end.x,
+        street.end.z,
+      );
+
+      if (dist < neededDistance) {
+        const segDx = street.end.x - street.start.x;
+        const segDz = street.end.z - street.start.z;
+        const t = Math.max(
+          0,
+          Math.min(
+            1,
+            ((centerX - street.start.x) * segDx +
+              (centerZ - street.start.z) * segDz) /
+              (segDx * segDx + segDz * segDz || 1),
+          ),
+        );
+        const cx = street.start.x + segDx * t;
+        const cz = street.start.z + segDz * t;
+
+        if (!nearest || dist < nearest.dist) {
+          nearest = {
+            dist,
+            cx,
+            cz,
+            roadHalfWidth,
+            dx: segDx,
+            dz: segDz,
+          };
+        }
+      }
+    }
+
+    if (!nearest) break;
+
+    let awayX = centerX - nearest.cx;
+    let awayZ = centerZ - nearest.cz;
+    if (awayX === 0 && awayZ === 0) {
+      awayX = -nearest.dz;
+      awayZ = nearest.dx;
+    }
+
+    const len = Math.hypot(awayX, awayZ) || 1;
+    const objectHalfSpan =
+      Math.abs(nearest.dx) >= Math.abs(nearest.dz) ? depth / 2 : width / 2;
+    const neededDistance = nearest.roadHalfWidth + objectHalfSpan + 2;
+    const push = neededDistance - nearest.dist + 1;
+    centerX += (awayX / len) * push;
+    centerZ += (awayZ / len) * push;
+  }
+
+  return { x: centerX, z: centerZ };
 }
 
 export const MAP_LAYOUT = [
@@ -153,6 +264,8 @@ export function initWorld(
   scene.add(asphalt);
 
   MAP_LAYOUT.forEach((obj) => {
+    const resolved = resolveLayoutPosition(obj);
+
     if (obj.type === "house") {
       const group = new THREE.Group();
       const base = new THREE.Mesh(
@@ -168,7 +281,7 @@ export function initWorld(
       roof.position.y = obj.h! + 5;
       roof.rotation.y = Math.PI / 4;
       group.add(roof);
-      group.position.set(obj.x, 0, obj.z);
+      group.position.set(resolved.x, 0, resolved.z);
       if (obj.rot) group.rotation.y = obj.rot;
       scene.add(group);
 
@@ -222,7 +335,7 @@ export function initWorld(
       screen.position.set(0, 3, -7.4);
       tvGroup.add(screen);
       group.add(tvGroup);
-      group.position.set(obj.x, 0, obj.z);
+      group.position.set(resolved.x, 0, resolved.z);
       scene.add(group);
 
       interactables.push({
@@ -283,7 +396,7 @@ export function initWorld(
       );
       counter.position.set(0, 2, -10);
       group.add(counter);
-      group.position.set(obj.x, 0, obj.z);
+      group.position.set(resolved.x, 0, resolved.z);
       scene.add(group);
       interactables.push({
         type: "roof",
@@ -381,7 +494,7 @@ export function initWorld(
       altar.position.set(0, 2, -25);
       group.add(altar);
 
-      group.position.set(obj.x, 0, obj.z);
+      group.position.set(resolved.x, 0, resolved.z);
       scene.add(group);
 
       // Colliders
@@ -406,7 +519,7 @@ export function initWorld(
         new THREE.BoxGeometry(obj.w, obj.h, obj.d),
         materials,
       );
-      mesh.position.set(obj.x, obj.h! / 2, obj.z);
+      mesh.position.set(resolved.x, obj.h! / 2, resolved.z);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       mesh.userData = { width: obj.w, depth: obj.d };

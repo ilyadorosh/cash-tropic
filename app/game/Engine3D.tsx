@@ -48,6 +48,119 @@ import MobileControls from "./MobileControls";
 import MissionOverview from "./MissionOverviewClean";
 import { PrayerModal } from "./PrayerModal";
 import { NeuralCity } from "./NeuralCity";
+import { ServiceProvider } from "@/app/constant";
+import { ModelType, useAppConfig } from "@/app/store/config";
+import { useChatStore } from "@/app/store/chat";
+
+type ModelWeather = "clear" | "rain" | "fog";
+
+type GameModelSnapshot = {
+  model: string;
+  providerName: string;
+  temperature: number;
+  weather: ModelWeather;
+};
+
+type ModelZoneDefinition = {
+  id: string;
+  label: string;
+  model: ModelType;
+  providerName: ServiceProvider;
+  temperature: number;
+  position: [number, number, number];
+  color: number;
+  subtitle: string;
+};
+
+const MODEL_ZONES: ModelZoneDefinition[] = [
+  {
+    id: "scout",
+    label: "Scout",
+    model: "meta-llama/llama-4-scout-17b-16e-instruct" as ModelType,
+    providerName: ServiceProvider.Groq,
+    temperature: 0.2,
+    position: [-18, 0, 185],
+    color: 0x46e0ff,
+    subtitle: "low temp, direct answers",
+  },
+  {
+    id: "compound",
+    label: "Compound",
+    model: "groq/compound" as ModelType,
+    providerName: ServiceProvider.Groq,
+    temperature: 0.55,
+    position: [0, 0, 170],
+    color: 0xffcc33,
+    subtitle: "mixed tool routing",
+  },
+  {
+    id: "versatile",
+    label: "70B Versatile",
+    model: "llama-3.3-70b-versatile" as ModelType,
+    providerName: ServiceProvider.Groq,
+    temperature: 0.9,
+    position: [18, 0, 185],
+    color: 0xff6aa3,
+    subtitle: "hotter exploration",
+  },
+];
+
+function compactModelName(model: string) {
+  return model
+    .replace(/^meta-llama\//, "")
+    .replace(/^openai\//, "")
+    .replace(/-instruct$/i, "")
+    .replace(/-17b-16e/i, "")
+    .replace(/llama-3\.3-/i, "llama ")
+    .slice(0, 34);
+}
+
+function weatherForModel(model: string, temperature = 0.2): ModelWeather {
+  const normalized = model.toLowerCase();
+  if (normalized.includes("compound")) return "fog";
+  if (temperature >= 0.75) return "rain";
+  if (temperature >= 0.4) return "fog";
+  return "clear";
+}
+
+function weatherIcon(weather: ModelWeather, dayPhase: number) {
+  if (weather === "rain") return "rain";
+  if (weather === "fog") return "fog";
+  return dayPhase < 0.23 || dayPhase > 0.77 ? "night" : "clear";
+}
+
+function readActiveGameModelConfig() {
+  const appModelConfig = useAppConfig.getState().modelConfig;
+  try {
+    return (
+      useChatStore.getState().currentSession()?.mask?.modelConfig ??
+      appModelConfig
+    );
+  } catch {
+    return appModelConfig;
+  }
+}
+
+function makeGameModelSnapshot(): GameModelSnapshot {
+  const config = readActiveGameModelConfig();
+  const temperature =
+    typeof config.temperature === "number" ? config.temperature : 0.2;
+  return {
+    model: config.model,
+    providerName: String(config.providerName || ServiceProvider.Groq),
+    temperature,
+    weather: weatherForModel(config.model, temperature),
+  };
+}
+
+function sameModelSnapshot(a: GameModelSnapshot, b: GameModelSnapshot) {
+  return (
+    a.model === b.model &&
+    a.providerName === b.providerName &&
+    Math.abs(a.temperature - b.temperature) < 0.001 &&
+    a.weather === b.weather
+  );
+}
 
 // === AUDIO UTILITIES ===
 const speak = (text: string, pitch = 1, rate = 1) => {
@@ -144,11 +257,15 @@ export default function GTAEngine3D() {
   const [dialogue, setDialogue] = useState<Dialogue | null>(null);
   const [onFoot, setOnFoot] = useState(false);
   const [showSurrenderPrompt, setShowSurrenderPrompt] = useState(false);
+  const [modelHud, setModelHud] = useState<GameModelSnapshot>(() =>
+    makeGameModelSnapshot(),
+  );
 
   // Add refs:
   const cityDbRef = useRef<CityDatabase | null>(null);
   const trafficRef = useRef<TrafficSystem | null>(null);
   const cityBlocksRef = useRef<CityBlock[]>([]);
+  const moneyRef = useRef(500);
 
   // Add ref
   const interiorRef = useRef<InteriorSystem | null>(null);
@@ -202,9 +319,10 @@ export default function GTAEngine3D() {
   }, []);
 
   const handleReward = useCallback((money: number, respect: number) => {
+    moneyRef.current += money;
     setStats((s) => ({
       ...s,
-      money: s.money + money,
+      money: moneyRef.current,
       respect: s.respect + respect,
     }));
   }, []);
@@ -368,8 +486,9 @@ export default function GTAEngine3D() {
     let atmoT = DAY_LEN * 0.35; // start mid-morning
     const _atmoA = new THREE.Color(),
       _atmoB = new THREE.Color();
-    let raining = false;
-    let weatherNext = performance.now() + 45000 + Math.random() * 60000;
+    let currentWeather = makeGameModelSnapshot().weather;
+    let raining = currentWeather === "rain";
+    let lastModelWeatherSync = 0;
     const RAIN_N = 1100;
     const rainGeo = new THREE.BufferGeometry();
     const rainPos = new Float32Array(RAIN_N * 3);
@@ -389,8 +508,29 @@ export default function GTAEngine3D() {
         depthWrite: false,
       }),
     );
-    rain.visible = false;
+    rain.visible = raining;
     scene.add(rain);
+
+    function setWeather(nextWeather: ModelWeather) {
+      currentWeather = nextWeather;
+      raining = nextWeather === "rain";
+      rain.visible = raining;
+    }
+
+    function syncModelWeather(force = false) {
+      const now = performance.now();
+      if (!force && now - lastModelWeatherSync < 800) return;
+      lastModelWeatherSync = now;
+      const snapshot = makeGameModelSnapshot();
+      if (currentWeather !== snapshot.weather) {
+        setWeather(snapshot.weather);
+      }
+      setModelHud((prev) =>
+        sameModelSnapshot(prev, snapshot) ? prev : snapshot,
+      );
+    }
+
+    syncModelWeather(true);
 
     // floating name tags (canvas sprite — names make a city a society)
     function makeTextSprite(text: string, color = "#ffffff") {
@@ -442,17 +582,23 @@ export default function GTAEngine3D() {
       const fogC = _atmoA.setHex(a[2]).lerp(_atmoB.setHex(b[2]), f).clone();
       let sunI = a[3] + (b[3] - a[3]) * f;
       let expo = a[4] + (b[4] - a[4]) * f;
+      const foggy = currentWeather === "fog";
       if (raining) {
         sky.multiplyScalar(0.55);
         fogC.multiplyScalar(0.55);
         sunI *= 0.5;
         expo *= 0.85;
+      } else if (foggy) {
+        sky.multiplyScalar(0.78);
+        fogC.multiplyScalar(0.72);
+        sunI *= 0.65;
+        expo *= 0.92;
       }
       if (scene.background instanceof THREE.Color) scene.background.copy(sky);
       if (scene.fog instanceof THREE.Fog) {
         scene.fog.color.copy(fogC);
-        scene.fog.near = raining ? 18 : 50;
-        scene.fog.far = raining ? 150 : 420; // clear days reveal the east district
+        scene.fog.near = raining ? 18 : foggy ? 8 : 50;
+        scene.fog.far = raining ? 150 : foggy ? 95 : 420; // clear days reveal the east district
       }
       sun.intensity = sunI;
       const ang = (t - 0.25) * Math.PI * 2;
@@ -465,18 +611,11 @@ export default function GTAEngine3D() {
         const hours = t * 24;
         const hh = String(Math.floor(hours)).padStart(2, "0");
         const mm = String(Math.floor((hours % 1) * 60)).padStart(2, "0");
-        const icon = raining ? "🌧️" : t < 0.23 || t > 0.77 ? "🌙" : "☀️";
-        clockEl.textContent = `TAG ${day} · ${hh}:${mm} ${icon}`;
+        const snapshot = makeGameModelSnapshot();
+        const icon = weatherIcon(currentWeather, t).toUpperCase();
+        clockEl.textContent = `TAG ${day} · ${hh}:${mm} · ${icon} · T ${snapshot.temperature.toFixed(1)}`;
       }
-      if (performance.now() > weatherNext) {
-        raining = !raining;
-        rain.visible = raining;
-        weatherNext =
-          performance.now() +
-          (raining
-            ? 30000 + Math.random() * 45000
-            : 60000 + Math.random() * 90000);
-      }
+      syncModelWeather();
       if (raining) {
         rain.position.set(camera.position.x, 0, camera.position.z);
         const p = rainGeo.attributes.position as THREE.BufferAttribute;
@@ -494,66 +633,119 @@ export default function GTAEngine3D() {
     initWorld(scene, colliders, interactables);
 
     // === THE LIVING TERRAIN — a neural net IS part of the world ===
-    // Same trained NCA weights as BLØB, run on a 96×96 grid draped over the
-    // city as displaced 3D terrain: organisms rise vertically out of the
-    // ground, in real time, in the browser. Minimal proof for NCA-in-3D.
+    // Expensive on weak clients, so it lazy-loads and wakes around thermal/model
+    // moments instead of running from the first frame forever.
+    const lowPowerClient =
+      (navigator as any).deviceMemory <= 4 ||
+      navigator.hardwareConcurrency <= 4 ||
+      /Mobi|Android/i.test(navigator.userAgent);
+    const NCA_GS = lowPowerClient ? 64 : 96;
+    const NCA_UPLOAD_EVERY = lowPowerClient ? 12 : 5;
+    const ncaSrcCanvas = document.createElement("canvas");
     let ncaTex: THREE.CanvasTexture | null = null;
     let ncaMirrorCtx: CanvasRenderingContext2D | null = null;
     let ncaSrc: HTMLCanvasElement | null = null;
     let ncaHeights: Uint8ClampedArray | null = null;
-    {
-      const NCA_GS = 96;
-      const srcCanvas = document.createElement("canvas");
-      fetchNcaWeights()
-        .then((weights) => {
-          if (!weights) return;
-          const nca = createNcaPlayer(
-            srcCanvas,
-            () => {},
-            () => {},
-            { preserveDrawingBuffer: true },
-          );
-          if (!nca) return;
-          const meta = nca.loadModel(weights, {
-            gridSize: NCA_GS,
-            seeds: 14,
-            canvasScale: 1,
-            background: "#000000", // dead cells cut away via alphaTest
-          });
-          if (!meta) return;
-          ncaLifeRef.current = nca;
-          nca.params.speed = 1;
-          nca.params.stepEvery = 2; // gentle on weak GPUs
-          nca.setPlaying(true);
+    let ncaLoading = false;
+    let ncaUnavailable = false;
+    let ncaActive = false;
+    let ncaWakeUntil = 0;
 
-          const mirror = document.createElement("canvas");
-          mirror.width = srcCanvas.width;
-          mirror.height = srcCanvas.height;
-          const mctx = mirror.getContext("2d");
-          if (!mctx) return;
-          mctx.drawImage(srcCanvas, 0, 0);
+    function sampleNcaFrame() {
+      if (!ncaTex || !ncaMirrorCtx || !ncaSrc) return;
+      ncaMirrorCtx.drawImage(ncaSrc, 0, 0);
+      ncaTex.needsUpdate = true;
+      ncaHeights = ncaMirrorCtx.getImageData(
+        0,
+        0,
+        ncaSrc.width,
+        ncaSrc.height,
+      ).data;
+    }
 
-          const tex = new THREE.CanvasTexture(mirror);
-          const geo = new THREE.PlaneGeometry(300, 300, NCA_GS, NCA_GS);
-          const mat = new THREE.MeshStandardMaterial({
-            map: tex,
-            displacementMap: tex, // brightness → height: life literally rises
-            displacementScale: 26,
-            alphaMap: tex,
-            alphaTest: 0.14,
-            roughness: 0.85,
-          });
-          const living = new THREE.Mesh(geo, mat);
-          living.rotation.x = -Math.PI / 2;
-          living.position.y = 0.08;
-          living.name = "living-terrain";
-          scene.add(living);
+    function setNcaActive(active: boolean) {
+      if (ncaActive === active) return;
+      ncaActive = active;
+      ncaLifeRef.current?.setPlaying(active);
+    }
 
-          ncaTex = tex;
-          ncaMirrorCtx = mctx;
-          ncaSrc = srcCanvas;
-        })
-        .catch((e) => console.warn("living terrain (3D) failed:", e));
+    async function ensureNcaLoaded() {
+      if (ncaLifeRef.current || ncaLoading || ncaUnavailable) return;
+      ncaLoading = true;
+      try {
+        const weights = await fetchNcaWeights();
+        if (!weights) {
+          ncaUnavailable = true;
+          return;
+        }
+        const nca = createNcaPlayer(
+          ncaSrcCanvas,
+          () => {},
+          () => {},
+          { preserveDrawingBuffer: true },
+        );
+        if (!nca) {
+          ncaUnavailable = true;
+          return;
+        }
+        const meta = nca.loadModel(weights, {
+          gridSize: NCA_GS,
+          seeds: lowPowerClient ? 8 : 14,
+          canvasScale: 1,
+          background: "#000000", // dead cells cut away via alphaTest
+        });
+        if (!meta) {
+          ncaUnavailable = true;
+          return;
+        }
+
+        ncaLifeRef.current = nca;
+        nca.params.speed = lowPowerClient ? 0.75 : 1;
+        nca.params.stepEvery = lowPowerClient ? 4 : 2;
+        nca.setPlaying(ncaActive);
+
+        const mirror = document.createElement("canvas");
+        mirror.width = ncaSrcCanvas.width;
+        mirror.height = ncaSrcCanvas.height;
+        const mctx = mirror.getContext("2d");
+        if (!mctx) {
+          ncaUnavailable = true;
+          return;
+        }
+        mctx.drawImage(ncaSrcCanvas, 0, 0);
+
+        const tex = new THREE.CanvasTexture(mirror);
+        const geo = new THREE.PlaneGeometry(300, 300, NCA_GS, NCA_GS);
+        const mat = new THREE.MeshStandardMaterial({
+          map: tex,
+          displacementMap: tex, // brightness -> height: life literally rises
+          displacementScale: 26,
+          alphaMap: tex,
+          alphaTest: 0.14,
+          roughness: 0.85,
+        });
+        const living = new THREE.Mesh(geo, mat);
+        living.rotation.x = -Math.PI / 2;
+        living.position.y = 0.08;
+        living.name = "living-terrain";
+        scene.add(living);
+
+        ncaTex = tex;
+        ncaMirrorCtx = mctx;
+        ncaSrc = ncaSrcCanvas;
+        sampleNcaFrame();
+      } catch (e) {
+        ncaUnavailable = true;
+        console.warn("living terrain (3D) failed:", e);
+      } finally {
+        ncaLoading = false;
+      }
+    }
+
+    function wakeNca(ms = 9000) {
+      ncaWakeUntil = Math.max(ncaWakeUntil, performance.now() + ms);
+      setNcaActive(true);
+      void ensureNcaLoaded();
     }
 
     // Height of the living terrain at a world point. Reads the same red
@@ -579,6 +771,7 @@ export default function GTAEngine3D() {
 
     // wound the living terrain at a world point (gunfire, explosions, …)
     function woundTerrainAt(wx: number, wz: number, r = 4) {
+      wakeNca(12000);
       const nca = ncaLifeRef.current;
       if (!nca || !ncaSrc) return;
       nca.damageAtCell(
@@ -613,6 +806,116 @@ export default function GTAEngine3D() {
           DZ = 0;
         const g = new THREE.Group();
         g.name = "editor-city";
+        function distancePointToSegment(
+          px: number,
+          pz: number,
+          ax: number,
+          az: number,
+          bx: number,
+          bz: number,
+        ) {
+          const abx = bx - ax;
+          const abz = bz - az;
+          const apx = px - ax;
+          const apz = pz - az;
+          const abLenSq = abx * abx + abz * abz;
+          if (abLenSq === 0) {
+            return {
+              dist: Math.hypot(apx, apz),
+              cx: ax,
+              cz: az,
+            };
+          }
+
+          const t = Math.max(0, Math.min(1, (apx * abx + apz * abz) / abLenSq));
+          const cx = ax + abx * t;
+          const cz = az + abz * t;
+          return {
+            dist: Math.hypot(px - cx, pz - cz),
+            cx,
+            cz,
+          };
+        }
+
+        function resolveBuildingFootprint(building: any): {
+          x: number;
+          y: number;
+          adjusted: boolean;
+        } {
+          const width = Math.max(8, building.width || 40);
+          const depth = Math.max(8, building.height || 40);
+          const buildingRadius = Math.hypot(width, depth) / 2 + 4;
+          let centerX = building.position.x + width / 2;
+          let centerZ = building.position.y + depth / 2;
+          let adjusted = false;
+
+          for (let pass = 0; pass < 2; pass++) {
+            let nearest: {
+              dist: number;
+              cx: number;
+              cz: number;
+              roadWidth: number;
+              sx: number;
+              sz: number;
+              ex: number;
+              ez: number;
+            } | null = null;
+
+            for (const road of Array.isArray(map2d.roads) ? map2d.roads : []) {
+              const pts = road?.points || [];
+              for (let i = 0; i + 1 < pts.length; i++) {
+                const segment = distancePointToSegment(
+                  centerX,
+                  centerZ,
+                  pts[i].x,
+                  pts[i].y,
+                  pts[i + 1].x,
+                  pts[i + 1].y,
+                );
+                const neededDistance = (road.width || 20) / 2 + buildingRadius;
+                if (segment.dist < neededDistance) {
+                  if (!nearest || segment.dist < nearest.dist) {
+                    nearest = {
+                      dist: segment.dist,
+                      cx: segment.cx,
+                      cz: segment.cz,
+                      roadWidth: road.width || 20,
+                      sx: pts[i].x,
+                      sz: pts[i].y,
+                      ex: pts[i + 1].x,
+                      ez: pts[i + 1].y,
+                    };
+                  }
+                }
+              }
+            }
+
+            if (!nearest) break;
+
+            let awayX = centerX - nearest.cx;
+            let awayZ = centerZ - nearest.cz;
+            if (awayX === 0 && awayZ === 0) {
+              const dx = nearest.ex - nearest.sx;
+              const dz = nearest.ez - nearest.sz;
+              awayX = -dz;
+              awayZ = dx;
+            }
+
+            const len = Math.hypot(awayX, awayZ) || 1;
+            const push =
+              nearest.roadWidth / 2 + buildingRadius - nearest.dist + 2;
+            centerX += (awayX / len) * push;
+            centerZ += (awayZ / len) * push;
+            adjusted = true;
+          }
+
+          return {
+            x: centerX - width / 2,
+            y: centerZ - depth / 2,
+            adjusted,
+          };
+        }
+
         const rimMat = new THREE.MeshStandardMaterial({
           color: 0x06121e,
           emissive: 0x46e0ff,
@@ -628,6 +931,7 @@ export default function GTAEngine3D() {
           const d = Math.max(2, (b.height || 40) * S);
           const h =
             5 + Math.min(22, ((b.width || 40) + (b.height || 40)) * 0.055);
+          const resolved = resolveBuildingFootprint(b);
           const mesh = new THREE.Mesh(
             new THREE.BoxGeometry(w, h, d),
             new THREE.MeshStandardMaterial({
@@ -637,9 +941,9 @@ export default function GTAEngine3D() {
             }),
           );
           mesh.position.set(
-            (b.position.x + (b.width || 40) / 2 - ox) * S + DX,
+            (resolved.x + (b.width || 40) / 2 - ox) * S + DX,
             h / 2,
-            (b.position.y + (b.height || 40) / 2 - oz) * S + DZ,
+            (resolved.y + (b.height || 40) / 2 - oz) * S + DZ,
           );
           mesh.castShadow = true;
           mesh.receiveShadow = true;
@@ -824,6 +1128,7 @@ export default function GTAEngine3D() {
     cityDbRef.current = new CityDatabase();
     const savedProgress = cityDbRef.current.getProgress();
     money = savedProgress.money;
+    moneyRef.current = money;
     // ... restore other progress ...
 
     // === STREET GRID ===
@@ -865,6 +1170,7 @@ export default function GTAEngine3D() {
 
       // Restore player state
       money = progress.money;
+      moneyRef.current = money;
       health = progress.health;
       wantedLevel = progress.wantedLevel;
 
@@ -1343,6 +1649,291 @@ export default function GTAEngine3D() {
     playerGroup.visible = false;
     scene.add(playerGroup);
 
+    type MoneyDrop = {
+      mesh: THREE.Group;
+      velocity: THREE.Vector3;
+      amount: number;
+      life: number;
+    };
+    const moneyDrops: MoneyDrop[] = [];
+
+    function spawnMoneyDrop(
+      x: number,
+      z: number,
+      amount: number,
+      impulse = new THREE.Vector3(),
+    ) {
+      const group = new THREE.Group();
+      const coin = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.4, 0.4, 0.1, 12),
+        new THREE.MeshStandardMaterial({
+          color: 0xffd34d,
+          emissive: 0x553300,
+          emissiveIntensity: 0.25,
+          metalness: 0.35,
+          roughness: 0.4,
+        }),
+      );
+      coin.rotation.x = Math.PI / 2;
+      group.add(coin);
+
+      const glow = new THREE.Mesh(
+        new THREE.CircleGeometry(0.75, 16),
+        new THREE.MeshBasicMaterial({
+          color: 0xffee88,
+          transparent: true,
+          opacity: 0.22,
+          side: THREE.DoubleSide,
+        }),
+      );
+      glow.rotation.x = -Math.PI / 2;
+      glow.position.y = -0.04;
+      group.add(glow);
+
+      group.position.set(x, 2.2, z);
+      scene.add(group);
+      moneyDrops.push({
+        mesh: group,
+        velocity: new THREE.Vector3(
+          (Math.random() - 0.5) * 0.12 + impulse.x,
+          0.16 + Math.random() * 0.12 + impulse.y,
+          (Math.random() - 0.5) * 0.12 + impulse.z,
+        ),
+        amount,
+        life: 240 + Math.floor(Math.random() * 180),
+      });
+    }
+
+    function collectMoneyDrop(index: number) {
+      const drop = moneyDrops[index];
+      if (!drop) return;
+      money += drop.amount;
+      moneyRef.current = money;
+      scene.remove(drop.mesh);
+      moneyDrops.splice(index, 1);
+      setStats((s) => ({ ...s, money }));
+      showNotification(
+        "money",
+        `€${drop.amount}`,
+        "Loose cash recovered",
+        2200,
+      );
+    }
+
+    function sendPedestrianAway(
+      ped: {
+        mesh: THREE.Group;
+        targetX: number;
+        targetZ: number;
+        state: "walking" | "idle" | "fleeing";
+        idleTimer: number;
+      },
+      source: THREE.Vector3,
+    ) {
+      const away = ped.mesh.position.clone().sub(source);
+      away.y = 0;
+      if (away.lengthSq() < 0.001) {
+        away.set(Math.random() - 0.5, 0, Math.random() - 0.5);
+      }
+      away.normalize();
+      ped.targetX = ped.mesh.position.x + away.x * 12;
+      ped.targetZ = ped.mesh.position.z + away.z * 12;
+      ped.state = "walking";
+      ped.idleTimer = 0;
+    }
+
+    function getRandomSidewalkPoint() {
+      const road =
+        NUERNBERG_STREETS[Math.floor(Math.random() * NUERNBERG_STREETS.length)];
+      const t = Math.random();
+      const side = Math.random() > 0.5 ? 1 : -1;
+      const dx = road.end.x - road.start.x;
+      const dz = road.end.z - road.start.z;
+      const len = Math.hypot(dx, dz) || 1;
+      const nx = -dz / len;
+      const nz = dx / len;
+      const sidewalkOffset = road.width / 2 + 6 + Math.random() * 4;
+      return {
+        x: road.start.x + dx * t + nx * sidewalkOffset * side,
+        z: road.start.z + dz * t + nz * sidewalkOffset * side,
+      };
+    }
+
+    type ModelZoneRuntime = ModelZoneDefinition & {
+      mesh: THREE.Group;
+      near: boolean;
+    };
+
+    function createModelZone(zone: ModelZoneDefinition): ModelZoneRuntime {
+      const group = new THREE.Group();
+      group.position.set(zone.position[0], zone.position[1], zone.position[2]);
+
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(5.5, 0.16, 8, 72),
+        new THREE.MeshBasicMaterial({
+          color: zone.color,
+          transparent: true,
+          opacity: 0.9,
+        }),
+      );
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = 0.18;
+      group.add(ring);
+
+      const floor = new THREE.Mesh(
+        new THREE.CylinderGeometry(5.5, 5.5, 0.16, 48, 1, true),
+        new THREE.MeshBasicMaterial({
+          color: zone.color,
+          transparent: true,
+          opacity: 0.12,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        }),
+      );
+      floor.position.y = 0.1;
+      group.add(floor);
+
+      const core = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(1.35, 1),
+        new THREE.MeshStandardMaterial({
+          color: zone.color,
+          emissive: zone.color,
+          emissiveIntensity: 0.85,
+          roughness: 0.35,
+        }),
+      );
+      core.position.y = 2.2;
+      group.add(core);
+
+      const label = makeTextSprite("MODEL " + zone.label, "#eaf6ff");
+      label.position.y = 5.8;
+      group.add(label);
+
+      const detail = makeTextSprite(
+        `T ${zone.temperature.toFixed(1)} · ${compactModelName(zone.model)}`,
+        "#9fe8ff",
+      );
+      detail.position.y = 4.15;
+      group.add(detail);
+
+      const light = new THREE.PointLight(zone.color, 1.15, 24);
+      light.position.y = 4;
+      group.add(light);
+
+      scene.add(group);
+      return { ...zone, mesh: group, near: false };
+    }
+
+    const modelZones = MODEL_ZONES.map(createModelZone);
+
+    type NcaStationRuntime = {
+      mesh: THREE.Group;
+      near: boolean;
+    };
+
+    function createNcaStation(
+      position: [number, number, number],
+    ): NcaStationRuntime {
+      const group = new THREE.Group();
+      group.position.set(position[0], position[1], position[2]);
+
+      const base = new THREE.Mesh(
+        new THREE.CylinderGeometry(4.2, 4.2, 0.25, 40, 1, true),
+        new THREE.MeshBasicMaterial({
+          color: 0x66ffee,
+          transparent: true,
+          opacity: 0.18,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        }),
+      );
+      base.position.y = 0.12;
+      group.add(base);
+
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(4.1, 0.18, 8, 64),
+        new THREE.MeshBasicMaterial({
+          color: 0x66ffee,
+          transparent: true,
+          opacity: 0.9,
+        }),
+      );
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = 0.22;
+      group.add(ring);
+
+      const core = new THREE.Mesh(
+        new THREE.OctahedronGeometry(1.15, 1),
+        new THREE.MeshStandardMaterial({
+          color: 0x66ffee,
+          emissive: 0x66ffee,
+          emissiveIntensity: 1,
+          roughness: 0.25,
+        }),
+      );
+      core.position.y = 2;
+      group.add(core);
+
+      const label = makeTextSprite("NCA LAB", "#dff7ff");
+      label.position.y = 5.4;
+      group.add(label);
+
+      const hint = makeTextSprite("press E to wake", "#9fe8ff");
+      hint.position.y = 3.7;
+      group.add(hint);
+
+      const light = new THREE.PointLight(0x66ffee, 1.2, 26);
+      light.position.y = 4;
+      group.add(light);
+
+      scene.add(group);
+      return { mesh: group, near: false };
+    }
+
+    const ncaStations = [createNcaStation([58, 0, 188])];
+
+    function modelZoneIsActive(zone: ModelZoneDefinition) {
+      const config = readActiveGameModelConfig();
+      const temperature =
+        typeof config.temperature === "number" ? config.temperature : 0.2;
+      return (
+        config.model === zone.model &&
+        config.providerName === zone.providerName &&
+        Math.abs(temperature - zone.temperature) < 0.01
+      );
+    }
+
+    function activateModelZone(zone: ModelZoneDefinition) {
+      useAppConfig.getState().update((config) => {
+        config.modelConfig.model = zone.model;
+        config.modelConfig.providerName = zone.providerName;
+        config.modelConfig.temperature = zone.temperature;
+      });
+
+      try {
+        useChatStore.getState().updateCurrentSession((session) => {
+          session.mask.modelConfig.model = zone.model;
+          session.mask.modelConfig.providerName = zone.providerName;
+          session.mask.modelConfig.temperature = zone.temperature;
+          session.mask.syncGlobalConfig = false;
+        });
+      } catch (error) {
+        console.warn("game model switch failed:", error);
+      }
+
+      const snapshot = makeGameModelSnapshot();
+      setWeather(snapshot.weather);
+      setModelHud((prev) =>
+        sameModelSnapshot(prev, snapshot) ? prev : snapshot,
+      );
+      showNotification(
+        "zone",
+        "MODEL " + zone.label,
+        `${zone.providerName} · ${zone.subtitle}`,
+        3500,
+      );
+    }
+
     // === GUN LASER ===
     const laserGeo = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(0, 0, 0),
@@ -1364,6 +1955,9 @@ export default function GTAEngine3D() {
       followingPlayer: boolean;
     }
     const storyNPCs: StoryNPC[] = [];
+    // walk-up-to-talk state — mirrors dbNpcs' `near` flag pattern
+    const storyNpcNear = new Set<string>();
+    const pedNear = new WeakSet<object>();
 
     // Father Martinez at church
     const pastorGroup = new THREE.Group();
@@ -1605,31 +2199,6 @@ export default function GTAEngine3D() {
       null,
     ];
 
-    // Define sidewalk paths along roads (offset from road center)
-    const sidewalkPaths = [
-      { x1: -100, z1: 0, x2: 100, z2: 0, offset: 8 }, // Main street sidewalk
-      { x1: 0, z1: -100, x2: 0, z2: 100, offset: 8 }, // Cross street
-      { x1: -50, z1: -50, x2: 50, z2: -50, offset: 8 },
-      { x1: -50, z1: 50, x2: 50, z2: 50, offset: 8 },
-    ];
-
-    const getRandomSidewalkPoint = () => {
-      const path =
-        sidewalkPaths[Math.floor(Math.random() * sidewalkPaths.length)];
-      const t = Math.random();
-      const side = Math.random() > 0.5 ? 1 : -1;
-      return {
-        x:
-          path.x1 +
-          (path.x2 - path.x1) * t +
-          (path.z1 === path.z2 ? 0 : path.offset * side),
-        z:
-          path.z1 +
-          (path.z2 - path.z1) * t +
-          (path.x1 === path.x2 ? 0 : path.offset * side),
-      };
-    };
-
     for (let i = 0; i < 20; i++) {
       // Reduced from 30 to 20
       const ped = new THREE.Group();
@@ -1860,11 +2429,12 @@ export default function GTAEngine3D() {
         }
 
         if (showSurrenderPrompt && wantedLevel > 0) {
+          const surrenderedWanted = wantedLevel;
+          const fine = Math.min(money, 500 * surrenderedWanted);
           wantedLevel = 0;
           setStats((s) => ({ ...s, wanted: 0 }));
-
-          const fine = Math.min(money, 500 * wantedLevel);
           money -= fine;
+          moneyRef.current = money;
           setStats((s) => ({ ...s, money }));
 
           if (playerState === "driving") {
@@ -1937,13 +2507,58 @@ export default function GTAEngine3D() {
           playerGroup.visible = true;
           setOnFoot(true);
         } else {
-          // Try to enter vehicles
-          if (playerGroup.position.distanceTo(carGroup.position) < 6) {
-            activeCar = carGroup;
+          const ncaStation = ncaStations.find(
+            (station) =>
+              playerGroup.position.distanceTo(station.mesh.position) < 6,
+          );
+          if (ncaStation) {
+            wakeNca(15000);
+            handleDialogue({
+              title: "NCA LAB",
+              text: "Living terrain online. Stay close if you want it to keep rendering.",
+            });
+            setTimeout(() => setDialogue(null), 2500);
+            return;
+          }
+
+          const enterVehicle = (vehicle: THREE.Group) => {
+            activeCar = vehicle;
             playerState = "driving";
             playerGroup.visible = false;
             setOnFoot(false);
+          };
+
+          // Try to enter vehicles
+          if (playerGroup.position.distanceTo(activeCar.position) < 6) {
+            enterVehicle(activeCar);
             return;
+          }
+
+          if (
+            activeCar !== carGroup &&
+            playerGroup.position.distanceTo(carGroup.position) < 6
+          ) {
+            enterVehicle(carGroup);
+            return;
+          }
+
+          // Steal civilian traffic cars. This removes them from traffic AI and
+          // hands the mesh to the player controller.
+          const trafficVehicles = trafficRef.current?.getVehicles() ?? [];
+          for (const vehicle of trafficVehicles) {
+            if (playerGroup.position.distanceTo(vehicle.mesh.position) < 6) {
+              const claimed =
+                trafficRef.current?.claimVehicle(vehicle.id) ?? vehicle;
+              enterVehicle(claimed.mesh);
+              wantedLevel = Math.min(wantedLevel + 1, 5);
+              showNotification(
+                "zone",
+                "GRAND THEFT AUTO",
+                `${vehicle.type.toUpperCase()} claimed`,
+                2500,
+              );
+              return;
+            }
           }
 
           // Hijack police car
@@ -1984,10 +2599,9 @@ export default function GTAEngine3D() {
                   ped.personality.systemPrompt,
                 );
                 handleDialogue({ title: ped.personality.name, text: response });
+                sendPedestrianAway(ped, playerGroup.position);
               } else {
                 // Generic response
-
-                // Update pedestrian generic lines:
                 const lines = [
                   "Hey, pass auf!",
                   "Schönes Wetter, oder?",
@@ -1998,6 +2612,7 @@ export default function GTAEngine3D() {
                   title: "Fremder",
                   text: lines[Math.floor(Math.random() * lines.length)],
                 });
+                sendPedestrianAway(ped, playerGroup.position);
               }
               setTimeout(() => setDialogue(null), 3000);
               return;
@@ -2161,6 +2776,16 @@ export default function GTAEngine3D() {
               p.mesh.rotation.x = -Math.PI / 2;
               p.mesh.position.y = 0.5;
               wantedLevel = Math.min(wantedLevel + 1, 5);
+              spawnMoneyDrop(
+                p.mesh.position.x,
+                p.mesh.position.z,
+                4 + Math.floor(Math.random() * 12),
+                new THREE.Vector3(
+                  (Math.random() - 0.5) * 0.15,
+                  0.12,
+                  (Math.random() - 0.5) * 0.15,
+                ),
+              );
             }
           }
         });
@@ -2271,6 +2896,7 @@ export default function GTAEngine3D() {
       const deltaTime = (now - lastFrameTime) / 1000;
       lastFrameTime = now;
       frame++;
+      money = moneyRef.current;
 
       updateAtmosphere(deltaTime);
 
@@ -2310,18 +2936,96 @@ export default function GTAEngine3D() {
               playerGroup.position.z,
             );
         }
+
+        // walk up to a mission-giver and it starts — no key needed, just
+        // like real life. This is the fix for markers/NPCs that "did
+        // nothing" when you walked into them: they only ever listened for E.
+        if (playerState !== "driving") {
+          for (const npc of storyNPCs) {
+            const dist = playerGroup.position.distanceTo(npc.mesh.position);
+            if (dist < 4.5 && !storyNpcNear.has(npc.id)) {
+              storyNpcNear.add(npc.id);
+              void interactWithStoryNPC(npc);
+            } else if (dist > 8 && storyNpcNear.has(npc.id)) {
+              storyNpcNear.delete(npc.id);
+            }
+          }
+
+          for (const ped of pedestrians) {
+            if (ped.dead || !ped.personality) continue;
+            const dist = playerGroup.position.distanceTo(ped.mesh.position);
+            if (dist < 3.5 && !pedNear.has(ped)) {
+              pedNear.add(ped);
+              callLLM(
+                ped.personality.name,
+                `A stranger approached me on the street. Wanted level: ${wantedLevel}`,
+                ped.personality.systemPrompt,
+              )
+                .then((response) => {
+                  handleDialogue({
+                    title: ped.personality!.name,
+                    text: response,
+                  });
+                  setTimeout(() => setDialogue(null), 4000);
+                })
+                .catch(() => {});
+            } else if (dist > 7 && pedNear.has(ped)) {
+              pedNear.delete(ped);
+            }
+          }
+        }
+
+        const modelActor =
+          playerState === "driving" ? activeCar.position : playerGroup.position;
+        for (const zone of modelZones) {
+          const active = modelZoneIsActive(zone);
+          const pulse = active ? 1.08 + Math.sin(now * 0.006) * 0.025 : 1;
+          zone.mesh.scale.setScalar(pulse);
+          const core = zone.mesh.children[2];
+          core.rotation.y += deltaTime * (active ? 1.8 : 0.6);
+          core.rotation.x += deltaTime * 0.3;
+
+          const dist = modelActor.distanceTo(zone.mesh.position);
+          if (dist < 5.5 && !zone.near) {
+            zone.near = true;
+            if (!active) activateModelZone(zone);
+          } else if (dist > 9) {
+            zone.near = false;
+          }
+        }
+
+        for (const station of ncaStations) {
+          const active = ncaActive;
+          const pulse = active ? 1.06 + Math.sin(now * 0.01) * 0.03 : 1;
+          station.mesh.scale.setScalar(pulse);
+          const core = station.mesh.children[2];
+          core.rotation.y += deltaTime * (active ? 1.2 : 0.35);
+          core.rotation.x += deltaTime * 0.2;
+
+          const dist = modelActor.distanceTo(station.mesh.position);
+          if (dist < 6 && !station.near) {
+            station.near = true;
+            if (!ncaActive) {
+              showNotification(
+                "zone",
+                "NCA LAB",
+                "Press E to wake the living terrain",
+                3500,
+              );
+            }
+          } else if (dist > 10) {
+            station.near = false;
+          }
+        }
       }
 
-      // the living terrain breathes (throttled texture upload)
-      if (ncaTex && ncaMirrorCtx && ncaSrc && frame % 3 === 0) {
-        ncaMirrorCtx.drawImage(ncaSrc, 0, 0);
-        ncaTex.needsUpdate = true;
-        ncaHeights = ncaMirrorCtx.getImageData(
-          0,
-          0,
-          ncaSrc.width,
-          ncaSrc.height,
-        ).data;
+      // The living terrain sleeps unless you explicitly wake it or disturb it.
+      if (ncaActive && now > ncaWakeUntil) {
+        setNcaActive(false);
+      }
+
+      if (ncaActive && frame % NCA_UPLOAD_EVERY === 0) {
+        sampleNcaFrame();
       }
 
       // Audio
@@ -2390,6 +3094,17 @@ export default function GTAEngine3D() {
             );
           });
 
+          // Model switch circles
+          modelZones.forEach((zone) => {
+            const dx = zone.mesh.position.x - pPos.x;
+            const dz = zone.mesh.position.z - pPos.z;
+            ctx.strokeStyle = `#${zone.color.toString(16).padStart(6, "0")}`;
+            ctx.lineWidth = modelZoneIsActive(zone) ? 3 : 1.5;
+            ctx.beginPath();
+            ctx.arc(dx * 0.5, dz * 0.5, 4.5, 0, Math.PI * 2);
+            ctx.stroke();
+          });
+
           // Mission markers
           markers
             .filter((m) => m.active)
@@ -2415,6 +3130,14 @@ export default function GTAEngine3D() {
             ctx.beginPath();
             ctx.arc(dx * 0.5, dz * 0.5, 3, 0, Math.PI * 2);
             ctx.fill();
+          });
+
+          // Civilian traffic
+          trafficRef.current?.getVehicles().forEach((vehicle) => {
+            const dx = vehicle.mesh.position.x - pPos.x;
+            const dz = vehicle.mesh.position.z - pPos.z;
+            ctx.fillStyle = "#9aa6b2";
+            ctx.fillRect(dx * 0.5 - 2, dz * 0.5 - 2, 4, 4);
           });
 
           // Police
@@ -2471,7 +3194,7 @@ export default function GTAEngine3D() {
           const nextPos = activeCar.position.clone().add(velocity);
 
           let collide = false;
-          colliders.forEach((b) => {
+          for (const b of colliders) {
             if (
               Math.abs(nextPos.x - b.position.x) < b.userData.width / 2 + 3 &&
               Math.abs(nextPos.z - b.position.z) < b.userData.depth / 2 + 3
@@ -2480,7 +3203,42 @@ export default function GTAEngine3D() {
               speed *= -0.4;
               health -= 1;
             }
-          });
+          }
+
+          if (!collide) {
+            const trafficVehicles = trafficRef.current?.getVehicles() ?? [];
+            for (const vehicle of trafficVehicles) {
+              const dx = nextPos.x - vehicle.mesh.position.x;
+              const dz = nextPos.z - vehicle.mesh.position.z;
+              const hitRadius = vehicle.type === "bus" ? 6 : 4.5;
+              if (dx * dx + dz * dz < hitRadius * hitRadius) {
+                const pushDir = new THREE.Vector3(dx, 0, dz);
+                if (pushDir.lengthSq() < 0.0001) {
+                  pushDir.copy(
+                    new THREE.Vector3(0, 0, 1).applyQuaternion(
+                      activeCar.quaternion,
+                    ),
+                  );
+                }
+                pushDir.normalize();
+                activeCar.position.add(
+                  pushDir.clone().multiplyScalar(hitRadius * 0.45),
+                );
+                vehicle.mesh.position.add(pushDir.clone().multiplyScalar(-1.2));
+                speed *= -0.35;
+                vehicle.speed *= 0.35;
+                health -= 1;
+                collide = true;
+                spawnMoneyDrop(
+                  vehicle.mesh.position.x,
+                  vehicle.mesh.position.z,
+                  6 + Math.floor(Math.random() * 14),
+                  pushDir.clone().multiplyScalar(0.2),
+                );
+                break;
+              }
+            }
+          }
 
           if (!collide) activeCar.position.copy(nextPos);
         } else {
@@ -2504,6 +3262,26 @@ export default function GTAEngine3D() {
                 .sub(b.position)
                 .normalize();
               playerGroup.position.add(dir.multiplyScalar(0.5));
+            }
+          });
+
+          const footVehicleMeshes: THREE.Group[] = [
+            activeCar,
+            ...(trafficRef.current?.getVehicles().map((v) => v.mesh) ?? []),
+            ...policeCars
+              .filter((pc) => !pc.hijacked && pc.mesh !== activeCar)
+              .map((pc) => pc.mesh),
+          ];
+          footVehicleMeshes.forEach((vehicleMesh) => {
+            const dist = playerGroup.position.distanceTo(vehicleMesh.position);
+            if (dist < 4.5) {
+              const push = playerGroup.position
+                .clone()
+                .sub(vehicleMesh.position);
+              if (push.lengthSq() > 0.0001) {
+                push.setY(0).normalize();
+                playerGroup.position.add(push.multiplyScalar(0.6));
+              }
             }
           });
         }
@@ -2532,22 +3310,35 @@ export default function GTAEngine3D() {
         pedestrians.forEach((ped) => {
           if (ped.dead) return;
 
-          const carPos =
+          const playerPos =
             playerState === "driving"
               ? activeCar.position
-              : new THREE.Vector3(9999, 0, 9999);
-          const distToCar = ped.mesh.position.distanceTo(carPos);
+              : playerGroup.position;
+          const distToPlayer = ped.mesh.position.distanceTo(playerPos);
+          const drivingSpeed = playerState === "driving" ? Math.abs(speed) : 0;
 
-          // Flee from fast-approaching cars
+          // Step out of the way when the player is on foot and gets close —
+          // but named characters hold still and greet you instead (see the
+          // walk-up-to-talk block above), otherwise they'd flee mid-dialogue.
           if (
-            distToCar < 15 &&
-            Math.abs(speed) > 0.4 &&
+            playerState === "walking" &&
+            distToPlayer < 3.5 &&
+            !ped.personality
+          ) {
+            sendPedestrianAway(ped, playerPos);
+          }
+
+          // Flee from approaching cars
+          if (
+            playerState === "driving" &&
+            distToPlayer < 18 &&
+            drivingSpeed > 0.25 &&
             ped.state !== "fleeing"
           ) {
             ped.state = "fleeing";
             const awayFromCar = ped.mesh.position
               .clone()
-              .sub(carPos)
+              .sub(playerPos)
               .normalize();
             ped.targetX = ped.mesh.position.x + awayFromCar.x * 20;
             ped.targetZ = ped.mesh.position.z + awayFromCar.z * 20;
@@ -2561,7 +3352,7 @@ export default function GTAEngine3D() {
               0,
               ped.targetZ - ped.mesh.position.z,
             );
-            if (toTarget.length() < 2 || distToCar > 30) {
+            if (toTarget.length() < 2 || distToPlayer > 30) {
               ped.state = "walking";
               const newTarget = getRandomSidewalkPoint();
               ped.targetX = newTarget.x;
@@ -2603,18 +3394,18 @@ export default function GTAEngine3D() {
           }
 
           // Hit by car - require much higher speed, smaller hitbox
-          const hitDistance = ped.mesh.position.distanceTo(carPos);
+          const hitDistance = ped.mesh.position.distanceTo(playerPos);
           const speedThreshold = 0.7; // Much higher - need to be going fast
 
           if (
             hitDistance < 2.5 && // Smaller hitbox
-            Math.abs(speed) > speedThreshold
+            drivingSpeed > speedThreshold
           ) {
             // Only count as hit if directly in front of car
             const carForward = new THREE.Vector3(0, 0, 1).applyQuaternion(
               activeCar.quaternion,
             );
-            const toPed = ped.mesh.position.clone().sub(carPos).normalize();
+            const toPed = ped.mesh.position.clone().sub(playerPos).normalize();
             const dotProduct = carForward.dot(toPed);
 
             if (dotProduct > 0.5) {
@@ -2625,26 +3416,66 @@ export default function GTAEngine3D() {
               ped.dead = true;
               ped.mesh.rotation.x = -Math.PI / 2;
               ped.mesh.position.y = 0.5;
+              spawnMoneyDrop(
+                ped.mesh.position.x,
+                ped.mesh.position.z,
+                8 + Math.floor(Math.random() * 18),
+                new THREE.Vector3(
+                  (Math.random() - 0.5) * 0.2,
+                  0.12,
+                  (Math.random() - 0.5) * 0.2,
+                ),
+              );
               const flyDir = ped.mesh.position
                 .clone()
-                .sub(carPos)
+                .sub(playerPos)
                 .normalize()
                 .multiplyScalar(5);
               ped.mesh.position.add(flyDir);
             }
           } else if (
             hitDistance < 4 &&
-            Math.abs(speed) > 0.2 &&
-            Math.abs(speed) <= speedThreshold
+            drivingSpeed > 0.2 &&
+            drivingSpeed <= speedThreshold
           ) {
             // Pedestrians dodge slow-moving cars
             const awayFromCar = ped.mesh.position
               .clone()
-              .sub(carPos)
+              .sub(playerPos)
               .normalize();
             ped.mesh.position.add(awayFromCar.multiplyScalar(0.5));
           }
         });
+
+        for (let i = moneyDrops.length - 1; i >= 0; i--) {
+          const drop = moneyDrops[i];
+          drop.life--;
+          drop.velocity.y -= 0.014;
+          drop.mesh.position.add(drop.velocity);
+          drop.mesh.rotation.y += 0.18;
+          drop.mesh.rotation.x += 0.06;
+
+          if (drop.mesh.position.y <= 0.45) {
+            drop.mesh.position.y = 0.45;
+            drop.velocity.y *= -0.35;
+            drop.velocity.x *= 0.92;
+            drop.velocity.z *= 0.92;
+          }
+
+          const collector =
+            playerState === "driving"
+              ? activeCar.position
+              : playerGroup.position;
+          if (drop.mesh.position.distanceTo(collector) < 3) {
+            collectMoneyDrop(i);
+            continue;
+          }
+
+          if (drop.life <= 0) {
+            scene.remove(drop.mesh);
+            moneyDrops.splice(i, 1);
+          }
+        }
 
         // === PROCEDURAL GENERATION ===
         if (frame % 300 === 0 && cityRef.current) {
@@ -2703,6 +3534,7 @@ export default function GTAEngine3D() {
         // === POLICE AI WITH WARNINGS ===
         const targetPos =
           playerState === "driving" ? activeCar.position : playerGroup.position;
+        trafficRef.current?.update(targetPos);
 
         // Spawn police based on wanted level - much slower spawn rate
         // Max 1 car at 1 star, 2 at 2 stars, etc. - GTA style gradual response
@@ -2798,6 +3630,7 @@ export default function GTAEngine3D() {
             lastBust = performance.now();
             wantedLevel = 0;
             money = Math.max(0, money - 150);
+            moneyRef.current = money;
             showNotification(
               "location",
               "🚔 BUSTED",
@@ -2964,6 +3797,7 @@ export default function GTAEngine3D() {
     // Then at the END, in the cleanup function, use the captured values:
     return () => {
       clockEl.remove();
+      moneyDrops.forEach((drop) => scene.remove(drop.mesh));
       ncaLifeRef.current?.destroy();
       ncaLifeRef.current = null;
       window.removeEventListener("resize", handleResize);
@@ -3051,6 +3885,46 @@ export default function GTAEngine3D() {
                 transition: "width 0.2s",
               }}
             />
+          </div>
+
+          <div
+            style={{
+              marginTop: "8px",
+              width: "250px",
+              boxSizing: "border-box",
+              background: "rgba(4, 10, 18, 0.66)",
+              border: "1px solid rgba(70, 224, 255, 0.35)",
+              borderRadius: "6px",
+              padding: "7px 9px",
+              fontFamily: "monospace",
+              textShadow: "none",
+              color: "#dff7ff",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "10px",
+                color: "#7de7ff",
+                letterSpacing: "1px",
+              }}
+            >
+              ACTIVE MODEL
+            </div>
+            <div
+              style={{
+                fontSize: "13px",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+              title={`${modelHud.providerName} / ${modelHud.model}`}
+            >
+              {modelHud.providerName} / {compactModelName(modelHud.model)}
+            </div>
+            <div style={{ fontSize: "12px", color: "#b6c8d4" }}>
+              TEMP {modelHud.temperature.toFixed(1)} / WEATHER{" "}
+              {modelHud.weather.toUpperCase()}
+            </div>
           </div>
 
           {/* Relationship indicator */}

@@ -1,6 +1,7 @@
 // ProceduralCity.ts - LLM-powered procedural city generation
 
 import * as THREE from "three";
+import { NUERNBERG_STREETS } from "./CityLayout";
 
 export interface Building {
   id: string;
@@ -138,6 +139,29 @@ export function createNeonSign(
   return group;
 }
 
+function distancePointToSegment(
+  px: number,
+  pz: number,
+  ax: number,
+  az: number,
+  bx: number,
+  bz: number,
+) {
+  const abx = bx - ax;
+  const abz = bz - az;
+  const apx = px - ax;
+  const apz = pz - az;
+  const abLenSq = abx * abx + abz * abz;
+  if (abLenSq === 0) {
+    return Math.hypot(apx, apz);
+  }
+
+  const t = Math.max(0, Math.min(1, (apx * abx + apz * abz) / abLenSq));
+  const cx = ax + abx * t;
+  const cz = az + abz * t;
+  return Math.hypot(px - cx, pz - cz);
+}
+
 export class ProceduralCity {
   private scene: THREE.Scene;
   private colliders: THREE.Mesh[];
@@ -162,6 +186,28 @@ export class ProceduralCity {
   private generationCooldown: number = 30000; // 30 seconds between generation attempts
   private lastGenerationAttempt: number = 0;
   private hasInitialized: boolean = false;
+
+  private isPointTooCloseToRoad(
+    x: number,
+    z: number,
+    footprintRadius: number = 12,
+  ) {
+    const roadClearance = footprintRadius + 4;
+    return NUERNBERG_STREETS.some((street) => {
+      const roadRadius = street.width / 2;
+      const neededDistance = roadRadius + roadClearance;
+      return (
+        distancePointToSegment(
+          x,
+          z,
+          street.start.x,
+          street.start.z,
+          street.end.x,
+          street.end.z,
+        ) < neededDistance
+      );
+    });
+  }
 
   initializeStartingBuildings() {
     if (this.hasInitialized) return; // Prevent double init
@@ -675,6 +721,10 @@ Antworte NUR mit gültigem JSON in diesem exakten Format:
       );
       if (distToSpawn < spawnExclusionRadius) {
         continue; // Skip this slot
+      }
+
+      if (this.isPointTooCloseToRoad(gridX, gridZ)) {
+        continue;
       }
 
       // Check if slot is occupied by existing building
