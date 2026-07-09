@@ -268,13 +268,18 @@ const groqModels = [
   "llama-3.3-70b-versatile",
 ];
 
+// Verified 2026-07-09 against GET https://api.sambanova.ai/v1/models (no
+// auth required for the list endpoint). Two previous entries here used
+// Groq's naming, not SambaNova's ("openai/gpt-oss-120b" -> "gpt-oss-120b",
+// "llama-3.3-70b-versatile" -> "Meta-Llama-3.3-70B-Instruct"), and two more
+// ("Qwen3-32B", "DeepSeek-R1-0528") no longer appear in SambaNova's catalog.
 const sambanovaModels = [
-  "openai/gpt-oss-120b",
-  "llama-3.3-70b-versatile",
-  "DeepSeek-V3.2",
-  "DeepSeek-R1-0528",
-  // "llama-3.3-70b-instruct",
-  "Qwen3-32B",
+  "DeepSeek-V3.1", // 131k context
+  "DeepSeek-V3.2", // 32k context
+  "MiniMax-M2.7", // 196k context
+  "Meta-Llama-3.3-70B-Instruct",
+  "gpt-oss-120b",
+  "gemma-4-31B-it", // text+image
 ];
 
 const googleModels = [
