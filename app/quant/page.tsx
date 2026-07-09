@@ -36,13 +36,28 @@ interface Position {
 
 // Asset names lookup
 const ASSET_NAMES: Record<string, string> = {
-  BTC: "Bitcoin", ETH: "Ethereum", BNB: "Binance Coin", SOL: "Solana", XRP: "Ripple",
-  DOGE: "Dogecoin", ADA: "Cardano", AVAX: "Avalanche", LINK: "Chainlink", DOT: "Polkadot",
-  UNI: "Uniswap", AAVE: "Aave", MKR: "Maker", USDT: "Tether", USDC: "USD Coin"
+  BTC: "Bitcoin",
+  ETH: "Ethereum",
+  BNB: "Binance Coin",
+  SOL: "Solana",
+  XRP: "Ripple",
+  DOGE: "Dogecoin",
+  ADA: "Cardano",
+  AVAX: "Avalanche",
+  LINK: "Chainlink",
+  DOT: "Polkadot",
+  UNI: "Uniswap",
+  AAVE: "Aave",
+  MKR: "Maker",
+  USDT: "Tether",
+  USDC: "USD Coin",
 };
 
 // Asset positions on the map
-const ASSET_POSITIONS: Record<string, { x: number; y: number; category: "major" | "altcoin" | "defi" | "stable" }> = {
+const ASSET_POSITIONS: Record<
+  string,
+  { x: number; y: number; category: "major" | "altcoin" | "defi" | "stable" }
+> = {
   BTC: { x: 200, y: 250, category: "major" },
   ETH: { x: 280, y: 200, category: "major" },
   BNB: { x: 320, y: 300, category: "major" },
@@ -59,10 +74,10 @@ const ASSET_POSITIONS: Record<string, { x: number; y: number; category: "major" 
 };
 
 const CATEGORY_COLORS = {
-  major: "#f7931a",    // Bitcoin orange
-  altcoin: "#00d4aa",  // Teal
-  defi: "#ff6b9d",     // Pink
-  stable: "#4ade80",   // Green
+  major: "#f7931a", // Bitcoin orange
+  altcoin: "#00d4aa", // Teal
+  defi: "#ff6b9d", // Pink
+  stable: "#4ade80", // Green
 };
 
 export default function QuantPage() {
@@ -78,9 +93,13 @@ export default function QuantPage() {
   const [binanceConnected, setBinanceConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<number>(0);
   const [showSettings, setShowSettings] = useState(false);
-  const [providers, setProviders] = useState<{ groq?: boolean; openai?: boolean; google?: boolean }>({});
+  const [providers, setProviders] = useState<{
+    groq?: boolean;
+    openai?: boolean;
+    google?: boolean;
+  }>({});
   const [activeProvider, setActiveProvider] = useState<string>("rule");
-  
+
   const animationRef = useRef<number>(0);
 
   // Fetch REAL prices from Binance
@@ -88,10 +107,14 @@ export default function QuantPage() {
     try {
       const response = await fetch("/api/quant/prices");
       const data = await response.json();
-      
+
       if (data.success && data.prices) {
         const newAssets: Asset[] = data.prices.map((p: any) => {
-          const pos = ASSET_POSITIONS[p.symbol] || { x: 400, y: 300, category: "altcoin" as const };
+          const pos = ASSET_POSITIONS[p.symbol] || {
+            x: 400,
+            y: 300,
+            category: "altcoin" as const,
+          };
           return {
             symbol: p.symbol,
             name: ASSET_NAMES[p.symbol] || p.symbol,
@@ -116,17 +139,17 @@ export default function QuantPage() {
   // Fetch available AI providers from server
   const fetchProviders = useCallback(async () => {
     try {
-      const res = await fetch('/api/quant/provider');
+      const res = await fetch("/api/quant/provider");
       if (!res.ok) return;
       const data = await res.json();
       setProviders(data.providers || {});
       // choose active provider by priority
-      if (data.providers?.groq) setActiveProvider('groq');
-      else if (data.providers?.openai) setActiveProvider('openai');
-      else if (data.providers?.google) setActiveProvider('google');
-      else setActiveProvider('rule');
+      if (data.providers?.groq) setActiveProvider("groq");
+      else if (data.providers?.openai) setActiveProvider("openai");
+      else if (data.providers?.google) setActiveProvider("google");
+      else setActiveProvider("rule");
     } catch (e) {
-      console.error('Failed to fetch providers', e);
+      console.error("Failed to fetch providers", e);
     }
   }, []);
 
@@ -157,7 +180,7 @@ export default function QuantPage() {
           price: asset.price,
           change24h: asset.change24h,
           volume: asset.volume,
-        })
+        }),
       });
 
       const data = await response.json();
@@ -165,9 +188,11 @@ export default function QuantPage() {
       if (data.source) setActiveProvider(data.source);
     } catch (error) {
       console.error("AI analysis error:", error);
-      setAiAnalysis(`📊 ${asset.symbol}\n\nPrice: $${asset.price.toLocaleString()}\n${asset.change24h > 0 ? "📈 Bullish" : "📉 Bearish"}`);
+      setAiAnalysis(
+        `📊 ${asset.symbol}\n\nPrice: $${asset.price.toLocaleString()}\n${asset.change24h > 0 ? "📈 Bullish" : "📉 Bearish"}`,
+      );
     }
-    
+
     setIsAnalyzing(false);
   }, []);
 
@@ -175,7 +200,7 @@ export default function QuantPage() {
   const render = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -205,7 +230,7 @@ export default function QuantPage() {
     // Draw connections between related assets
     ctx.globalAlpha = 0.1;
     assets.forEach((asset, i) => {
-      assets.slice(i + 1).forEach(other => {
+      assets.slice(i + 1).forEach((other) => {
         if (asset.category === other.category) {
           ctx.beginPath();
           ctx.strokeStyle = CATEGORY_COLORS[asset.category];
@@ -219,35 +244,35 @@ export default function QuantPage() {
     ctx.globalAlpha = 1;
 
     // Draw assets
-    assets.forEach(asset => {
+    assets.forEach((asset) => {
       const isSelected = selectedAsset?.symbol === asset.symbol;
       const isHovered = hoverAsset?.symbol === asset.symbol;
-      
+
       // Size based on volume (log scale)
       const baseSize = Math.log10(asset.volume) * 3;
       const size = baseSize * (isSelected ? 1.3 : isHovered ? 1.15 : 1);
-      
+
       // Color based on change
       const intensity = Math.min(Math.abs(asset.change24h) / 10, 1);
       const baseColor = CATEGORY_COLORS[asset.category];
-      
+
       // Glow effect
       if (isSelected || isHovered) {
         ctx.beginPath();
         ctx.arc(asset.x, asset.y, size + 15, 0, Math.PI * 2);
         ctx.fillStyle = baseColor + "22";
         ctx.fill();
-        
+
         ctx.beginPath();
         ctx.arc(asset.x, asset.y, size + 8, 0, Math.PI * 2);
         ctx.fillStyle = baseColor + "44";
         ctx.fill();
       }
-      
+
       // Main circle
       ctx.beginPath();
       ctx.arc(asset.x, asset.y, size, 0, Math.PI * 2);
-      
+
       // Fill color: green for up, red for down
       if (asset.category === "stable") {
         ctx.fillStyle = "#4ade80";
@@ -257,35 +282,37 @@ export default function QuantPage() {
         ctx.fillStyle = `rgba(239, 68, 68, ${0.5 + intensity * 0.5})`;
       }
       ctx.fill();
-      
+
       // Border
       ctx.strokeStyle = isSelected ? "#ffffff" : baseColor;
       ctx.lineWidth = isSelected ? 3 : 2;
       ctx.stroke();
-      
+
       // Symbol label
       ctx.fillStyle = "#ffffff";
       ctx.font = `bold ${12 + size * 0.15}px monospace`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(asset.symbol, asset.x, asset.y);
-      
+
       // Price below
       ctx.fillStyle = "#aaa";
       ctx.font = "10px monospace";
       ctx.fillText(
-        asset.price >= 1 ? `$${asset.price.toFixed(2)}` : `$${asset.price.toFixed(4)}`,
+        asset.price >= 1
+          ? `$${asset.price.toFixed(2)}`
+          : `$${asset.price.toFixed(4)}`,
         asset.x,
-        asset.y + size + 12
+        asset.y + size + 12,
       );
-      
+
       // Change indicator
       const changeColor = asset.change24h > 0 ? "#22c55e" : "#ef4444";
       ctx.fillStyle = changeColor;
       ctx.fillText(
         `${asset.change24h > 0 ? "+" : ""}${asset.change24h.toFixed(1)}%`,
         asset.x,
-        asset.y + size + 24
+        asset.y + size + 24,
       );
     });
 
@@ -293,7 +320,7 @@ export default function QuantPage() {
     ctx.fillStyle = "#666";
     ctx.font = "12px monospace";
     ctx.textAlign = "left";
-    
+
     let legendY = height - 100;
     Object.entries(CATEGORY_COLORS).forEach(([cat, color]) => {
       ctx.fillStyle = color;
@@ -330,7 +357,7 @@ export default function QuantPage() {
   const handleMouseMove = (e: React.MouseEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -343,7 +370,7 @@ export default function QuantPage() {
       const dy = y - asset.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const size = Math.log10(asset.volume) * 3;
-      
+
       if (dist < size + 10) {
         found = asset;
         break;
@@ -362,70 +389,81 @@ export default function QuantPage() {
   // Quick trade functions
   const executeTrade = (type: "buy" | "sell", amount: number) => {
     if (!selectedAsset) return;
-    
+
     // Mock trade execution
-    console.log(`${type.toUpperCase()} ${amount} USDT of ${selectedAsset.symbol}`);
-    
+    console.log(
+      `${type.toUpperCase()} ${amount} USDT of ${selectedAsset.symbol}`,
+    );
+
     // Update positions (mock)
     if (type === "buy") {
-      setPositions(prev => {
-        const existing = prev.find(p => p.symbol === selectedAsset.symbol);
+      setPositions((prev) => {
+        const existing = prev.find((p) => p.symbol === selectedAsset.symbol);
         if (existing) {
-          return prev.map(p => 
-            p.symbol === selectedAsset.symbol 
+          return prev.map((p) =>
+            p.symbol === selectedAsset.symbol
               ? { ...p, amount: p.amount + amount / selectedAsset.price }
-              : p
+              : p,
           );
         }
-        return [...prev, {
-          symbol: selectedAsset.symbol,
-          amount: amount / selectedAsset.price,
-          entryPrice: selectedAsset.price,
-          currentPrice: selectedAsset.price,
-          pnl: 0,
-          pnlPercent: 0,
-        }];
+        return [
+          ...prev,
+          {
+            symbol: selectedAsset.symbol,
+            amount: amount / selectedAsset.price,
+            entryPrice: selectedAsset.price,
+            currentPrice: selectedAsset.price,
+            pnl: 0,
+            pnlPercent: 0,
+          },
+        ];
       });
-      setBalance(prev => ({ ...prev, usdt: prev.usdt - amount }));
+      setBalance((prev) => ({ ...prev, usdt: prev.usdt - amount }));
     }
   };
 
   return (
-    <div style={{ 
-      display: "flex", 
-      width: "100vw", 
-      height: "100vh",
-      background: "#0a0a0f",
-      fontFamily: "monospace",
-      overflow: "hidden"
-    }}>
+    <div
+      style={{
+        display: "flex",
+        width: "100vw",
+        height: "100vh",
+        background: "#0a0a0f",
+        fontFamily: "monospace",
+        overflow: "hidden",
+      }}
+    >
       {/* Main chart area */}
       <div style={{ flex: 1, position: "relative" }}>
         <canvas
           ref={canvasRef}
           onMouseMove={handleMouseMove}
           onClick={handleClick}
-          style={{ 
+          style={{
             cursor: hoverAsset ? "pointer" : "crosshair",
           }}
         />
-        
+
         {/* Title */}
-        <div style={{
-          position: "absolute",
-          top: 20,
-          left: 20,
-        }}>
-          <h1 style={{ 
-            color: "#f7931a", 
-            margin: 0, 
-            fontSize: "24px",
-            textShadow: "0 0 20px #f7931a44"
-          }}>
+        <div
+          style={{
+            position: "absolute",
+            top: 20,
+            left: 20,
+          }}
+        >
+          <h1
+            style={{
+              color: "#f7931a",
+              margin: 0,
+              fontSize: "24px",
+              textShadow: "0 0 20px #f7931a44",
+            }}
+          >
             Quant Command ⚡
           </h1>
           <p style={{ color: "#666", margin: "4px 0", fontSize: "12px" }}>
-            Real Binance prices • Click asset for AI analysis
+            Live crypto prices • Click asset for AI analysis
           </p>
           {lastUpdate > 0 && (
             <p style={{ color: "#444", margin: "2px 0", fontSize: "10px" }}>
@@ -435,22 +473,26 @@ export default function QuantPage() {
         </div>
 
         {/* Connection status */}
-        <div style={{
-          position: "absolute",
-          top: 20,
-          right: 420,
-          display: "flex",
-          gap: 10
-        }}>
-          <div style={{
-            padding: "6px 12px",
-            background: binanceConnected ? "#22c55e22" : "#ef444422",
-            border: `1px solid ${binanceConnected ? "#22c55e" : "#ef4444"}`,
-            borderRadius: 4,
-            color: binanceConnected ? "#22c55e" : "#ef4444",
-            fontSize: "12px"
-          }}>
-            {binanceConnected ? "🟢 Binance" : "🔴 Demo Mode"}
+        <div
+          style={{
+            position: "absolute",
+            top: 20,
+            right: 420,
+            display: "flex",
+            gap: 10,
+          }}
+        >
+          <div
+            style={{
+              padding: "6px 12px",
+              background: binanceConnected ? "#22c55e22" : "#ef444422",
+              border: `1px solid ${binanceConnected ? "#22c55e" : "#ef4444"}`,
+              borderRadius: 4,
+              color: binanceConnected ? "#22c55e" : "#ef4444",
+              fontSize: "12px",
+            }}
+          >
+            {binanceConnected ? "🟢 Live" : "🔴 Demo Mode"}
           </div>
           <button
             onClick={() => setShowSettings(!showSettings)}
@@ -461,7 +503,7 @@ export default function QuantPage() {
               borderRadius: 4,
               color: "#888",
               fontSize: "12px",
-              cursor: "pointer"
+              cursor: "pointer",
             }}
           >
             ⚙️ Settings
@@ -470,40 +512,88 @@ export default function QuantPage() {
 
         {/* Settings panel */}
         {showSettings && (
-          <div style={{
-            position: "absolute",
-            top: 60,
-            right: 420,
-            background: "#1a1a2e",
-            border: "1px solid #333",
-            borderRadius: 8,
-            padding: 16,
-            width: 280,
-            zIndex: 100
-          }}>
-            <h3 style={{ color: "#fff", margin: "0 0 12px 0", fontSize: "14px" }}>
+          <div
+            style={{
+              position: "absolute",
+              top: 60,
+              right: 420,
+              background: "#1a1a2e",
+              border: "1px solid #333",
+              borderRadius: 8,
+              padding: 16,
+              width: 280,
+              zIndex: 100,
+            }}
+          >
+            <h3
+              style={{ color: "#fff", margin: "0 0 12px 0", fontSize: "14px" }}
+            >
               ⚙️ Status
             </h3>
-            <div style={{ marginBottom: 12, padding: 12, background: "#0a0a0f", borderRadius: 4 }}>
-              <div style={{ color: providers.groq ? "#4ade80" : "#888", fontSize: "12px", marginBottom: 4 }}>
-                {providers.groq ? '✅ Groq available' : 'Groq not configured'}
+            <div
+              style={{
+                marginBottom: 12,
+                padding: 12,
+                background: "#0a0a0f",
+                borderRadius: 4,
+              }}
+            >
+              <div
+                style={{
+                  color: providers.groq ? "#4ade80" : "#888",
+                  fontSize: "12px",
+                  marginBottom: 4,
+                }}
+              >
+                {providers.groq ? "✅ Groq available" : "Groq not configured"}
               </div>
-              <div style={{ color: providers.openai ? "#4ade80" : "#888", fontSize: "12px", marginBottom: 4 }}>
-                {providers.openai ? '✅ OpenAI available' : 'OpenAI not configured'}
+              <div
+                style={{
+                  color: providers.openai ? "#4ade80" : "#888",
+                  fontSize: "12px",
+                  marginBottom: 4,
+                }}
+              >
+                {providers.openai
+                  ? "✅ OpenAI available"
+                  : "OpenAI not configured"}
               </div>
-              <div style={{ color: providers.google ? "#4ade80" : "#888", fontSize: "12px" }}>
-                {providers.google ? '✅ Google available' : 'Google not configured'}
+              <div
+                style={{
+                  color: providers.google ? "#4ade80" : "#888",
+                  fontSize: "12px",
+                }}
+              >
+                {providers.google
+                  ? "✅ Google available"
+                  : "Google not configured"}
               </div>
             </div>
-            <div style={{ padding: 12, background: "#0a0a0f", borderRadius: 4 }}>
-              <div style={{ color: binanceConnected ? "#4ade80" : "#ef4444", fontSize: "12px", marginBottom: 4 }}>
-                {binanceConnected ? '🟢 Binance prices' : '🔴 Binance offline'}
+            <div
+              style={{ padding: 12, background: "#0a0a0f", borderRadius: 4 }}
+            >
+              <div
+                style={{
+                  color: binanceConnected ? "#4ade80" : "#ef4444",
+                  fontSize: "12px",
+                  marginBottom: 4,
+                }}
+              >
+                {binanceConnected ? "🟢 Live prices" : "🔴 Prices offline"}
               </div>
               <div style={{ color: "#666", fontSize: "11px" }}>
-                Add `BINANCE_API_KEY` to `.env` for trading features (server-side)
+                Add `BINANCE_API_KEY` to `.env` for trading features
+                (server-side)
               </div>
             </div>
-            <p style={{ color: "#666", fontSize: "10px", marginTop: 12, textAlign: "center" }}>
+            <p
+              style={{
+                color: "#666",
+                fontSize: "10px",
+                marginTop: 12,
+                textAlign: "center",
+              }}
+            >
               EMA5 strategy = gambling with extra steps 😅
             </p>
           </div>
@@ -511,17 +601,21 @@ export default function QuantPage() {
 
         {/* Hover tooltip */}
         {hoverAsset && !selectedAsset && (
-          <div style={{
-            position: "absolute",
-            left: mousePos.x + 20,
-            top: mousePos.y - 10,
-            background: "#1a1a2e",
-            border: "1px solid #333",
-            borderRadius: 4,
-            padding: "8px 12px",
-            pointerEvents: "none"
-          }}>
-            <div style={{ color: "#fff", fontWeight: "bold" }}>{hoverAsset.name}</div>
+          <div
+            style={{
+              position: "absolute",
+              left: mousePos.x + 20,
+              top: mousePos.y - 10,
+              background: "#1a1a2e",
+              border: "1px solid #333",
+              borderRadius: 4,
+              padding: "8px 12px",
+              pointerEvents: "none",
+            }}
+          >
+            <div style={{ color: "#fff", fontWeight: "bold" }}>
+              {hoverAsset.name}
+            </div>
             <div style={{ color: "#888", fontSize: "11px" }}>
               Vol: ${(hoverAsset.volume / 1_000_000_000).toFixed(2)}B
             </div>
@@ -530,19 +624,23 @@ export default function QuantPage() {
       </div>
 
       {/* Right panel */}
-      <div style={{ 
-        width: 400, 
-        background: "#0f0f18",
-        borderLeft: "1px solid #1a1a2e",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden"
-      }}>
+      <div
+        style={{
+          width: 400,
+          background: "#0f0f18",
+          borderLeft: "1px solid #1a1a2e",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
         {/* Balance */}
-        <div style={{ 
-          padding: 16, 
-          borderBottom: "1px solid #1a1a2e" 
-        }}>
+        <div
+          style={{
+            padding: 16,
+            borderBottom: "1px solid #1a1a2e",
+          }}
+        >
           <div style={{ color: "#888", fontSize: "11px" }}>BALANCE</div>
           <div style={{ color: "#fff", fontSize: "24px", fontWeight: "bold" }}>
             ${balance.total.toLocaleString()}
@@ -554,20 +652,30 @@ export default function QuantPage() {
 
         {/* Selected asset panel */}
         {selectedAsset ? (
-          <div style={{ 
-            padding: 16, 
-            borderBottom: "1px solid #1a1a2e",
-            flex: 1,
-            overflow: "auto"
-          }}>
-            <div style={{ 
-              display: "flex", 
-              justifyContent: "space-between", 
-              alignItems: "center",
-              marginBottom: 12
-            }}>
+          <div
+            style={{
+              padding: 16,
+              borderBottom: "1px solid #1a1a2e",
+              flex: 1,
+              overflow: "auto",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
               <div>
-                <div style={{ color: "#fff", fontSize: "20px", fontWeight: "bold" }}>
+                <div
+                  style={{
+                    color: "#fff",
+                    fontSize: "20px",
+                    fontWeight: "bold",
+                  }}
+                >
                   {selectedAsset.symbol}
                 </div>
                 <div style={{ color: "#888", fontSize: "12px" }}>
@@ -575,68 +683,91 @@ export default function QuantPage() {
                 </div>
               </div>
               <button
-                onClick={() => { setSelectedAsset(null); setAiAnalysis(""); }}
+                onClick={() => {
+                  setSelectedAsset(null);
+                  setAiAnalysis("");
+                }}
                 style={{
                   background: "none",
                   border: "none",
                   color: "#888",
                   cursor: "pointer",
-                  fontSize: "18px"
+                  fontSize: "18px",
                 }}
               >
                 ✕
               </button>
             </div>
 
-            <div style={{ 
-              display: "grid", 
-              gridTemplateColumns: "1fr 1fr", 
-              gap: 12,
-              marginBottom: 16
-            }}>
-              <div style={{ background: "#1a1a2e", padding: 12, borderRadius: 4 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 12,
+                marginBottom: 16,
+              }}
+            >
+              <div
+                style={{ background: "#1a1a2e", padding: 12, borderRadius: 4 }}
+              >
                 <div style={{ color: "#888", fontSize: "10px" }}>PRICE</div>
                 <div style={{ color: "#fff", fontSize: "18px" }}>
-                  ${selectedAsset.price >= 1 
-                    ? selectedAsset.price.toLocaleString(undefined, { maximumFractionDigits: 2 })
-                    : selectedAsset.price.toFixed(4)
-                  }
+                  $
+                  {selectedAsset.price >= 1
+                    ? selectedAsset.price.toLocaleString(undefined, {
+                        maximumFractionDigits: 2,
+                      })
+                    : selectedAsset.price.toFixed(4)}
                 </div>
               </div>
-              <div style={{ background: "#1a1a2e", padding: 12, borderRadius: 4 }}>
-                <div style={{ color: "#888", fontSize: "10px" }}>24H CHANGE</div>
-                <div style={{ 
-                  color: selectedAsset.change24h > 0 ? "#22c55e" : "#ef4444", 
-                  fontSize: "18px" 
-                }}>
-                  {selectedAsset.change24h > 0 ? "+" : ""}{selectedAsset.change24h.toFixed(2)}%
+              <div
+                style={{ background: "#1a1a2e", padding: 12, borderRadius: 4 }}
+              >
+                <div style={{ color: "#888", fontSize: "10px" }}>
+                  24H CHANGE
+                </div>
+                <div
+                  style={{
+                    color: selectedAsset.change24h > 0 ? "#22c55e" : "#ef4444",
+                    fontSize: "18px",
+                  }}
+                >
+                  {selectedAsset.change24h > 0 ? "+" : ""}
+                  {selectedAsset.change24h.toFixed(2)}%
                 </div>
               </div>
             </div>
 
             {/* AI Analysis */}
-            <div style={{ 
-              background: "#1a1a2e", 
-              borderRadius: 8, 
-              padding: 12,
-              marginBottom: 16,
-              minHeight: 120
-            }}>
+            <div
+              style={{
+                background: "#1a1a2e",
+                borderRadius: 8,
+                padding: 12,
+                marginBottom: 16,
+                minHeight: 120,
+              }}
+            >
               <div style={{ color: "#888", fontSize: "11px", marginBottom: 8 }}>
-                Provider: <strong style={{ color: "#fff" }}>{activeProvider}</strong>
+                Provider:{" "}
+                <strong style={{ color: "#fff" }}>{activeProvider}</strong>
               </div>
               {isAnalyzing ? (
-                <div style={{ color: "#888", textAlign: "center", padding: 20 }}>
+                <div
+                  style={{ color: "#888", textAlign: "center", padding: 20 }}
+                >
                   <div style={{ fontSize: "24px", marginBottom: 8 }}>🤖</div>
                   Analyzing...
                 </div>
               ) : aiAnalysis ? (
-                <div style={{ 
-                  color: "#ddd", 
-                  fontSize: "12px", 
-                  whiteSpace: "pre-wrap",
-                  lineHeight: 1.5
-                }}>
+                <div
+                  style={{
+                    color: "#ddd",
+                    fontSize: "12px",
+                    whiteSpace: "pre-wrap",
+                    lineHeight: 1.5,
+                  }}
+                >
                   {aiAnalysis}
                 </div>
               ) : (
@@ -647,11 +778,13 @@ export default function QuantPage() {
             </div>
 
             {/* Quick trade buttons */}
-            <div style={{ 
-              display: "grid", 
-              gridTemplateColumns: "1fr 1fr", 
-              gap: 8 
-            }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 8,
+              }}
+            >
               <button
                 onClick={() => executeTrade("buy", 100)}
                 style={{
@@ -662,7 +795,7 @@ export default function QuantPage() {
                   color: "#22c55e",
                   fontWeight: "bold",
                   cursor: "pointer",
-                  fontSize: "14px"
+                  fontSize: "14px",
                 }}
               >
                 BUY $100
@@ -677,20 +810,22 @@ export default function QuantPage() {
                   color: "#ef4444",
                   fontWeight: "bold",
                   cursor: "pointer",
-                  fontSize: "14px"
+                  fontSize: "14px",
                 }}
               >
                 SELL $100
               </button>
             </div>
 
-            <div style={{ 
-              display: "grid", 
-              gridTemplateColumns: "1fr 1fr 1fr", 
-              gap: 8,
-              marginTop: 8
-            }}>
-              {[50, 250, 500].map(amt => (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr 1fr",
+                gap: 8,
+                marginTop: 8,
+              }}
+            >
+              {[50, 250, 500].map((amt) => (
                 <button
                   key={amt}
                   onClick={() => executeTrade("buy", amt)}
@@ -701,7 +836,7 @@ export default function QuantPage() {
                     borderRadius: 4,
                     color: "#888",
                     cursor: "pointer",
-                    fontSize: "11px"
+                    fontSize: "11px",
                   }}
                 >
                   ${amt}
@@ -710,30 +845,35 @@ export default function QuantPage() {
             </div>
           </div>
         ) : (
-          <div style={{ 
-            padding: 16, 
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#666",
-            textAlign: "center"
-          }}>
+          <div
+            style={{
+              padding: 16,
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#666",
+              textAlign: "center",
+            }}
+          >
             <div>
               <div style={{ fontSize: "32px", marginBottom: 8 }}>👆</div>
-              Click an asset on the map<br />
+              Click an asset on the map
+              <br />
               for AI-powered analysis
             </div>
           </div>
         )}
 
         {/* Positions */}
-        <div style={{ 
-          padding: 16, 
-          borderTop: "1px solid #1a1a2e",
-          maxHeight: 200,
-          overflow: "auto"
-        }}>
+        <div
+          style={{
+            padding: 16,
+            borderTop: "1px solid #1a1a2e",
+            maxHeight: 200,
+            overflow: "auto",
+          }}
+        >
           <div style={{ color: "#888", fontSize: "11px", marginBottom: 8 }}>
             POSITIONS ({positions.length})
           </div>
@@ -742,28 +882,33 @@ export default function QuantPage() {
               No open positions
             </div>
           ) : (
-            positions.map(pos => (
-              <div 
+            positions.map((pos) => (
+              <div
                 key={pos.symbol}
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   padding: "8px 0",
-                  borderBottom: "1px solid #1a1a2e"
+                  borderBottom: "1px solid #1a1a2e",
                 }}
               >
                 <div>
-                  <div style={{ color: "#fff", fontWeight: "bold" }}>{pos.symbol}</div>
+                  <div style={{ color: "#fff", fontWeight: "bold" }}>
+                    {pos.symbol}
+                  </div>
                   <div style={{ color: "#888", fontSize: "11px" }}>
                     {pos.amount.toFixed(6)}
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ 
-                    color: pos.pnl >= 0 ? "#22c55e" : "#ef4444",
-                    fontWeight: "bold" 
-                  }}>
-                    {pos.pnl >= 0 ? "+" : ""}{pos.pnlPercent.toFixed(2)}%
+                  <div
+                    style={{
+                      color: pos.pnl >= 0 ? "#22c55e" : "#ef4444",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {pos.pnl >= 0 ? "+" : ""}
+                    {pos.pnlPercent.toFixed(2)}%
                   </div>
                   <div style={{ color: "#888", fontSize: "11px" }}>
                     ${(pos.amount * pos.currentPrice).toFixed(2)}
@@ -775,13 +920,15 @@ export default function QuantPage() {
         </div>
 
         {/* Footer */}
-        <div style={{ 
-          padding: 12, 
-          borderTop: "1px solid #1a1a2e",
-          color: "#444",
-          fontSize: "10px",
-          textAlign: "center"
-        }}>
+        <div
+          style={{
+            padding: 12,
+            borderTop: "1px solid #1a1a2e",
+            color: "#444",
+            fontSize: "10px",
+            textAlign: "center",
+          }}
+        >
           Demo mode • Not financial advice • DYOR
         </div>
       </div>
