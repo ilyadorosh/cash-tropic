@@ -37,7 +37,7 @@ import {
   BuildingPlot,
 } from "./CityLayout";
 import { CityDatabase } from "./CityDatabase";
-import { TrafficSystem } from "./TrafficSystem";
+import { TrafficSystem, VEHICLE_STATS } from "./TrafficSystem";
 // Add import
 import { InteriorSystem } from "./InteriorSystem";
 // Add to Engine.tsx imports:
@@ -1649,6 +1649,64 @@ export default function GTAEngine3D() {
     playerGroup.visible = false;
     scene.add(playerGroup);
 
+    // === CRASH DAMAGE — sparks + a visible dent, not just a speed penalty ===
+    type ImpactSpark = {
+      mesh: THREE.Mesh;
+      velocity: THREE.Vector3;
+      life: number;
+    };
+    const impactSparks: ImpactSpark[] = [];
+    function spawnImpactSparks(
+      x: number,
+      y: number,
+      z: number,
+      count = 8,
+      color = 0xffaa33,
+    ) {
+      for (let i = 0; i < count; i++) {
+        const m = new THREE.Mesh(
+          new THREE.BoxGeometry(0.16, 0.16, 0.16),
+          new THREE.MeshBasicMaterial({ color }),
+        );
+        m.position.set(x, y, z);
+        scene.add(m);
+        impactSparks.push({
+          mesh: m,
+          velocity: new THREE.Vector3(
+            (Math.random() - 0.5) * 0.55,
+            Math.random() * 0.35 + 0.15,
+            (Math.random() - 0.5) * 0.55,
+          ),
+          life: 16 + Math.random() * 10,
+        });
+      }
+    }
+
+    // Darkens whatever materials a vehicle mesh happens to have — works for
+    // the player's car, any traffic vehicle type, and police cars alike,
+    // without needing to know each one's internal mesh structure.
+    function applyVehicleDamage(vehicleMesh: THREE.Object3D, amount: number) {
+      const dmg = Math.min(1, (vehicleMesh.userData.damage || 0) + amount);
+      vehicleMesh.userData.damage = dmg;
+      vehicleMesh.traverse((child) => {
+        if (!(child instanceof THREE.Mesh)) return;
+        const mats = Array.isArray(child.material)
+          ? child.material
+          : [child.material];
+        for (const mat of mats) {
+          const m = mat as THREE.MeshLambertMaterial;
+          if (!m || !("color" in m)) continue;
+          if (m.userData.origColor === undefined) {
+            m.userData.origColor = m.color.getHex();
+          }
+          const orig = new THREE.Color(m.userData.origColor);
+          m.color.copy(orig).lerp(new THREE.Color(0x100b06), dmg * 0.65);
+        }
+      });
+      const squish = 1 - dmg * 0.08;
+      vehicleMesh.scale.set(squish, 1, squish);
+    }
+
     type MoneyDrop = {
       mesh: THREE.Group;
       velocity: THREE.Vector3;
@@ -1742,9 +1800,20 @@ export default function GTAEngine3D() {
       ped.idleTimer = 0;
     }
 
-    function getRandomSidewalkPoint() {
-      const road =
-        NUERNBERG_STREETS[Math.floor(Math.random() * NUERNBERG_STREETS.length)];
+    // Pedestrians mostly keep walking through their own neighborhood instead
+    // of teleport-targeting a random street across the whole map — the rule
+    // real people follow: stay on the block, occasionally turn a corner.
+    function getRandomSidewalkPoint(from?: { x: number; z: number }) {
+      let pool = NUERNBERG_STREETS;
+      if (from && Math.random() < 0.82) {
+        const nearby = NUERNBERG_STREETS.filter((street) => {
+          const mx = (street.start.x + street.end.x) / 2;
+          const mz = (street.start.z + street.end.z) / 2;
+          return Math.hypot(mx - from.x, mz - from.z) < 90;
+        });
+        if (nearby.length > 0) pool = nearby;
+      }
+      const road = pool[Math.floor(Math.random() * pool.length)];
       const t = Math.random();
       const side = Math.random() > 0.5 ? 1 : -1;
       const dx = road.end.x - road.start.x;
@@ -2250,6 +2319,7 @@ export default function GTAEngine3D() {
     }
     const policeCars: PoliceCar[] = [];
     let lastBust = 0;
+    let lastCarImpact = 0;
 
     function createPoliceCar(): PoliceCar {
       const pc = new THREE.Group();
@@ -3200,8 +3270,17 @@ export default function GTAEngine3D() {
               Math.abs(nextPos.z - b.position.z) < b.userData.depth / 2 + 3
             ) {
               collide = true;
+              const impactSpeed = Math.abs(speed);
               speed *= -0.4;
               health -= 1;
+              if (now - lastCarImpact > 220) {
+                lastCarImpact = now;
+                applyVehicleDamage(
+                  activeCar,
+                  Math.min(0.35, impactSpeed * 0.5),
+                );
+                spawnImpactSparks(nextPos.x, 1.3, nextPos.z, 7, 0xffaa33);
+              }
             }
           }
 
@@ -3210,7 +3289,7 @@ export default function GTAEngine3D() {
             for (const vehicle of trafficVehicles) {
               const dx = nextPos.x - vehicle.mesh.position.x;
               const dz = nextPos.z - vehicle.mesh.position.z;
-              const hitRadius = vehicle.type === "bus" ? 6 : 4.5;
+              const hitRadius = VEHICLE_STATS[vehicle.type].hitRadius;
               if (dx * dx + dz * dz < hitRadius * hitRadius) {
                 const pushDir = new THREE.Vector3(dx, 0, dz);
                 if (pushDir.lengthSq() < 0.0001) {
@@ -3225,10 +3304,25 @@ export default function GTAEngine3D() {
                   pushDir.clone().multiplyScalar(hitRadius * 0.45),
                 );
                 vehicle.mesh.position.add(pushDir.clone().multiplyScalar(-1.2));
+                const impactSpeed = Math.abs(speed);
                 speed *= -0.35;
                 vehicle.speed *= 0.35;
                 health -= 1;
                 collide = true;
+                if (now - lastCarImpact > 220) {
+                  lastCarImpact = now;
+                  const dmgAmt = Math.min(0.4, impactSpeed * 0.6);
+                  applyVehicleDamage(activeCar, dmgAmt);
+                  applyVehicleDamage(vehicle.mesh, dmgAmt);
+                  vehicle.damage = vehicle.mesh.userData.damage || 0;
+                  spawnImpactSparks(
+                    vehicle.mesh.position.x,
+                    1.3,
+                    vehicle.mesh.position.z,
+                    9,
+                    0xffcc55,
+                  );
+                }
                 spawnMoneyDrop(
                   vehicle.mesh.position.x,
                   vehicle.mesh.position.z,
@@ -3354,7 +3448,7 @@ export default function GTAEngine3D() {
             );
             if (toTarget.length() < 2 || distToPlayer > 30) {
               ped.state = "walking";
-              const newTarget = getRandomSidewalkPoint();
+              const newTarget = getRandomSidewalkPoint(ped.mesh.position);
               ped.targetX = newTarget.x;
               ped.targetZ = newTarget.z;
             } else {
@@ -3365,7 +3459,7 @@ export default function GTAEngine3D() {
             ped.idleTimer--;
             if (ped.idleTimer <= 0) {
               ped.state = "walking";
-              const newTarget = getRandomSidewalkPoint();
+              const newTarget = getRandomSidewalkPoint(ped.mesh.position);
               ped.targetX = newTarget.x;
               ped.targetZ = newTarget.z;
             }
@@ -3383,7 +3477,7 @@ export default function GTAEngine3D() {
                 ped.state = "idle";
                 ped.idleTimer = 60 + Math.random() * 120;
               } else {
-                const newTarget = getRandomSidewalkPoint();
+                const newTarget = getRandomSidewalkPoint(ped.mesh.position);
                 ped.targetX = newTarget.x;
                 ped.targetZ = newTarget.z;
               }
@@ -3474,6 +3568,18 @@ export default function GTAEngine3D() {
           if (drop.life <= 0) {
             scene.remove(drop.mesh);
             moneyDrops.splice(i, 1);
+          }
+        }
+
+        for (let i = impactSparks.length - 1; i >= 0; i--) {
+          const s = impactSparks[i];
+          s.life--;
+          s.velocity.y -= 0.03;
+          s.mesh.position.add(s.velocity);
+          s.mesh.scale.multiplyScalar(0.9);
+          if (s.life <= 0) {
+            scene.remove(s.mesh);
+            impactSparks.splice(i, 1);
           }
         }
 

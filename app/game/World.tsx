@@ -1,5 +1,36 @@
 import * as THREE from "three";
 import { NUERNBERG_STREETS } from "./CityLayout";
+import { ROADS } from "./NuernbergMap";
+
+// There are two independent road networks in this codebase: NUERNBERG_STREETS
+// (the traffic-AI graph) and ROADS (the actual drivable pavement drawn by
+// Engine3D's drawRoads()). Anything that avoids "the road" has to check both,
+// or it'll straddle whichever one it forgot.
+type RoadSegment = {
+  ax: number;
+  az: number;
+  bx: number;
+  bz: number;
+  halfWidth: number;
+};
+const ALL_ROAD_SEGMENTS: RoadSegment[] = [
+  ...NUERNBERG_STREETS.map((s) => ({
+    ax: s.start.x,
+    az: s.start.z,
+    bx: s.end.x,
+    bz: s.end.z,
+    halfWidth: s.width / 2,
+  })),
+  ...ROADS.flatMap((r) =>
+    r.points.slice(0, -1).map((p, i) => ({
+      ax: p.x,
+      az: p.z,
+      bx: r.points[i + 1].x,
+      bz: r.points[i + 1].z,
+      halfWidth: r.width / 2,
+    })),
+  ),
+];
 
 export function createSignTexture(
   text: string,
@@ -72,36 +103,35 @@ function resolveLayoutPosition(obj: {
       dz: number;
     } | null = null;
 
-    for (const street of NUERNBERG_STREETS) {
-      const dx = street.end.x - street.start.x;
-      const dz = street.end.z - street.start.z;
-      const roadHalfWidth = street.width / 2;
+    for (const seg of ALL_ROAD_SEGMENTS) {
+      const dx = seg.bx - seg.ax;
+      const dz = seg.bz - seg.az;
+      const roadHalfWidth = seg.halfWidth;
       const objectHalfSpan =
         Math.abs(dx) >= Math.abs(dz) ? depth / 2 : width / 2;
       const neededDistance = roadHalfWidth + objectHalfSpan + 2;
       const dist = distancePointToSegment(
         centerX,
         centerZ,
-        street.start.x,
-        street.start.z,
-        street.end.x,
-        street.end.z,
+        seg.ax,
+        seg.az,
+        seg.bx,
+        seg.bz,
       );
 
       if (dist < neededDistance) {
-        const segDx = street.end.x - street.start.x;
-        const segDz = street.end.z - street.start.z;
+        const segDx = seg.bx - seg.ax;
+        const segDz = seg.bz - seg.az;
         const t = Math.max(
           0,
           Math.min(
             1,
-            ((centerX - street.start.x) * segDx +
-              (centerZ - street.start.z) * segDz) /
+            ((centerX - seg.ax) * segDx + (centerZ - seg.az) * segDz) /
               (segDx * segDx + segDz * segDz || 1),
           ),
         );
-        const cx = street.start.x + segDx * t;
-        const cz = street.start.z + segDz * t;
+        const cx = seg.ax + segDx * t;
+        const cz = seg.az + segDz * t;
 
         if (!nearest || dist < nearest.dist) {
           nearest = {
@@ -543,9 +573,26 @@ export function initWorld(
     );
     leaves.position.y = 10;
     tree.add(leaves);
-    const angle = Math.random() * Math.PI * 2;
-    const r = 40 + Math.random() * 80;
-    tree.position.set(Math.cos(angle) * r, 0, Math.sin(angle) * r);
+
+    // pick a spot off every road we know about (retry, don't push — a tree
+    // that's still in the way after 12 tries just sits this round out)
+    let tx = 0,
+      tz = 0,
+      placed = false;
+    for (let tries = 0; tries < 12 && !placed; tries++) {
+      const angle = Math.random() * Math.PI * 2;
+      const r = 40 + Math.random() * 80;
+      tx = Math.cos(angle) * r;
+      tz = Math.sin(angle) * r;
+      placed = !ALL_ROAD_SEGMENTS.some(
+        (seg) =>
+          distancePointToSegment(tx, tz, seg.ax, seg.az, seg.bx, seg.bz) <
+          seg.halfWidth + 4,
+      );
+    }
+    if (!placed) continue; // couldn't find clear ground, skip this tree
+
+    tree.position.set(tx, 0, tz);
     tree.castShadow = true;
     scene.add(tree);
     const proxy = new THREE.Mesh(new THREE.BoxGeometry(2, 20, 2));

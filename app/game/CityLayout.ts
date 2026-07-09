@@ -1,5 +1,7 @@
 // CityLayout.ts - Ordered city grid system for Nürnberg
 
+import { ROADS } from "./NuernbergMap";
+
 export interface StreetSegment {
   id: string;
   start: { x: number; z: number };
@@ -208,7 +210,7 @@ function isPointTooCloseToRoad(
   depth: number,
   buffer = 2,
 ) {
-  return NUERNBERG_STREETS.some((street) => {
+  const tooCloseToStreets = NUERNBERG_STREETS.some((street) => {
     const dx = street.end.x - street.start.x;
     const dz = street.end.z - street.start.z;
     const roadHalfWidth = street.width / 2;
@@ -225,6 +227,17 @@ function isPointTooCloseToRoad(
       ) < neededDistance
     );
   });
+  if (tooCloseToStreets) return true;
+
+  // second, independent road network (the drivable pavement) — same rule
+  return ROADS.some((road) =>
+    road.points.slice(0, -1).some((p, i) => {
+      const q = road.points[i + 1];
+      const neededDistance =
+        road.width / 2 + Math.max(width, depth) / 2 + buffer;
+      return distancePointToSegment(x, z, p.x, p.z, q.x, q.z) < neededDistance;
+    }),
+  );
 }
 
 // Generate city blocks from streets

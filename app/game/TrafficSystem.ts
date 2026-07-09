@@ -18,7 +18,34 @@ export interface TrafficVehicle {
   speed: number;
   maxSpeed: number;
   color: number;
-  type: "car" | "truck" | "bus";
+  type: "car" | "taxi" | "truck" | "bus" | "motorcycle";
+  /** accumulated crash damage, 0..1 — drives the visual dent/scorch */
+  damage: number;
+}
+
+export const VEHICLE_STATS: Record<
+  TrafficVehicle["type"],
+  { hitRadius: number; speedMul: number; weight: number }
+> = {
+  motorcycle: { hitRadius: 2.2, speedMul: 1.35, weight: 5 },
+  car: { hitRadius: 4.5, speedMul: 1, weight: 12 },
+  taxi: { hitRadius: 4.5, speedMul: 1.05, weight: 4 },
+  truck: { hitRadius: 5.5, speedMul: 0.75, weight: 3 },
+  bus: { hitRadius: 6.5, speedMul: 0.55, weight: 2 },
+};
+
+function pickVehicleType(): TrafficVehicle["type"] {
+  const entries = Object.entries(VEHICLE_STATS) as [
+    TrafficVehicle["type"],
+    (typeof VEHICLE_STATS)[TrafficVehicle["type"]],
+  ][];
+  const total = entries.reduce((s, [, v]) => s + v.weight, 0);
+  let r = Math.random() * total;
+  for (const [type, stats] of entries) {
+    r -= stats.weight;
+    if (r <= 0) return type;
+  }
+  return "car";
 }
 
 export class TrafficSystem {
@@ -99,8 +126,8 @@ export class TrafficSystem {
     const path = this.buildPath(startNode, playerPosition);
     if (path.length < 2) return;
 
-    // Create vehicle mesh
-    const mesh = this.createVehicleMesh();
+    const type = pickVehicleType();
+    const mesh = this.createVehicleMesh(type);
     mesh.position.set(startNode.position.x, 0, startNode.position.z);
     this.scene.add(mesh);
 
@@ -112,55 +139,162 @@ export class TrafficSystem {
       path,
       pathIndex: 0,
       speed: 0,
-      maxSpeed: 0.3 + Math.random() * 0.2,
+      maxSpeed: (0.3 + Math.random() * 0.2) * VEHICLE_STATS[type].speedMul,
       color: Math.random() * 0xffffff,
-      type: path.length > 7 ? (Math.random() < 0.2 ? "bus" : "truck") : "car",
+      type,
+      damage: 0,
     };
 
     this.vehicles.push(vehicle);
   }
 
-  private createVehicleMesh(): THREE.Group {
-    const group = new THREE.Group();
-
-    // Random car colors
-    const colors = [
-      0xff0000, 0x0000ff, 0x00aa00, 0xffcc00, 0xffffff, 0x333333, 0x666666,
-    ];
-    const color = colors[Math.floor(Math.random() * colors.length)];
-
-    // Body
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(3, 1.5, 6),
-      new THREE.MeshLambertMaterial({ color }),
-    );
-    body.position.y = 1;
-    body.castShadow = true;
-    group.add(body);
-
-    // Roof
-    const roof = new THREE.Mesh(
-      new THREE.BoxGeometry(2.5, 1, 3),
-      new THREE.MeshLambertMaterial({ color: 0xcccccc }),
-    );
-    roof.position.set(0, 2, -0.3);
-    group.add(roof);
-
-    // Wheels
-    const wheelGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.4, 8);
+  private wheels(
+    group: THREE.Group,
+    positions: number[][],
+    radius: number,
+    width: number,
+  ) {
+    const wheelGeo = new THREE.CylinderGeometry(radius, radius, width, 8);
     const wheelMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
-
-    [
-      [-1.3, 0.5, 1.8],
-      [1.3, 0.5, 1.8],
-      [-1.3, 0.5, -1.8],
-      [1.3, 0.5, -1.8],
-    ].forEach((pos) => {
+    positions.forEach((pos) => {
       const wheel = new THREE.Mesh(wheelGeo, wheelMat);
       wheel.rotation.z = Math.PI / 2;
       wheel.position.set(pos[0], pos[1], pos[2]);
       group.add(wheel);
     });
+  }
+
+  private createVehicleMesh(type: TrafficVehicle["type"]): THREE.Group {
+    const group = new THREE.Group();
+    const colors = [
+      0xff0000, 0x0000ff, 0x00aa00, 0xffcc00, 0xffffff, 0x333333, 0x666666,
+    ];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+
+    if (type === "motorcycle") {
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(0.8, 0.7, 2.2),
+        new THREE.MeshLambertMaterial({ color }),
+      );
+      body.position.y = 0.6;
+      body.castShadow = true;
+      group.add(body);
+      const rider = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.28, 0.7, 4, 8),
+        new THREE.MeshLambertMaterial({ color: 0x222222 }),
+      );
+      rider.position.set(0, 1.3, -0.1);
+      group.add(rider);
+      this.wheels(
+        group,
+        [
+          [0, 0.4, 0.9],
+          [0, 0.4, -0.9],
+        ],
+        0.4,
+        0.25,
+      );
+      return group;
+    }
+
+    if (type === "truck") {
+      const cab = new THREE.Mesh(
+        new THREE.BoxGeometry(3, 2.2, 2.4),
+        new THREE.MeshLambertMaterial({ color }),
+      );
+      cab.position.set(0, 1.5, 2.6);
+      cab.castShadow = true;
+      group.add(cab);
+      const cargo = new THREE.Mesh(
+        new THREE.BoxGeometry(3.2, 3, 6.5),
+        new THREE.MeshLambertMaterial({ color: 0xdddddd }),
+      );
+      cargo.position.set(0, 2, -1.8);
+      cargo.castShadow = true;
+      group.add(cargo);
+      this.wheels(
+        group,
+        [
+          [-1.5, 0.6, 3],
+          [1.5, 0.6, 3],
+          [-1.5, 0.6, -1],
+          [1.5, 0.6, -1],
+          [-1.5, 0.6, -3.5],
+          [1.5, 0.6, -3.5],
+        ],
+        0.6,
+        0.5,
+      );
+      return group;
+    }
+
+    if (type === "bus") {
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(3.2, 3, 10),
+        new THREE.MeshLambertMaterial({ color: 0xffcc00 }),
+      );
+      body.position.y = 1.8;
+      body.castShadow = true;
+      group.add(body);
+      const stripe = new THREE.Mesh(
+        new THREE.BoxGeometry(3.25, 0.5, 10),
+        new THREE.MeshLambertMaterial({ color: 0x222222 }),
+      );
+      stripe.position.y = 1.2;
+      group.add(stripe);
+      this.wheels(
+        group,
+        [
+          [-1.6, 0.6, 3.5],
+          [1.6, 0.6, 3.5],
+          [-1.6, 0.6, -3.5],
+          [1.6, 0.6, -3.5],
+        ],
+        0.6,
+        0.45,
+      );
+      return group;
+    }
+
+    // car / taxi share a chassis; taxi gets the roof sign + livery
+    const bodyColor = type === "taxi" ? 0xffd400 : color;
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(3, 1.5, 6),
+      new THREE.MeshLambertMaterial({ color: bodyColor }),
+    );
+    body.position.y = 1;
+    body.castShadow = true;
+    group.add(body);
+
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(2.5, 1, 3),
+      new THREE.MeshLambertMaterial({
+        color: type === "taxi" ? 0xffd400 : 0xcccccc,
+      }),
+    );
+    roof.position.set(0, 2, -0.3);
+    group.add(roof);
+
+    if (type === "taxi") {
+      const sign = new THREE.Mesh(
+        new THREE.BoxGeometry(0.8, 0.35, 0.5),
+        new THREE.MeshBasicMaterial({ color: 0x222222 }),
+      );
+      sign.position.set(0, 2.7, -0.3);
+      group.add(sign);
+    }
+
+    this.wheels(
+      group,
+      [
+        [-1.3, 0.5, 1.8],
+        [1.3, 0.5, 1.8],
+        [-1.3, 0.5, -1.8],
+        [1.3, 0.5, -1.8],
+      ],
+      0.5,
+      0.4,
+    );
 
     return group;
   }

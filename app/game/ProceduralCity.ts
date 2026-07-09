@@ -2,6 +2,7 @@
 
 import * as THREE from "three";
 import { NUERNBERG_STREETS } from "./CityLayout";
+import { ROADS } from "./NuernbergMap";
 
 export interface Building {
   id: string;
@@ -193,7 +194,10 @@ export class ProceduralCity {
     footprintRadius: number = 12,
   ) {
     const roadClearance = footprintRadius + 4;
-    return NUERNBERG_STREETS.some((street) => {
+    // two independent road networks exist (traffic-AI graph + drawn
+    // pavement) — a spot has to clear both or it'll straddle whichever
+    // one this check forgot
+    const tooCloseToStreets = NUERNBERG_STREETS.some((street) => {
       const roadRadius = street.width / 2;
       const neededDistance = roadRadius + roadClearance;
       return (
@@ -207,6 +211,17 @@ export class ProceduralCity {
         ) < neededDistance
       );
     });
+    if (tooCloseToStreets) return true;
+
+    return ROADS.some((road) =>
+      road.points.slice(0, -1).some((p, i) => {
+        const q = road.points[i + 1];
+        const neededDistance = road.width / 2 + roadClearance;
+        return (
+          distancePointToSegment(x, z, p.x, p.z, q.x, q.z) < neededDistance
+        );
+      }),
+    );
   }
 
   initializeStartingBuildings() {
