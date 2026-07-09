@@ -271,6 +271,7 @@ const groqModels = [
 const sambanovaModels = [
   "openai/gpt-oss-120b",
   "llama-3.3-70b-versatile",
+  "DeepSeek-V3.2",
   "DeepSeek-R1-0528",
   // "llama-3.3-70b-instruct",
   "Qwen3-32B",
