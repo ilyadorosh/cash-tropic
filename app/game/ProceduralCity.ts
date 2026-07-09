@@ -237,7 +237,9 @@ export class ProceduralCity {
       const slots = this.getAvailableSlots(zone, 3); // Just 3 per zone
       slots.forEach((slot) => {
         const building = this.generateFallbackBuilding(zone, slot.x, slot.z);
-        this.addBuilding(building, zone);
+        // the world you spawn into should already look finished — only
+        // buildings that appear *during play* get the construction telegraph
+        this.addBuilding(building, zone, true);
       });
     });
 
@@ -699,10 +701,12 @@ Antworte NUR mit gültigem JSON in diesem exakten Format:
     );
     const slots = this.getAvailableSlots(zone, actualCount);
 
-    // Use FALLBACK only - no LLM calls!
+    // Use FALLBACK only - no LLM calls! This runs once at scene setup to
+    // populate the starting zones, so it should look already-finished —
+    // same reasoning as initializeStartingBuildings().
     slots.forEach((slot) => {
       const building = this.generateFallbackBuilding(zone, slot.x, slot.z);
-      this.addBuilding(building, zone);
+      this.addBuilding(building, zone, true);
     });
   }
 
@@ -782,9 +786,56 @@ Antworte NUR mit gültigem JSON in diesem exakten Format:
     this.isGenerating = false;
   }
 
-  private addBuilding(building: Building, zone: CityZone) {
+  // A new building used to pop into existence instantly, which read as a
+  // glitch rather than "the city growing." Now it's telegraphed: scaffold
+  // + a construction sign for a few seconds, then it comes down.
+  private showConstructionSite(building: Building, mesh: THREE.Group) {
+    const site = new THREE.Group();
+    const w = building.size.w,
+      h = building.size.h,
+      d = building.size.d;
+
+    const scaffold = new THREE.Mesh(
+      new THREE.BoxGeometry(w * 1.05, h, d * 1.05),
+      new THREE.MeshBasicMaterial({
+        color: 0xffaa00,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.55,
+      }),
+    );
+    scaffold.position.y = h / 2;
+    site.add(scaffold);
+
+    const sign = new THREE.Mesh(
+      new THREE.PlaneGeometry(3, 1.2),
+      new THREE.MeshBasicMaterial({
+        map: createTextTexture("IM BAU", "#ffcc00", "#1a1a1a", 36, 384, 128),
+        transparent: true,
+      }),
+    );
+    sign.position.set(0, Math.min(h + 1.5, 4), d / 2 + 0.1);
+    site.add(sign);
+
+    site.position.set(building.position.x, 0, building.position.z);
+    this.scene.add(site);
+
+    const buildTime = 3000 + Math.random() * 1500;
+    setTimeout(() => {
+      this.scene.remove(site);
+      mesh.visible = true;
+    }, buildTime);
+  }
+
+  private addBuilding(building: Building, zone: CityZone, instant = false) {
     const mesh = this.createBuildingMesh(building);
-    this.scene.add(mesh);
+    if (instant) {
+      this.scene.add(mesh);
+    } else {
+      mesh.visible = false; // revealed once the scaffold comes down
+      this.scene.add(mesh);
+      this.showConstructionSite(building, mesh);
+    }
 
     zone.buildings.push(building);
     this.allBuildings.set(building.id, { mesh, data: building });

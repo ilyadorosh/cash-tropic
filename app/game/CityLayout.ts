@@ -178,6 +178,88 @@ export const NUERNBERG_STREETS: StreetSegment[] = [
     type: "alley",
     name: "Seitengasse",
   },
+
+  // === ERLENSTEGEN (hills, unlocks with relationship) ===
+  // Anchored on hauptstr_1's east endpoint (150,40) so the traffic graph
+  // (which connects nodes by exact shared coordinates) actually reaches it.
+  {
+    id: "ext_erlenstegen_1",
+    start: { x: 150, z: 40 },
+    end: { x: 240, z: 10 },
+    width: 14,
+    type: "main",
+    name: "Erlenstegener Allee",
+  },
+  {
+    id: "ext_erlenstegen_2",
+    start: { x: 240, z: 10 },
+    end: { x: 240, z: 90 },
+    width: 10,
+    type: "side",
+    name: "Rathsbergstraße",
+  },
+  {
+    id: "ext_erlenstegen_3",
+    start: { x: 240, z: 10 },
+    end: { x: 240, z: -70 },
+    width: 10,
+    type: "side",
+    name: "Zerzabelshofstraße",
+  },
+
+  // === INDUSTRIEGEBIET HAFEN (industrial, unlocks with missions) ===
+  // Anchored on hauptstr_3's west endpoint (-100,-100).
+  {
+    id: "ext_hafen_1",
+    start: { x: -100, z: -100 },
+    end: { x: -230, z: -100 },
+    width: 14,
+    type: "main",
+    name: "Hafenstraße",
+  },
+  {
+    id: "ext_hafen_2",
+    start: { x: -230, z: -100 },
+    end: { x: -230, z: -40 },
+    width: 10,
+    type: "side",
+    name: "Kanalstraße",
+  },
+  {
+    id: "ext_hafen_3",
+    start: { x: -230, z: -100 },
+    end: { x: -260, z: -150 },
+    width: 10,
+    type: "side",
+    name: "Werftstraße",
+  },
+
+  // === WÖHRDER SEE (beach, unlocks with Maria relationship) ===
+  // Anchored on hauptstr_4's east endpoint (100,-150).
+  {
+    id: "ext_woehrdersee_1",
+    start: { x: 100, z: -150 },
+    end: { x: 210, z: -210 },
+    width: 14,
+    type: "main",
+    name: "Wöhrder Wiese",
+  },
+  {
+    id: "ext_woehrdersee_2",
+    start: { x: 210, z: -210 },
+    end: { x: 320, z: -210 },
+    width: 10,
+    type: "side",
+    name: "Seeuferweg",
+  },
+  {
+    id: "ext_woehrdersee_3",
+    start: { x: 210, z: -210 },
+    end: { x: 210, z: -300 },
+    width: 10,
+    type: "side",
+    name: "Strandallee",
+  },
 ];
 
 function distancePointToSegment(

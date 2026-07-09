@@ -6,7 +6,6 @@ import { initWorld, MAP_LAYOUT } from "./World";
 import { GameStats, Dialogue, DialogueOption } from "./types";
 import {
   PLAYER_SPAWN,
-  ROADS,
   LOCATIONS,
   ZONES,
   NO_BUILD_ZONES,
@@ -454,7 +453,7 @@ export default function GTAEngine3D() {
     // === THREE.JS SETUP ===
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
-    scene.fog = new THREE.Fog(0x87ceeb, 50, 300);
+    scene.fog = new THREE.Fog(0x87ceeb, 50, 650);
 
     const camera = new THREE.PerspectiveCamera(
       75,
@@ -598,7 +597,9 @@ export default function GTAEngine3D() {
       if (scene.fog instanceof THREE.Fog) {
         scene.fog.color.copy(fogC);
         scene.fog.near = raining ? 18 : foggy ? 8 : 50;
-        scene.fog.far = raining ? 150 : foggy ? 95 : 420; // clear days reveal the east district
+        // clear days reveal the full city now — old town plus the three
+        // outlying zones (Erlenstegen, Hafen, Wöhrder See), ~450 units out
+        scene.fog.far = raining ? 150 : foggy ? 95 : 650;
       }
       sun.intensity = sunI;
       const ang = (t - 0.25) * Math.PI * 2;
@@ -1268,145 +1269,12 @@ export default function GTAEngine3D() {
       colliders.push(collider);
     }
 
-    function drawRoads() {
-      const roadsGroup = new THREE.Group();
-
-      ROADS.forEach((road) => {
-        const color =
-          road.type === "autobahn"
-            ? 0x333333
-            : road.type === "hauptstrasse"
-              ? 0x444444
-              : 0x555555;
-
-        // Draw road segments
-        for (let i = 0; i < road.points.length - 1; i++) {
-          const start = road.points[i];
-          const end = road.points[i + 1];
-
-          const dx = end.x - start.x;
-          const dz = end.z - start.z;
-          const length = Math.sqrt(dx * dx + dz * dz);
-          const angle = Math.atan2(dx, dz);
-
-          // Asphalt
-          const roadMesh = new THREE.Mesh(
-            new THREE.PlaneGeometry(road.width, length),
-            new THREE.MeshLambertMaterial({ color }),
-          );
-          roadMesh.rotation.x = -Math.PI / 2;
-          roadMesh.rotation.z = angle;
-          roadMesh.position.set(
-            (start.x + end.x) / 2,
-            0.05,
-            (start.z + end.z) / 2,
-          );
-          roadMesh.receiveShadow = true;
-          roadsGroup.add(roadMesh);
-
-          // Lane markings for autobahn
-          if (road.type === "autobahn") {
-            // Center lines
-            for (let lane = 1; lane < road.lanes; lane++) {
-              const offset =
-                (lane - road.lanes / 2) * (road.width / road.lanes);
-              const lineMesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.3, length),
-                new THREE.MeshBasicMaterial({ color: 0xffffff }),
-              );
-              lineMesh.rotation.x = -Math.PI / 2;
-              lineMesh.rotation.z = angle;
-
-              // Offset perpendicular to road direction
-              const perpX = Math.cos(angle) * offset;
-              const perpZ = -Math.sin(angle) * offset;
-
-              lineMesh.position.set(
-                (start.x + end.x) / 2 + perpX,
-                0.06,
-                (start.z + end.z) / 2 + perpZ,
-              );
-              roadsGroup.add(lineMesh);
-            }
-
-            // Edge lines (yellow for autobahn)
-            [-1, 1].forEach((side) => {
-              const edgeMesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.4, length),
-                new THREE.MeshBasicMaterial({ color: 0xffcc00 }),
-              );
-              edgeMesh.rotation.x = -Math.PI / 2;
-              edgeMesh.rotation.z = angle;
-
-              const offset = side * (road.width / 2 - 0.5);
-              const perpX = Math.cos(angle) * offset;
-              const perpZ = -Math.sin(angle) * offset;
-
-              edgeMesh.position.set(
-                (start.x + end.x) / 2 + perpX,
-                0.06,
-                (start.z + end.z) / 2 + perpZ,
-              );
-              roadsGroup.add(edgeMesh);
-            });
-          }
-        }
-
-        // Autobahn signs
-        if (road.type === "autobahn" && road.points.length > 0) {
-          const signPos = road.points[0];
-          const sign = createAutobahnSign(road.name, road.speedLimit);
-          sign.position.set(signPos.x + 15, 0, signPos.z);
-          roadsGroup.add(sign);
-        }
-      });
-
-      scene.add(roadsGroup);
-    }
-
-    function createAutobahnSign(name: string, speed: number): THREE.Group {
-      const group = new THREE.Group();
-
-      // Pole
-      const pole = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.2, 0.2, 8),
-        new THREE.MeshLambertMaterial({ color: 0x888888 }),
-      );
-      pole.position.y = 4;
-      group.add(pole);
-
-      // Sign background (blue for autobahn)
-      const signBg = new THREE.Mesh(
-        new THREE.BoxGeometry(6, 3, 0.2),
-        new THREE.MeshLambertMaterial({ color: 0x0055aa }),
-      );
-      signBg.position.y = 7;
-      group.add(signBg);
-
-      // Speed sign (round, no limit)
-      if (speed >= 200) {
-        // No speed limit sign
-        const noLimit = new THREE.Mesh(
-          new THREE.CircleGeometry(1, 32),
-          new THREE.MeshBasicMaterial({ color: 0xffffff }),
-        );
-        noLimit.position.set(0, 7, 0.15);
-        group.add(noLimit);
-
-        // Diagonal lines
-        const lines = new THREE.Mesh(
-          new THREE.PlaneGeometry(0.1, 2),
-          new THREE.MeshBasicMaterial({ color: 0x000000 }),
-        );
-        lines.rotation.z = Math.PI / 4;
-        lines.position.set(0, 7, 0.2);
-        group.add(lines);
-      }
-
-      return group;
-    }
-    // Call it after scene setup:
-    drawRoads();
+    // The old ROADS-based pavement renderer was retired: this codebase
+    // had two independent road networks (ROADS here, NUERNBERG_STREETS for
+    // traffic AI) that were never reconciled, so anything placed clear of
+    // one still straddled the other. TrafficSystem.drawStreets() (called
+    // above) is now the single source of pavement, for both rendering and
+    // collision-avoidance.
 
     // Generate building data for a plot
     function generateBuildingForPlot(
