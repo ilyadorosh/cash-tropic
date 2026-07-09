@@ -519,6 +519,13 @@ export function ChatActions(props: {
   const [showUploadImage, setShowUploadImage] = useState(false);
   const [showGameNav, setShowGameNav] = useState(false);
 
+  // the sidebar mini-plaza's "⚡ plaza" door opens the big one from here
+  useEffect(() => {
+    const open = () => setShowGameNav(true);
+    window.addEventListener("open-plaza", open);
+    return () => window.removeEventListener("open-plaza", open);
+  }, []);
+
   useEffect(() => {
     const show = isVisionModel(currentModel);
     setShowUploadImage(show);

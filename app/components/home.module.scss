@@ -161,6 +161,10 @@
   flex: 1;
   overflow: auto;
   overflow-x: hidden;
+  // column flex so the chat map's list scrolls while the mini plaza
+  // stays pinned at the bottom of the sidebar
+  display: flex;
+  flex-direction: column;
 }
 
 .chat-item {

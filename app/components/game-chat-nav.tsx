@@ -19,6 +19,7 @@ import { Mask, useMaskStore } from "../store/mask";
 import { ServiceProvider, Path } from "../constant";
 import { useAllModels } from "../utils/hooks";
 import { showToast } from "./ui-lib";
+import { hueOf, colorLuminance } from "./plaza-utils";
 import styles from "./game-chat-nav.module.scss";
 
 interface GameChatNavProps {
@@ -38,18 +39,14 @@ type Npc = {
   providerName?: string;
   // mask
   mask?: Mask;
+  // door: hard navigation target outside the SPA router (e.g. /game)
+  href?: string;
   isCurrent?: boolean;
 };
 
 const TALK_RADIUS = 52;
 const NPC_SPACING = 78;
 const PLAYER_SPEED = 190; // px/s
-
-function hueOf(name: string) {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
-  return h;
-}
 
 function cssVar(name: string, fallback: string) {
   if (typeof window === "undefined") return fallback;
@@ -111,31 +108,45 @@ export function GameChatNav({ onClose, onOpenList }: GameChatNavProps) {
       });
     });
 
-    // masks quarter: the user's own masks (newest first), capped
-    const userMasks = Object.values(maskStore.masks)
-      .sort((a, b) => b.createdAt - a.createdAt)
-      .slice(0, 10);
+    // masks quarter: getAll() = user masks first, then builtins (system
+    // prompts that actually modify the model — each carries its own
+    // context + modelConfig), capped so the quarter stays walkable
+    const masks = maskStore.getAll().slice(0, 12);
     const maskY = ringR * 0.72 + 190;
-    signs.push({ x: 0, y: maskY - 66, text: "your masks", hue: 300 });
-    userMasks.forEach((mask, i) => {
+    signs.push({ x: 0, y: maskY - 66, text: "masks", hue: 300 });
+    const mCols = 4;
+    masks.forEach((mask, i) => {
+      const row = Math.floor(i / mCols);
+      const col = i % mCols;
       npcs.push({
         kind: "mask",
-        x: (i - (userMasks.length - 1) / 2) * NPC_SPACING,
-        y: maskY,
-        hue: hueOf(mask.name) | 0,
+        x: (col - (mCols - 1) / 2) * NPC_SPACING,
+        y: maskY + row * NPC_SPACING,
+        hue: hueOf(mask.name),
         label: mask.name,
         sub: "mask → new chat",
         mask,
       });
     });
-    // door to the full mask shop
+    // doors: the full mask shop, and the 3D city (it has model selection
+    // and temperature in-world already)
+    const doorX = ((mCols - 1) / 2) * NPC_SPACING + NPC_SPACING * 1.5;
     npcs.push({
       kind: "door",
-      x: ((userMasks.length + 1) / 2) * NPC_SPACING + NPC_SPACING,
+      x: doorX,
       y: maskY,
       hue: 300,
       label: "mask shop",
       sub: "all masks →",
+    });
+    npcs.push({
+      kind: "door",
+      x: doorX + NPC_SPACING * 1.2,
+      y: maskY,
+      hue: 210,
+      label: "the city (3D)",
+      sub: "drive the world →",
+      href: "/game",
     });
 
     // world bounds with margin
@@ -150,7 +161,7 @@ export function GameChatNav({ onClose, onOpenList }: GameChatNavProps) {
       minY: Math.min(...ys, 0) - margin,
       maxY: Math.max(...ys, 0) + margin,
     };
-  }, [allModels, maskStore.masks, currentModel, currentProvider]);
+  }, [allModels, maskStore, currentModel, currentProvider]);
 
   // mutable refs the game loop reads/writes without re-rendering React
   const worldRef = useRef(world);
@@ -179,7 +190,12 @@ export function GameChatNav({ onClose, onOpenList }: GameChatNavProps) {
       showToast(`new chat as ${npc.label}`);
       onClose?.();
     } else if (npc.kind === "door") {
-      navigate(Path.Masks);
+      if (npc.href) {
+        // app-router page outside the SPA — needs a full navigation
+        window.location.href = npc.href;
+      } else {
+        navigate(Path.Masks);
+      }
       onClose?.();
     }
   };
@@ -199,9 +215,9 @@ export function GameChatNav({ onClose, onOpenList }: GameChatNavProps) {
       primary: cssVar("--primary", "#1d93ab"),
       border: "rgba(128,128,128,0.35)",
     };
-    const dark =
-      document.body.classList.contains("dark") ||
-      window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+    // detect dark from the resolved --white variable itself — body classes
+    // lied to us once (white-on-white nameplates), resolved colors can't
+    const dark = colorLuminance(theme.card) < 0.5;
 
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     let vw = 0;

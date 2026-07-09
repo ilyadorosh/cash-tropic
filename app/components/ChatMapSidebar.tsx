@@ -11,6 +11,7 @@ import { ChatSession, useChatStore } from "@/app/store";
 import { Path } from "@/app/constant";
 import { showConfirm } from "./ui-lib";
 import Locale from "../locales";
+import SidebarPlaza from "./sidebar-plaza";
 
 type ChatId = string;
 interface ChatMeta {
@@ -422,6 +423,10 @@ export default function ChatMapSidebar(): JSX.Element {
           })
         )}
       </div>
+
+      {/* the empty space below the list is the mini plaza: models and
+          masks as tappable people — no menus, no clicking around */}
+      <SidebarPlaza />
     </aside>
   );
 }
