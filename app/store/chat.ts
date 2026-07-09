@@ -24,6 +24,7 @@ import { prettyObject } from "../utils/format";
 import { estimateTokenLength } from "../utils/token";
 import { nanoid } from "nanoid";
 import { createPersistStore } from "../utils/store";
+import { backupSessionToCloud } from "../utils/backup";
 import { collectModelsWithDefaultModel } from "../utils/model";
 import { useAccessStore } from "./access";
 
@@ -64,7 +65,6 @@ export interface ChatSession {
 
   mask: Mask;
 }
-
 
 // type Session = {
 //   id: string;
@@ -409,6 +409,7 @@ export const useChatStore = createPersistStore(
               get().onNewMessage(botMessage);
             }
             ChatControllerPool.remove(session.id, botMessage.id);
+            backupSessionToCloud(get().currentSession());
           },
           onError(error) {
             const isAborted = error.message.includes("aborted");
@@ -440,10 +441,6 @@ export const useChatStore = createPersistStore(
             );
           },
         });
-        // fetch("/api/storeChat", {
-        //   method: "POST",
-        //   body: JSON.stringify(session.messages),
-        // });
       },
 
       getMemoryPrompt() {

@@ -82,6 +82,45 @@ export async function saveChat({
   }
 }
 
+// No-login cloud backup: the browser mints a stable anonymous id (stored in
+// localStorage) and this creates the matching User row on first use so the
+// Chat.userId foreign key has something to point at. Idempotent — safe to
+// call on every save.
+export async function ensureAnonUser(id: string) {
+  try {
+    return await db
+      .insert(user)
+      .values({ id, email: `anon-${id}@cash-tropic.local` })
+      .onConflictDoNothing();
+  } catch (error) {
+    console.error("Failed to ensure anon user in database", error);
+    throw error;
+  }
+}
+
+// Same idea as saveChat but idempotent (onConflictDoNothing) so calling it
+// again for a session that's already backed up doesn't throw a duplicate
+// primary key error.
+export async function ensureChat({
+  id,
+  userId,
+  title,
+}: {
+  id: string;
+  userId: string;
+  title: string;
+}) {
+  try {
+    return await db
+      .insert(chat)
+      .values({ id, createdAt: new Date(), userId, title })
+      .onConflictDoNothing();
+  } catch (error) {
+    console.error("Failed to ensure chat in database", error);
+    throw error;
+  }
+}
+
 export async function deleteChatById({ id }: { id: string }) {
   try {
     await db.delete(vote).where(eq(vote.chatId, id));
