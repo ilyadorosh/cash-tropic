@@ -333,26 +333,33 @@ export function SideBar(props: { className?: string }) {
         }
         secondaryAction={
           <>
-            <a href="/dashboard" style={{ textDecoration: "none" }}>
+            <div className={styles["sidebar-action"]}>
+              {/* /dashboard is an app-router page outside the SPA router, so
+                  a plain anchor (full navigation) is required here */}
+              <a href="/dashboard" style={{ textDecoration: "none" }}>
+                <IconButton
+                  icon={<LightningIcon />}
+                  text={shouldNarrow ? undefined : "Dashboard"}
+                  title="Dashboard"
+                  shadow
+                />
+              </a>
+            </div>
+            <div className={styles["sidebar-action"]}>
               <IconButton
-                icon={<LightningIcon />}
-                text={shouldNarrow ? undefined : "Dashboard"}
+                icon={<AddIcon />}
+                text={shouldNarrow ? undefined : Locale.Home.NewChat}
+                onClick={() => {
+                  if (config.dontShowMaskSplashScreen) {
+                    chatStore.newSession();
+                    navigate(Path.Chat);
+                  } else {
+                    navigate(Path.NewChat, { state: { fromHome: true } });
+                  }
+                }}
                 shadow
               />
-            </a>
-            <IconButton
-              icon={<AddIcon />}
-              text={shouldNarrow ? undefined : Locale.Home.NewChat}
-              onClick={() => {
-                if (config.dontShowMaskSplashScreen) {
-                  chatStore.newSession();
-                  navigate(Path.Chat);
-                } else {
-                  navigate(Path.NewChat, { state: { fromHome: true } });
-                }
-              }}
-              shadow
-            />
+            </div>
           </>
         }
       />

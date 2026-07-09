@@ -315,11 +315,18 @@
 .sidebar-tail {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  // when both action groups can't share a row (default 300px sidebar),
+  // wrap cleanly instead of flex-crushing the buttons into each other
+  flex-wrap: wrap;
+  row-gap: 10px;
   padding-top: 20px;
 }
 
 .sidebar-actions {
   display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .sidebar-action:not(:last-child) {
