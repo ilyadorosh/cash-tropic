@@ -52,7 +52,7 @@ export class TrafficSystem {
   private scene: THREE.Scene;
   private nodes: TrafficNode[];
   private vehicles: TrafficVehicle[] = [];
-  private maxVehicles: number = 24;
+  private maxVehicles: number = 32;
   private spawnTimer = 0;
 
   constructor(scene: THREE.Scene) {
@@ -305,20 +305,20 @@ export class TrafficSystem {
     // Seed the city with some traffic right away, then keep a steady flow.
     const targetPopulation = Math.min(
       this.maxVehicles,
-      10 + Math.floor(Math.max(0, 220 - playerPosition.length()) / 55),
+      14 + Math.floor(Math.max(0, 240 - playerPosition.length()) / 45),
     );
 
-    while (this.vehicles.length < Math.min(4, targetPopulation)) {
+    while (this.vehicles.length < Math.min(6, targetPopulation)) {
       this.spawnVehicle(playerPosition);
     }
 
-    const spawnEvery = this.vehicles.length < 8 ? 18 : 42;
+    const spawnEvery = this.vehicles.length < 10 ? 14 : 32;
     if (
       this.spawnTimer >= spawnEvery &&
       this.vehicles.length < targetPopulation
     ) {
       this.spawnVehicle(playerPosition);
-      if (this.vehicles.length < targetPopulation && Math.random() < 0.45) {
+      if (this.vehicles.length < targetPopulation && Math.random() < 0.6) {
         this.spawnVehicle(playerPosition);
       }
       this.spawnTimer = 0;
@@ -464,19 +464,58 @@ export class TrafficSystem {
       road.receiveShadow = true;
       streetsGroup.add(road);
 
+      // Narrow painted shoulders help the roads read from a distance.
+      const shoulderColor =
+        street.type === "main"
+          ? 0xb0b0b0
+          : street.type === "side"
+            ? 0x9e9e9e
+            : 0x8f8f8f;
+      const shoulderMat = new THREE.MeshBasicMaterial({
+        color: shoulderColor,
+        transparent: true,
+        opacity: 0.8,
+      });
+      [-1, 1].forEach((side) => {
+        const shoulder = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.28, length),
+          shoulderMat,
+        );
+        shoulder.rotation.x = -Math.PI / 2;
+        shoulder.rotation.z = angle;
+        const offset = side * (street.width / 2 - 0.35);
+        const perpX = Math.cos(angle) * offset;
+        const perpZ = -Math.sin(angle) * offset;
+        shoulder.position.set(
+          (street.start.x + street.end.x) / 2 + perpX,
+          0.06,
+          (street.start.z + street.end.z) / 2 + perpZ,
+        );
+        streetsGroup.add(shoulder);
+      });
+
       // Center line (for main roads)
       if (street.type === "main") {
-        const lineGeo = new THREE.PlaneGeometry(0.3, length);
-        const lineMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-        const line = new THREE.Mesh(lineGeo, lineMat);
-        line.rotation.x = -Math.PI / 2;
-        line.rotation.z = angle;
-        line.position.set(
-          (street.start.x + street.end.x) / 2,
-          0.06,
-          (street.start.z + street.end.z) / 2,
-        );
-        streetsGroup.add(line);
+        const dashMat = new THREE.MeshBasicMaterial({
+          color: 0xffe97a,
+          transparent: true,
+          opacity: 0.95,
+        });
+        for (let t = 0; t < length; t += 8) {
+          const dashLen = Math.min(4, length - t);
+          if (dashLen <= 0.5) continue;
+          const dash = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.32, dashLen),
+            dashMat,
+          );
+          dash.rotation.x = -Math.PI / 2;
+          dash.rotation.z = angle;
+          const centerT = t + dashLen / 2;
+          const mx = street.start.x + (dx / length) * centerT;
+          const mz = street.start.z + (dz / length) * centerT;
+          dash.position.set(mx, 0.065, mz);
+          streetsGroup.add(dash);
+        }
       }
     });
 

@@ -602,4 +602,61 @@ export function initWorld(
     proxy.userData = { width: 2, depth: 2 };
     colliders.push(proxy);
   }
+
+  function addFieldPatch(
+    x: number,
+    z: number,
+    w: number,
+    d: number,
+    rows: number,
+    hasBarn = false,
+  ) {
+    const field = new THREE.Group();
+
+    const base = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, d),
+      new THREE.MeshLambertMaterial({ color: 0x4f7d29 }),
+    );
+    base.rotation.x = -Math.PI / 2;
+    base.position.y = 0.04;
+    field.add(base);
+
+    for (let row = 0; row < rows; row++) {
+      const stripe = new THREE.Mesh(
+        new THREE.PlaneGeometry(w - 2, Math.max(1.8, (d / rows) * 0.45)),
+        new THREE.MeshLambertMaterial({
+          color: row % 2 === 0 ? 0x5d9132 : 0x446a22,
+        }),
+      );
+      stripe.rotation.x = -Math.PI / 2;
+      stripe.position.y = 0.05;
+      stripe.position.z = -d / 2 + (row + 0.5) * (d / rows);
+      field.add(stripe);
+    }
+
+    if (hasBarn) {
+      const barn = new THREE.Mesh(
+        new THREE.BoxGeometry(8, 5, 10),
+        new THREE.MeshLambertMaterial({ color: 0xb7412d }),
+      );
+      barn.position.set(-w * 0.22, 2.5, d * 0.18);
+      field.add(barn);
+
+      const roof = new THREE.Mesh(
+        new THREE.ConeGeometry(7.5, 4.2, 4),
+        new THREE.MeshLambertMaterial({ color: 0x5a2d1d }),
+      );
+      roof.position.set(-w * 0.22, 7.2, d * 0.18);
+      roof.rotation.y = Math.PI / 4;
+      field.add(roof);
+    }
+
+    field.position.set(x, 0, z);
+    scene.add(field);
+  }
+
+  addFieldPatch(-260, 260, 120, 80, 8, true);
+  addFieldPatch(280, 250, 140, 90, 9, false);
+  addFieldPatch(-420, -220, 180, 110, 10, true);
+  addFieldPatch(380, -180, 160, 100, 9, false);
 }

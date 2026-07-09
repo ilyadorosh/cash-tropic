@@ -6,6 +6,7 @@ import { initWorld, MAP_LAYOUT } from "./World";
 import { GameStats, Dialogue, DialogueOption } from "./types";
 import {
   PLAYER_SPAWN,
+  ROADS,
   LOCATIONS,
   ZONES,
   NO_BUILD_ZONES,
@@ -1579,6 +1580,104 @@ export default function GTAEngine3D() {
     playerGroup.visible = false;
     scene.add(playerGroup);
 
+    type AirplaneRuntime = {
+      mesh: THREE.Group;
+      centerX: number;
+      centerZ: number;
+      radius: number;
+      altitude: number;
+      speed: number;
+      phase: number;
+      propeller?: THREE.Mesh;
+    };
+
+    function createAirplane(
+      color: number,
+      centerX: number,
+      centerZ: number,
+      radius: number,
+      altitude: number,
+      speed: number,
+      phase = 0,
+      propeller = false,
+    ): AirplaneRuntime {
+      const group = new THREE.Group();
+
+      const body = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.45, 0.55, 8, 10),
+        new THREE.MeshLambertMaterial({ color }),
+      );
+      body.rotation.z = Math.PI / 2;
+      group.add(body);
+
+      const nose = new THREE.Mesh(
+        new THREE.ConeGeometry(0.55, 1.6, 10),
+        new THREE.MeshLambertMaterial({ color: 0xf5f5f5 }),
+      );
+      nose.rotation.z = -Math.PI / 2;
+      nose.position.x = 4.25;
+      group.add(nose);
+
+      const wing = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 0.06, 4.6),
+        new THREE.MeshLambertMaterial({ color: 0xdfe8f0 }),
+      );
+      wing.position.y = 0.05;
+      group.add(wing);
+
+      const tailWing = new THREE.Mesh(
+        new THREE.BoxGeometry(1.5, 0.08, 1.6),
+        new THREE.MeshLambertMaterial({ color: 0xdfe8f0 }),
+      );
+      tailWing.position.set(-3.5, 0.45, 0);
+      group.add(tailWing);
+
+      const fin = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 1.1, 0.9),
+        new THREE.MeshLambertMaterial({ color: 0xeaeaea }),
+      );
+      fin.position.set(-3.5, 0.8, 0);
+      group.add(fin);
+
+      const windowBand = new THREE.Mesh(
+        new THREE.BoxGeometry(5.8, 0.16, 0.18),
+        new THREE.MeshBasicMaterial({ color: 0x1f4b66 }),
+      );
+      windowBand.position.set(0.5, 0.22, 0.55);
+      group.add(windowBand);
+
+      let propellerMesh: THREE.Mesh | undefined;
+      if (propeller) {
+        const spinner = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.08, 0.08, 0.3, 8),
+          new THREE.MeshBasicMaterial({ color: 0x222222 }),
+        );
+        spinner.rotation.z = Math.PI / 2;
+        spinner.position.set(4.8, 0, 0);
+        group.add(spinner);
+        propellerMesh = spinner;
+      }
+
+      group.position.set(centerX + radius, altitude, centerZ);
+      scene.add(group);
+
+      return {
+        mesh: group,
+        centerX,
+        centerZ,
+        radius,
+        altitude,
+        speed,
+        phase,
+        propeller: propellerMesh,
+      };
+    }
+
+    const airplanes: AirplaneRuntime[] = [
+      createAirplane(0xffffff, 0, 0, 220, 155, 0.18, 0),
+      createAirplane(0xffcc66, -140, 95, 170, 95, 0.24, Math.PI / 2, true),
+    ];
+
     // === CRASH DAMAGE — sparks + a visible dent, not just a speed penalty ===
     type ImpactSpark = {
       mesh: THREE.Mesh;
@@ -2198,8 +2297,12 @@ export default function GTAEngine3D() {
       null,
     ];
 
-    for (let i = 0; i < 20; i++) {
-      // Reduced from 30 to 20
+    const pedestrianCount =
+      /Mobi|Android/i.test(navigator.userAgent) ||
+      (navigator as any).deviceMemory <= 4
+        ? 22
+        : 36;
+    for (let i = 0; i < pedestrianCount; i++) {
       const ped = new THREE.Group();
       const body = new THREE.Mesh(
         new THREE.BoxGeometry(1, 3, 0.8),
@@ -2900,6 +3003,21 @@ export default function GTAEngine3D() {
 
       updateAtmosphere(deltaTime);
 
+      airplanes.forEach((plane) => {
+        plane.phase += deltaTime * plane.speed;
+        const angle = plane.phase;
+        plane.mesh.position.set(
+          plane.centerX + Math.cos(angle) * plane.radius,
+          plane.altitude + Math.sin(angle * 1.8) * 4,
+          plane.centerZ + Math.sin(angle) * plane.radius,
+        );
+        plane.mesh.rotation.y = -angle + Math.PI / 2;
+        plane.mesh.rotation.z = Math.sin(angle * 2.8) * 0.02;
+        if (plane.propeller) {
+          plane.propeller.rotation.z += deltaTime * 30;
+        }
+      });
+
       // label the people once everything exists — no more anonymous city
       if (!labelsDone) {
         labelsDone = true;
@@ -3080,6 +3198,44 @@ export default function GTAEngine3D() {
           ctx.save();
           ctx.translate(100, 100);
           ctx.rotate(pRot);
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+
+          // Roads
+          const drawRoadPath = (
+            points: Array<{ x: number; z: number }>,
+            stroke: string,
+            lineWidth: number,
+          ) => {
+            if (points.length < 2) return;
+            ctx.strokeStyle = stroke;
+            ctx.lineWidth = lineWidth;
+            ctx.beginPath();
+            points.forEach((pt, i) => {
+              const x = pt.x * 0.5;
+              const y = pt.z * 0.5;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+          };
+
+          ctx.globalAlpha = 0.85;
+          ROADS.forEach((road) => {
+            drawRoadPath(
+              road.points,
+              road.type === "autobahn" ? "#2f2f2f" : "#3f3f3f",
+              Math.max(1.2, road.width * 0.22),
+            );
+          });
+          NUERNBERG_STREETS.forEach((street) => {
+            drawRoadPath(
+              [street.start, street.end],
+              street.type === "main" ? "#666666" : "#555555",
+              Math.max(1.0, street.width * 0.14),
+            );
+          });
+          ctx.globalAlpha = 1;
 
           // Buildings
           ctx.fillStyle = "#555";
@@ -3130,6 +3286,15 @@ export default function GTAEngine3D() {
             ctx.beginPath();
             ctx.arc(dx * 0.5, dz * 0.5, 3, 0, Math.PI * 2);
             ctx.fill();
+          });
+
+          // Pedestrians
+          pedestrians.forEach((ped) => {
+            if (ped.dead) return;
+            const dx = ped.mesh.position.x - pPos.x;
+            const dz = ped.mesh.position.z - pPos.z;
+            ctx.fillStyle = ped.personality ? "#ffd76e" : "#c7b9a2";
+            ctx.fillRect(dx * 0.5 - 1, dz * 0.5 - 1, 2, 2);
           });
 
           // Civilian traffic
@@ -3268,11 +3433,14 @@ export default function GTAEngine3D() {
         } else {
           // Walking
           speed = 0;
-          const walkSpeed = 0.4;
+          const sprinting =
+            keys["shift"] && (keys["w"] || keys["a"] || keys["s"] || keys["d"]);
+          const walkSpeed = sprinting ? 0.82 : 0.42;
+          const turnSpeed = sprinting ? 0.075 : 0.05;
           if (keys["w"]) playerGroup.translateZ(walkSpeed);
-          if (keys["s"]) playerGroup.translateZ(-walkSpeed);
-          if (keys["a"]) playerGroup.rotation.y += 0.05;
-          if (keys["d"]) playerGroup.rotation.y -= 0.05;
+          if (keys["s"]) playerGroup.translateZ(-walkSpeed * 0.85);
+          if (keys["a"]) playerGroup.rotation.y += turnSpeed;
+          if (keys["d"]) playerGroup.rotation.y -= turnSpeed;
 
           colliders.forEach((b) => {
             if (
@@ -3859,6 +4027,7 @@ export default function GTAEngine3D() {
     // Then at the END, in the cleanup function, use the captured values:
     return () => {
       clockEl.remove();
+      airplanes.forEach((plane) => scene.remove(plane.mesh));
       moneyDrops.forEach((drop) => scene.remove(drop.mesh));
       ncaLifeRef.current?.destroy();
       ncaLifeRef.current = null;
