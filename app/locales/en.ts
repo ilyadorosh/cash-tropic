@@ -65,7 +65,7 @@ const en: LocaleType = {
       },
       Prompt: "Prompts",
       Masks: "Masks",
-      GameNav: "Game Navigation",
+      GameNav: "Plaza",
       Clear: "Clear Context",
       Settings: "Settings",
       UploadImage: "Upload Images",

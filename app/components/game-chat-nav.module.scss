@@ -3,57 +3,88 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  width: min(92vw, 1100px);
+  height: min(86vh, 760px);
+  display: flex;
+  flex-direction: column;
   background-color: var(--white);
   border: var(--border-in-light);
   border-radius: 10px;
   box-shadow: var(--shadow);
-  padding: 20px;
+  padding: 12px;
   z-index: 1000;
-  max-width: 90vw;
-  max-height: 90vh;
-  overflow: auto;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 8px;
+  gap: 8px;
 
   h2 {
     margin: 0;
     color: var(--black);
-    font-size: 18px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.listButton {
+  background: transparent;
+  border: var(--border-in-light);
+  border-radius: 8px;
+  color: var(--black);
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--primary);
+    color: var(--primary);
   }
 }
 
 .closeButton {
   background: transparent;
   border: none;
-  font-size: 24px;
+  font-size: 18px;
+  line-height: 1;
   cursor: pointer;
   color: var(--black);
-  padding: 5px 10px;
-  
+  padding: 4px 8px;
+
   &:hover {
     color: var(--primary);
   }
 }
 
 .gameCanvas {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   border: var(--border-in-light);
-  border-radius: 5px;
+  border-radius: 8px;
   display: block;
   background-color: var(--gray);
-  cursor: crosshair;
+  cursor: pointer;
+  touch-action: none;
 }
 
 .instructions {
-  margin-top: 15px;
+  margin-top: 8px;
   color: var(--black);
-  font-size: 14px;
-  
-  p {
-    margin: 5px 0;
-  }
+  opacity: 0.6;
+  font-size: 12px;
+  text-align: center;
 }

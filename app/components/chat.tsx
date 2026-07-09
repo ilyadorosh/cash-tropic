@@ -105,7 +105,11 @@ import { ExportMessageModal } from "./exporter";
 import { getClientConfig } from "../config/client";
 import { useAllModels } from "../utils/hooks";
 import { MultimodalContent } from "../client/api";
-import { GameChatNav } from "./game-chat-nav";
+// lazy: the plaza costs zero bytes until someone opens it
+const GameChatNav = dynamic(
+  async () => (await import("./game-chat-nav")).GameChatNav,
+  { loading: () => null },
+);
 import SwapDemo from "@/app/components/SwapDemo";
 
 // Add these helpers near the top-level (once per file)
@@ -628,8 +632,10 @@ export function ChatActions(props: {
         }}
       />
 
+      {/* the model is a character you walk up to — plaza first, list as
+          the escape hatch inside it */}
       <ChatAction
-        onClick={() => setShowModelSelector(true)}
+        onClick={() => setShowGameNav(true)}
         text={currentModelName}
         icon={<RobotIcon />}
       />
@@ -696,7 +702,15 @@ export function ChatActions(props: {
         />
       )}
 
-      {showGameNav && <GameChatNav onClose={() => setShowGameNav(false)} />}
+      {showGameNav && (
+        <GameChatNav
+          onClose={() => setShowGameNav(false)}
+          onOpenList={() => {
+            setShowGameNav(false);
+            setShowModelSelector(true);
+          }}
+        />
+      )}
     </div>
   );
 }
