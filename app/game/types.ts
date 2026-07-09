@@ -200,6 +200,9 @@ export interface GameStats {
   isCutscene: boolean;
   respect: number;
   relationship: number;
+  // Lorentz factor γ = 1/√(1−v²/c²) with the game's own speed of light —
+  // relativity is a dashboard gauge here, not a footnote
+  gamma: number;
 }
 
 export interface DialogueOption {

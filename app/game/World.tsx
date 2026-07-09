@@ -277,10 +277,10 @@ export function initWorld(
   scene.add(sun);
   scene.add(new THREE.AmbientLight(0x404040, 0.6));
 
-  // Ground — sized to cover the full city including Erlenstegen, Hafen and
-  // Wöhrder See (roughly ±450 from the old-town center), not just the old
-  // 300x300 core. Otherwise those zones sit on bare void.
-  const grassGeo = new THREE.PlaneGeometry(950, 950);
+  // Ground — sized for the metropolitan region: the core city plus the
+  // real-world OSM districts (Fürth, Erlangen, Nürnberg Altstadt, Berlin
+  // Mitte) which sit 1200–3400 units out. Franconia is grass all the way.
+  const grassGeo = new THREE.PlaneGeometry(9000, 9000);
   const grassMat = new THREE.MeshLambertMaterial({ color: 0x2d5a27 });
   const grass = new THREE.Mesh(grassGeo, grassMat);
   grass.rotation.x = -Math.PI / 2;

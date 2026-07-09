@@ -50,6 +50,16 @@ import { NeuralCity } from "./NeuralCity";
 import { ServiceProvider } from "@/app/constant";
 import { ModelType, useAppConfig } from "@/app/store/config";
 import { useChatStore } from "@/app/store/chat";
+// real cities from OpenStreetMap + the physics exhibits that live in them
+import {
+  DISTRICTS,
+  loadDistrict,
+  buildConnectors,
+  createEntangledPortals,
+  createDoubleSlit,
+  type PortalPair,
+  type DoubleSlit,
+} from "./RealDistricts";
 
 type ModelWeather = "clear" | "rain" | "fog";
 
@@ -252,6 +262,7 @@ export default function GTAEngine3D() {
     isCutscene: false,
     respect: 0,
     relationship: 50,
+    gamma: 1,
   });
   const [dialogue, setDialogue] = useState<Dialogue | null>(null);
   const [onFoot, setOnFoot] = useState(false);
@@ -453,13 +464,15 @@ export default function GTAEngine3D() {
     // === THREE.JS SETUP ===
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
-    scene.fog = new THREE.Fog(0x87ceeb, 50, 650);
+    // fog and far plane sized for the real-world districts: Fürth, Erlangen
+    // and Berlin sit 1200–3400 units out and must be visible on the horizon
+    scene.fog = new THREE.Fog(0x87ceeb, 50, 2600);
 
     const camera = new THREE.PerspectiveCamera(
       75,
       window.innerWidth / window.innerHeight,
       0.1,
-      1000,
+      8000,
     );
     const renderer = new THREE.WebGLRenderer({ antialias: false });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -597,9 +610,10 @@ export default function GTAEngine3D() {
       if (scene.fog instanceof THREE.Fog) {
         scene.fog.color.copy(fogC);
         scene.fog.near = raining ? 18 : foggy ? 8 : 50;
-        // clear days reveal the full city now — old town plus the three
-        // outlying zones (Erlenstegen, Hafen, Wöhrder See), ~450 units out
-        scene.fog.far = raining ? 150 : foggy ? 95 : 650;
+        // clear days reveal the whole metropolitan region: the old town AND
+        // the real OSM districts on the horizon (Fürth, Erlangen, Berlin,
+        // 1200–3400 units out). Weather still swallows them — as in life.
+        scene.fog.far = raining ? 150 : foggy ? 95 : 2600;
       }
       sun.intensity = sunI;
       const ang = (t - 0.25) * Math.PI * 2;
@@ -1160,6 +1174,54 @@ export default function GTAEngine3D() {
         }
       });
     });
+
+    // === REAL WORLD DISTRICTS — OpenStreetMap made drivable ===
+    // Fürth, Erlangen (MPI für die Physik des Lichts), Nürnberg Altstadt,
+    // Berlin Mitte: real streets, real building footprints, connected by
+    // the A73/A9 like in life. Physics exhibits live where they belong.
+    const physicsWorld = {
+      portals: null as PortalPair | null,
+      doubleSlit: null as DoubleSlit | null,
+    };
+    scene.add(buildConnectors());
+    (async () => {
+      const built = await Promise.all(DISTRICTS.map(loadDistrict));
+      let mpi: { x: number; z: number } | null = null;
+      let berlin: { x: number; z: number } | null = null;
+      for (const d of built) {
+        if (!d) continue;
+        scene.add(d.group);
+        colliders.push(...d.colliders);
+        if (d.def.id === "erlangen") {
+          const hit = d.landmarks.find((l) =>
+            l.name.includes("Physik des Lichts"),
+          );
+          mpi = hit ?? { x: d.def.offset.x, z: d.def.offset.z };
+        }
+        if (d.def.id === "berlin") {
+          const hit = d.landmarks.find((l) => l.name.includes("Humboldt"));
+          berlin = hit ?? { x: d.def.offset.x, z: d.def.offset.z };
+        }
+        console.log(
+          `[districts] ${d.def.name}: ${d.json.streets.length} streets, ` +
+            `${d.json.buildings.length} buildings — ${d.json.attribution}`,
+        );
+      }
+      if (mpi && berlin) {
+        // non-locality: spukhafte Fernwirkung between Erlangen and Berlin
+        const portals = createEntangledPortals(
+          { x: mpi.x + 14, z: mpi.z + 14 },
+          { x: berlin.x + 14, z: berlin.z + 14 },
+        );
+        scene.add(portals.a);
+        scene.add(portals.b);
+        physicsWorld.portals = portals;
+        // wave nature: a living double-slit at the institute of light
+        const slit = createDoubleSlit({ x: mpi.x - 20, z: mpi.z + 10 });
+        scene.add(slit.group);
+        physicsWorld.doubleSlit = slit;
+      }
+    })();
 
     gameManagerRef.current = new GameManager();
 
@@ -3730,6 +3792,31 @@ export default function GTAEngine3D() {
         camera.lookAt(cutsceneTarget);
       }
 
+      // === PHYSICS WORLD ===
+      // relativity: the game has its own speed of light; approach it and
+      // γ grows, the world visibly warps (FOV) — length contraction vibes
+      const C_GAME = 2.2; // game-units/frame; autobahn terminal ≈ 1.5
+      const v = Math.min(Math.abs(speed), C_GAME * 0.995);
+      const gamma = 1 / Math.sqrt(1 - (v * v) / (C_GAME * C_GAME));
+      if (cameraMode === "follow") {
+        const targetFov = 75 + Math.min(30, (gamma - 1) * 45);
+        if (Math.abs(camera.fov - targetFov) > 0.1) {
+          camera.fov += (targetFov - camera.fov) * 0.08;
+          camera.updateProjectionMatrix();
+        }
+      }
+      // non-locality + wave nature exhibits
+      if (physicsWorld.portals) {
+        physicsWorld.portals.update(now * 0.001);
+        const rider = playerState === "driving" ? activeCar : playerGroup;
+        const exit = physicsWorld.portals.check(rider.position);
+        if (exit) {
+          rider.position.copy(exit);
+          if (playerState === "driving") speed *= 0.3; // arrive gently
+        }
+      }
+      if (physicsWorld.doubleSlit) physicsWorld.doubleSlit.update(now * 0.001);
+
       // Update stats
       if (frame % 10 === 0) {
         setStats((s) => ({
@@ -3738,6 +3825,7 @@ export default function GTAEngine3D() {
           health,
           wanted: wantedLevel,
           money,
+          gamma: Math.round(gamma * 1000) / 1000,
           relationship: missionSystemRef.current?.getMariaAffection() || 50,
         }));
       }
@@ -3820,6 +3908,18 @@ export default function GTAEngine3D() {
             <span style={{ fontSize: "24px" }}>
               {stats.speed} <span style={{ fontSize: "14px" }}>MPH</span>
             </span>
+            {stats.gamma > 1.02 && (
+              <span
+                style={{
+                  fontSize: "22px",
+                  color: stats.gamma > 1.5 ? "#ff66ff" : "#66ddff",
+                  textShadow: "0 0 8px currentColor",
+                }}
+                title="Lorentz factor — you are approaching the game's speed of light"
+              >
+                γ={stats.gamma.toFixed(2)}
+              </span>
+            )}
           </div>
 
           {/* Wanted Stars */}
