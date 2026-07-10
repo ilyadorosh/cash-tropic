@@ -56,11 +56,19 @@ import {
   DISTRICTS,
   loadDistrict,
   buildConnectors,
+  connectorRoads,
   createEntangledPortals,
   createDoubleSlit,
   type PortalPair,
   type DoubleSlit,
+  type BuiltDistrict,
 } from "./RealDistricts";
+
+// scratch vector for the traffic spawn view-cone check (no per-frame alloc)
+const _trafficViewDir = new THREE.Vector3();
+
+// region map extent: core city plus all real OSM districts, with margins
+const MAP_WORLD = { minX: -2400, maxX: 3200, minZ: -4200, maxZ: 800 };
 
 type ModelWeather = "clear" | "rain" | "fog";
 
@@ -277,6 +285,213 @@ export default function GTAEngine3D() {
   const trafficRef = useRef<TrafficSystem | null>(null);
   const cityBlocksRef = useRef<CityBlock[]>([]);
   const moneyRef = useRef(500);
+
+  // === REGION MAP (M / ESC / minimap click) ===
+  const [showMap, setShowMap] = useState(false);
+  const mapCanvasRef = useRef<HTMLCanvasElement>(null);
+  // live player state for the map, written by the animate loop
+  const playerMarkerRef = useRef({ x: 0, z: 200, heading: 0 });
+  // loaded districts + portal anchors, written by the async district loader
+  const regionDataRef = useRef<{
+    districts: BuiltDistrict[];
+    portals: {
+      a: { x: number; z: number };
+      b: { x: number; z: number };
+    } | null;
+  }>({ districts: [], portals: null });
+  // set-waypoint function installed by the engine effect (moves the beacon)
+  const setWaypointFnRef = useRef<((x: number, z: number) => void) | null>(
+    null,
+  );
+  const waypointRef = useRef<{ x: number; z: number } | null>(null);
+  // current map projection (world→screen), for the click→waypoint inverse
+  const mapProjRef = useRef({ s: 1, ox: 0, oz: 0 });
+
+  // draw the region map while it's open (repaints for the moving player dot)
+  useEffect(() => {
+    if (!showMap) return;
+    const canvas = mapCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const draw = () => {
+      const cw = canvas.clientWidth;
+      const ch = canvas.clientHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      canvas.width = Math.floor(cw * dpr);
+      canvas.height = Math.floor(ch * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const s = Math.min(
+        cw / (MAP_WORLD.maxX - MAP_WORLD.minX),
+        ch / (MAP_WORLD.maxZ - MAP_WORLD.minZ),
+      );
+      const ox = (cw - (MAP_WORLD.maxX - MAP_WORLD.minX) * s) / 2;
+      const oz = (ch - (MAP_WORLD.maxZ - MAP_WORLD.minZ) * s) / 2;
+      mapProjRef.current = { s, ox, oz };
+      const X = (wx: number) => ox + (wx - MAP_WORLD.minX) * s;
+      const Z = (wz: number) => oz + (wz - MAP_WORLD.minZ) * s;
+
+      // grass night
+      ctx.fillStyle = "#0b1409";
+      ctx.fillRect(0, 0, cw, ch);
+
+      // autobahn connectors (drawn first, under everything)
+      ctx.strokeStyle = "#6a6a6a";
+      ctx.lineWidth = 3;
+      for (const road of connectorRoads()) {
+        ctx.beginPath();
+        road.pts.forEach(([x, z], i) =>
+          i === 0 ? ctx.moveTo(X(x), Z(z)) : ctx.lineTo(X(x), Z(z)),
+        );
+        ctx.stroke();
+        const mid = road.pts[Math.floor(road.pts.length / 2)];
+        ctx.fillStyle = "#8fb7d6";
+        ctx.font = "10px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(road.name, X(mid[0]), Z(mid[1]) - 4);
+      }
+
+      // core city streets
+      ctx.strokeStyle = "rgba(220,220,220,0.75)";
+      ctx.lineWidth = 1;
+      for (const st of NUERNBERG_STREETS) {
+        ctx.beginPath();
+        ctx.moveTo(X(st.start.x), Z(st.start.z));
+        ctx.lineTo(X(st.end.x), Z(st.end.z));
+        ctx.stroke();
+      }
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "700 13px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("NÜRNBERG — deine Stadt", X(0), Z(320));
+
+      // real OSM districts
+      for (const d of regionDataRef.current.districts) {
+        const hex = "#" + d.def.accent.toString(16).padStart(6, "0");
+        ctx.strokeStyle = "rgba(200,210,220,0.6)";
+        ctx.lineWidth = 0.8;
+        for (const st of d.json.streets) {
+          ctx.beginPath();
+          st.pts.forEach(([x, z], i) => {
+            const wx = d.def.offset.x + x;
+            const wz = d.def.offset.z + z;
+            i === 0 ? ctx.moveTo(X(wx), Z(wz)) : ctx.lineTo(X(wx), Z(wz));
+          });
+          ctx.stroke();
+        }
+        // landmarks as gold dots, a few named
+        d.landmarks.slice(0, 12).forEach((l, i) => {
+          ctx.beginPath();
+          ctx.arc(X(l.x), Z(l.z), 2, 0, Math.PI * 2);
+          ctx.fillStyle = "#ffd54a";
+          ctx.fill();
+          if (i < 2) {
+            ctx.fillStyle = "rgba(255,213,74,0.9)";
+            ctx.font = "9px system-ui, sans-serif";
+            ctx.fillText(
+              l.name.length > 34 ? l.name.slice(0, 33) + "…" : l.name,
+              X(l.x),
+              Z(l.z) - 5,
+            );
+          }
+        });
+        ctx.fillStyle = hex;
+        ctx.font = "700 13px system-ui, sans-serif";
+        ctx.fillText(
+          d.def.name.toUpperCase(),
+          X(d.def.offset.x),
+          Z(d.def.offset.z - d.json.sizeMeters / 2 - 40),
+        );
+      }
+
+      // entangled portals: violet pair joined by a dashed thread
+      const portals = regionDataRef.current.portals;
+      if (portals) {
+        ctx.setLineDash([6, 6]);
+        ctx.strokeStyle = "#b46bff";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(X(portals.a.x), Z(portals.a.z));
+        ctx.lineTo(X(portals.b.x), Z(portals.b.z));
+        ctx.stroke();
+        ctx.setLineDash([]);
+        for (const p of [portals.a, portals.b]) {
+          ctx.beginPath();
+          ctx.arc(X(p.x), Z(p.z), 4, 0, Math.PI * 2);
+          ctx.strokeStyle = "#b46bff";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      }
+
+      // spawn — home
+      ctx.beginPath();
+      ctx.arc(
+        X(PLAYER_SPAWN.position.x),
+        Z(PLAYER_SPAWN.position.z),
+        4,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fillStyle = "#39d353";
+      ctx.fill();
+      ctx.fillStyle = "#39d353";
+      ctx.font = "10px system-ui, sans-serif";
+      ctx.fillText(
+        "HOME",
+        X(PLAYER_SPAWN.position.x),
+        Z(PLAYER_SPAWN.position.z) + 14,
+      );
+
+      // waypoint
+      const wp = waypointRef.current;
+      if (wp) {
+        ctx.strokeStyle = "#ffd54a";
+        ctx.lineWidth = 2;
+        const wx = X(wp.x);
+        const wz = Z(wp.z);
+        ctx.beginPath();
+        ctx.moveTo(wx - 5, wz - 5);
+        ctx.lineTo(wx + 5, wz + 5);
+        ctx.moveTo(wx + 5, wz - 5);
+        ctx.lineTo(wx - 5, wz + 5);
+        ctx.stroke();
+      }
+
+      // player — red arrow with heading (forward = (sin h, cos h) in x/z)
+      const pm = playerMarkerRef.current;
+      ctx.save();
+      ctx.translate(X(pm.x), Z(pm.z));
+      ctx.rotate(Math.atan2(Math.cos(pm.heading), Math.sin(pm.heading)));
+      ctx.beginPath();
+      ctx.moveTo(7, 0);
+      ctx.lineTo(-5, -4.5);
+      ctx.lineTo(-5, 4.5);
+      ctx.closePath();
+      ctx.fillStyle = "#ff5252";
+      ctx.fill();
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+    };
+
+    draw();
+    const iv = setInterval(draw, 300);
+    return () => clearInterval(iv);
+  }, [showMap]);
+
+  const onMapClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = mapCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const { s, ox, oz } = mapProjRef.current;
+    const wx = MAP_WORLD.minX + (e.clientX - rect.left - ox) / s;
+    const wz = MAP_WORLD.minZ + (e.clientY - rect.top - oz) / s;
+    setWaypointFnRef.current?.(wx, wz);
+  };
 
   // Add ref
   const interiorRef = useRef<InteriorSystem | null>(null);
@@ -1222,7 +1437,39 @@ export default function GTAEngine3D() {
         scene.add(slit.group);
         physicsWorld.doubleSlit = slit;
       }
+      // hand the region to the map overlay
+      regionDataRef.current = {
+        districts: built.filter((d): d is BuiltDistrict => d !== null),
+        portals:
+          mpi && berlin
+            ? {
+                a: { x: mpi.x + 14, z: mpi.z + 14 },
+                b: { x: berlin.x + 14, z: berlin.z + 14 },
+              }
+            : null,
+      };
     })();
+
+    // === WAYPOINT BEACON — set from the region map, visible across the world
+    const waypointBeaconMat = new THREE.MeshBasicMaterial({
+      color: 0xffd54a,
+      transparent: true,
+      opacity: 0.45,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const waypointBeacon = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.5, 2.5, 400, 12, 1, true),
+      waypointBeaconMat,
+    );
+    waypointBeacon.position.y = 200;
+    waypointBeacon.visible = false;
+    scene.add(waypointBeacon);
+    setWaypointFnRef.current = (x: number, z: number) => {
+      waypointRef.current = { x, z };
+      waypointBeacon.position.set(x, 200, z);
+      waypointBeacon.visible = true;
+    };
 
     gameManagerRef.current = new GameManager();
 
@@ -1539,12 +1786,67 @@ export default function GTAEngine3D() {
       w.position.set(pos[0], pos[1], pos[2]);
       carGroup.add(w);
     });
-    // carGroup.position.set(0, 0, 120);
-    carGroup.position.set(PLAYER_SPAWN.position.x, 0, PLAYER_SPAWN.position.z);
-    carGroup.rotation.y = PLAYER_SPAWN.rotation;
-
-    carGroup.rotation.y = Math.PI;
+    // Your car waits at the curb beside the spawn, not on top of you —
+    // parked parallel like everything else on this street.
+    carGroup.position.set(
+      PLAYER_SPAWN.position.x + 14,
+      0,
+      PLAYER_SPAWN.position.z - 6,
+    );
+    carGroup.rotation.y = 0; // nose north, along the curb line
     scene.add(carGroup);
+
+    // === THE HOOD: parked cars at spawn (GTA SA Grove Street energy) ===
+    // A neat parallel-parked row on the east curb. Safe, familiar, cozy —
+    // walk up to any of them and press Enter. They're neighborhood cars:
+    // taking one raises no stars.
+    const makeParkedCar = (color: number): THREE.Group => {
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(4, 2, 8),
+        new THREE.MeshLambertMaterial({ color }),
+      );
+      body.position.y = 1.5;
+      body.castShadow = true;
+      g.add(body);
+      const top = new THREE.Mesh(
+        new THREE.BoxGeometry(3.2, 1.5, 4),
+        new THREE.MeshLambertMaterial({ color: 0xdddddd }),
+      );
+      top.position.set(0, 2.75, -0.5);
+      top.castShadow = true;
+      g.add(top);
+      [
+        [-2, 0.8, 2.5],
+        [2, 0.8, 2.5],
+        [-2, 0.8, -2.5],
+        [2, 0.8, -2.5],
+      ].forEach((pos) => {
+        const w = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.8, 0.8, 0.6, 16),
+          new THREE.MeshLambertMaterial({ color: 0x111111 }),
+        );
+        w.rotation.z = Math.PI / 2;
+        w.position.set(pos[0], pos[1], pos[2]);
+        g.add(w);
+      });
+      return g;
+    };
+
+    const parkedCars: THREE.Group[] = [];
+    // west curb row, evenly spaced, all noses north — nice and neat
+    const PARKED_SPOTS: Array<[number, number, number]> = [
+      [-14, 190, 0x992222], // oxblood red
+      [-14, 202, 0x226644], // racing green
+      [-14, 214, 0xb8a24a], // sun-faded gold
+    ];
+    for (const [px, pz, color] of PARKED_SPOTS) {
+      const parked = makeParkedCar(color);
+      parked.position.set(PLAYER_SPAWN.position.x + px, 0, pz);
+      parked.rotation.y = 0;
+      scene.add(parked);
+      parkedCars.push(parked);
+    }
 
     // === PLAYER ON FOOT ===
     const playerGroup = new THREE.Group();
@@ -2505,6 +2807,13 @@ export default function GTAEngine3D() {
     const onKeyDown = async (e: KeyboardEvent) => {
       keys[e.key.toLowerCase()] = true;
 
+      // Region map: M or Escape toggles the full map
+      if (e.key === "m" || e.key === "M" || e.key === "Escape") {
+        setShowMap((v) => !v);
+        if (e.key === "Escape") e.preventDefault();
+        return;
+      }
+
       // Handle dialogue options (1, 2, 3 keys)
       if (currentDialogueOptions && ["1", "2", "3"].includes(e.key)) {
         const optionIndex = parseInt(e.key) - 1;
@@ -2643,6 +2952,18 @@ export default function GTAEngine3D() {
           ) {
             enterVehicle(carGroup);
             return;
+          }
+
+          // Neighborhood cars parked at the spawn curb — yours to take,
+          // no wanted level. Everyone on this street knows you.
+          for (const parked of parkedCars) {
+            if (
+              parked !== activeCar &&
+              playerGroup.position.distanceTo(parked.position) < 6
+            ) {
+              enterVehicle(parked);
+              return;
+            }
           }
 
           // Steal civilian traffic cars. This removes them from traffic AI and
@@ -3738,7 +4059,12 @@ export default function GTAEngine3D() {
         // === POLICE AI WITH WARNINGS ===
         const targetPos =
           playerState === "driving" ? activeCar.position : playerGroup.position;
-        trafficRef.current?.update(targetPos);
+        // pass the camera's ground-plane forward so traffic never pops into
+        // existence inside the player's field of view
+        camera.getWorldDirection(_trafficViewDir);
+        _trafficViewDir.y = 0;
+        _trafficViewDir.normalize();
+        trafficRef.current?.update(targetPos, _trafficViewDir);
 
         // Spawn police based on wanted level - much slower spawn rate
         // Max 1 car at 1 star, 2 at 2 stars, etc. - GTA style gradual response
@@ -3985,6 +4311,25 @@ export default function GTAEngine3D() {
       }
       if (physicsWorld.doubleSlit) physicsWorld.doubleSlit.update(now * 0.001);
 
+      // region map bookkeeping: live player marker + waypoint arrival
+      {
+        const rider = playerState === "driving" ? activeCar : playerGroup;
+        playerMarkerRef.current.x = rider.position.x;
+        playerMarkerRef.current.z = rider.position.z;
+        playerMarkerRef.current.heading = rider.rotation.y;
+        const wp = waypointRef.current;
+        if (wp) {
+          waypointBeaconMat.opacity = 0.35 + 0.18 * Math.sin(now / 260);
+          const dx = rider.position.x - wp.x;
+          const dz = rider.position.z - wp.z;
+          if (dx * dx + dz * dz < 625) {
+            // arrived (25 units) — the beacon has done its job
+            waypointRef.current = null;
+            waypointBeacon.visible = false;
+          }
+        }
+      }
+
       // Update stats
       if (frame % 10 === 0) {
         setStats((s) => ({
@@ -4191,11 +4536,13 @@ export default function GTAEngine3D() {
             }}
           >
             [E] {onFoot ? "ENTER CAR / INTERACT" : "EXIT CAR"} | [F] SHOOT |
-            [WASD] MOVE
+            [WASD] MOVE | [M] MAP
           </div>
 
-          {/* Minimap */}
+          {/* Minimap — click it for the full region map */}
           <div
+            onClick={() => setShowMap(true)}
+            title="Karte öffnen (M)"
             style={{
               marginTop: "20px",
               border: "2px solid white",
@@ -4203,9 +4550,53 @@ export default function GTAEngine3D() {
               overflow: "hidden",
               width: "200px",
               height: "200px",
+              cursor: "pointer",
+              pointerEvents: "auto",
             }}
           >
             <canvas ref={minimapRef} width={200} height={200} />
+          </div>
+        </div>
+      )}
+
+      {/* REGION MAP — the whole world on one sheet: your city, Fürth,
+          Erlangen (MPI), Nürnberg Altstadt, Berlin, autobahns, portals.
+          Click anywhere to set a waypoint beacon. */}
+      {showMap && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(4,8,4,0.88)",
+            zIndex: 30,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+          }}
+        >
+          <canvas
+            ref={mapCanvasRef}
+            onClick={onMapClick}
+            style={{
+              width: "min(92vw, 130vh)",
+              height: "min(82vh, 92vw)",
+              border: "2px solid rgba(255,255,255,0.35)",
+              borderRadius: 12,
+              cursor: "crosshair",
+            }}
+          />
+          <div
+            style={{
+              color: "#cfe8cf",
+              fontFamily: "monospace",
+              fontSize: 13,
+              textShadow: "1px 1px 0 #000",
+            }}
+          >
+            click = waypoint beacon · M / ESC = close · Map data © OpenStreetMap
+            contributors
           </div>
         </div>
       )}

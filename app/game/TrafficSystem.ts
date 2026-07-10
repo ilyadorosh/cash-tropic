@@ -65,13 +65,31 @@ export class TrafficSystem {
     return Math.hypot(node.position.x - point.x, node.position.z - point.z);
   }
 
-  private pickNode(point?: THREE.Vector3, radius = 220, excludeId?: string) {
-    const pool = point
+  private pickNode(
+    point?: THREE.Vector3,
+    radius = 220,
+    excludeId?: string,
+    viewDir?: THREE.Vector3,
+  ) {
+    let pool = point
       ? this.nodes.filter(
           (node) =>
             node.id !== excludeId && this.distanceToNode(node, point) <= radius,
         )
       : this.nodes.filter((node) => node.id !== excludeId);
+    // never materialize a car where the player is looking: keep spawns
+    // off-screen (behind/beside the camera) and out of arm's reach
+    if (point && viewDir) {
+      const hidden = pool.filter((node) => {
+        const dx = node.position.x - point.x;
+        const dz = node.position.z - point.z;
+        const dist = Math.hypot(dx, dz) || 1;
+        if (dist < 70) return false; // too close — pop-in is visible anywhere
+        const dot = (dx / dist) * viewDir.x + (dz / dist) * viewDir.z;
+        return dot < 0.35; // outside the forward view cone
+      });
+      if (hidden.length > 0) pool = hidden;
+    }
     const candidates =
       pool.length > 0
         ? pool
@@ -116,11 +134,11 @@ export class TrafficSystem {
     return true;
   }
 
-  spawnVehicle(playerPosition?: THREE.Vector3) {
+  spawnVehicle(playerPosition?: THREE.Vector3, viewDir?: THREE.Vector3) {
     if (this.vehicles.length >= this.maxVehicles) return;
     if (this.nodes.length < 2) return;
 
-    const startNode = this.pickNode(playerPosition, 260);
+    const startNode = this.pickNode(playerPosition, 260, undefined, viewDir);
     if (!startNode) return;
 
     const path = this.buildPath(startNode, playerPosition);
@@ -299,7 +317,7 @@ export class TrafficSystem {
     return group;
   }
 
-  update(playerPosition: THREE.Vector3) {
+  update(playerPosition: THREE.Vector3, viewDir?: THREE.Vector3) {
     this.spawnTimer += 1;
 
     // Seed the city with some traffic right away, then keep a steady flow.
@@ -309,7 +327,7 @@ export class TrafficSystem {
     );
 
     while (this.vehicles.length < Math.min(6, targetPopulation)) {
-      this.spawnVehicle(playerPosition);
+      this.spawnVehicle(playerPosition, viewDir);
     }
 
     const spawnEvery = this.vehicles.length < 10 ? 14 : 32;
@@ -317,9 +335,9 @@ export class TrafficSystem {
       this.spawnTimer >= spawnEvery &&
       this.vehicles.length < targetPopulation
     ) {
-      this.spawnVehicle(playerPosition);
+      this.spawnVehicle(playerPosition, viewDir);
       if (this.vehicles.length < targetPopulation && Math.random() < 0.6) {
-        this.spawnVehicle(playerPosition);
+        this.spawnVehicle(playerPosition, viewDir);
       }
       this.spawnTimer = 0;
     }
