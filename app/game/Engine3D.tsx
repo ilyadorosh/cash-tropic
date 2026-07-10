@@ -63,6 +63,14 @@ import {
   type DoubleSlit,
   type BuiltDistrict,
 } from "./RealDistricts";
+// the city remembers: per-NPC episodic memory across sessions
+import {
+  loadNpcMemory,
+  recordMeeting,
+  recordTopic,
+  greetingFor,
+  stageBadge,
+} from "./NpcMemory";
 
 // scratch vector for the traffic spawn view-cone check (no per-frame alloc)
 const _trafficViewDir = new THREE.Vector3();
@@ -298,7 +306,9 @@ export default function GTAEngine3D() {
       a: { x: number; z: number };
       b: { x: number; z: number };
     } | null;
-  }>({ districts: [], portals: null });
+    // your characters (from /api/game/npcs) — known = you've met before
+    people: Array<{ name: string; x: number; z: number; known: boolean }>;
+  }>({ districts: [], portals: null, people: [] });
   // set-waypoint function installed by the engine effect (moves the beacon)
   const setWaypointFnRef = useRef<((x: number, z: number) => void) | null>(
     null,
@@ -423,6 +433,21 @@ export default function GTAEngine3D() {
           ctx.strokeStyle = "#b46bff";
           ctx.lineWidth = 2;
           ctx.stroke();
+        }
+      }
+
+      // your people — gold with names once you've met, cyan dots before.
+      // the map literally shows who in the city remembers you
+      for (const p of regionDataRef.current.people) {
+        ctx.beginPath();
+        ctx.arc(X(p.x), Z(p.z), p.known ? 3 : 2, 0, Math.PI * 2);
+        ctx.fillStyle = p.known ? "#ffd54a" : "#7fd4e8";
+        ctx.fill();
+        if (p.known) {
+          ctx.font = "9px system-ui, sans-serif";
+          ctx.fillStyle = "rgba(255,213,74,0.95)";
+          ctx.textAlign = "center";
+          ctx.fillText(p.name, X(p.x), Z(p.z) - 5);
         }
       }
 
@@ -1284,6 +1309,22 @@ export default function GTAEngine3D() {
     // their full dialogue trees, answered with the 1/2/3 keys.
     const dbNpcs: { mesh: THREE.Group; npc: any; near: boolean }[] = [];
 
+    // nameplate reflects the relationship: · known, ☺ acquaintance, ❤ friend.
+    // You can see from across the street who remembers you.
+    function refreshDbPlate(entry: { mesh: THREE.Group; npc: any }) {
+      const mem = loadNpcMemory(entry.npc.id);
+      const old = entry.mesh.children.find(
+        (c): c is THREE.Sprite => c instanceof THREE.Sprite,
+      );
+      if (old) entry.mesh.remove(old);
+      entry.mesh.add(
+        makeTextSprite(
+          "💬 " + stageBadge(mem) + (entry.npc.name || "???"),
+          entry.npc.isHistorical ? "#ffd76e" : "#9fe8ff",
+        ),
+      );
+    }
+
     function openDbDialogue(npc: any, dialogueId?: string) {
       const dlg = dialogueId
         ? (npc.dialogues || []).find((d: any) => d.id === dialogueId)
@@ -1291,12 +1332,26 @@ export default function GTAEngine3D() {
       if (!dlg) return;
       const opts = (dlg.responses || []).map((r: any) => ({
         text: r.text,
-        action: () => openDbDialogue(npc, r.nextDialogueId),
+        action: () => {
+          // exploring a branch together is real conversation — remembered
+          recordTopic(npc.id, r.text);
+          openDbDialogue(npc, r.nextDialogueId);
+        },
       }));
+      // the soul loop: on a re-meeting, they say so before anything else
+      let text = dlg.text;
+      if (!dialogueId) {
+        const prev = loadNpcMemory(npc.id);
+        const greet = greetingFor(prev);
+        recordMeeting(npc.id);
+        if (greet) text = `${greet}\n\n${dlg.text}`;
+        const entry = dbNpcs.find((x) => x.npc === npc);
+        if (entry) refreshDbPlate(entry); // badge may have just changed
+      }
       currentDialogueOptions = opts.length ? opts : null;
       handleDialogue({
         title: npc.name,
-        text: dlg.text,
+        text,
         options: opts.length ? opts : undefined,
       });
       if (!opts.length) setTimeout(() => setDialogue(null), 6000);
@@ -1343,6 +1398,15 @@ export default function GTAEngine3D() {
           scene.add(grp);
           dbNpcs.push({ mesh: grp, npc, near: false });
         }
+        // returning players see who remembers them from across the street
+        dbNpcs.forEach(refreshDbPlate);
+        // and the region map knows where your people live
+        regionDataRef.current.people = dbNpcs.map((d) => ({
+          name: d.npc.name || "???",
+          x: d.mesh.position.x,
+          z: d.mesh.position.z,
+          known: loadNpcMemory(d.npc.id).meetCount > 0,
+        }));
         console.log(
           `db characters: ${dbNpcs.length} spawned in the east district (walk up to talk)`,
         );
@@ -1437,8 +1501,10 @@ export default function GTAEngine3D() {
         scene.add(slit.group);
         physicsWorld.doubleSlit = slit;
       }
-      // hand the region to the map overlay
+      // hand the region to the map overlay — merge: the npc loader may
+      // have already written `people` (the two loaders race)
       regionDataRef.current = {
+        ...regionDataRef.current,
         districts: built.filter((d): d is BuiltDistrict => d !== null),
         portals:
           mpi && berlin
@@ -2658,90 +2724,6 @@ export default function GTAEngine3D() {
       });
     }
 
-    // === THE NEIGHBORS — your people, home on the spawn block ===
-    // Named residents with nameplates who never leave the street. Press E
-    // to talk: they run on the same LLM path as every pedestrian, but the
-    // prompt knows they know you. An empty spawn can't be home; this one
-    // has Eva waiting on it.
-    const NEIGHBORS = [
-      {
-        name: "Eva",
-        x: 8,
-        z: 192,
-        shirt: 0xd45577,
-        vibe: "warm, direkt, lacht viel; fragt, wie es dir WIRKLICH geht",
-      },
-      {
-        name: "Oksana",
-        x: -9,
-        z: 197,
-        shirt: 0x55a077,
-        vibe: "praktisch, cool, schraubt ständig an den Autos am Bordstein",
-      },
-      {
-        name: "Herr Röttger",
-        x: 5,
-        z: 214,
-        shirt: 0x777799,
-        vibe: "Rentner, weiß alles über die Nachbarschaft und die A73",
-      },
-      {
-        name: "MC Lukas",
-        x: -6,
-        z: 185,
-        shirt: 0xcc8833,
-        vibe: "Möchtegern-Rapper, loyal, nervig, hat immer einen neuen Track",
-      },
-    ];
-    for (const nb of NEIGHBORS) {
-      const g = new THREE.Group();
-      const body = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 3, 0.8),
-        new THREE.MeshLambertMaterial({ color: nb.shirt }),
-      );
-      body.position.y = 1.5;
-      g.add(body);
-      const head = new THREE.Mesh(
-        new THREE.SphereGeometry(0.5, 8, 8),
-        new THREE.MeshLambertMaterial({ color: 0xffdbac }),
-      );
-      head.position.y = 3.5;
-      g.add(head);
-      const plate = new THREE.Sprite(
-        new THREE.SpriteMaterial({
-          map: createTextTexture(nb.name, "#ffffff", "#1a1a1a", 36),
-          transparent: true,
-          depthWrite: false,
-        }),
-      );
-      plate.scale.set(Math.max(3, nb.name.length * 0.55), 1.1, 1);
-      plate.position.y = 4.6;
-      g.add(plate);
-      const px = PLAYER_SPAWN.position.x + nb.x;
-      const pz = nb.z;
-      g.position.set(px, 0, pz);
-      scene.add(g);
-      pedestrians.push({
-        mesh: g,
-        speed: 0.012,
-        changeTimer: 200,
-        dead: false,
-        personality: {
-          name: nb.name,
-          systemPrompt:
-            `Du bist ${nb.name}, Nachbar:in am Spawn-Block (Südstadt, ` +
-            `Nürnberg). ${nb.vibe}. Ihr kennt euch seit Jahren; der Spieler ` +
-            `ist gerade nach Hause gekommen. Antworte kurz (1-3 Sätze), ` +
-            `warm, auf Deutsch.`,
-        } as (typeof CHARACTERS)[keyof typeof CHARACTERS],
-        targetX: px,
-        targetZ: pz,
-        idleTimer: 120,
-        state: "idle",
-        home: { x: px, z: pz, r: 14 },
-      });
-    }
-
     // === POLICE SYSTEM ===
     interface PoliceCar {
       mesh: THREE.Group;
@@ -3620,6 +3602,8 @@ export default function GTAEngine3D() {
 
           ctx.save();
           ctx.translate(100, 100);
+          // Canvas Y points down; flip it so the rider's forward direction is up.
+          ctx.scale(1, -1);
           ctx.rotate(pRot);
           ctx.lineCap = "round";
           ctx.lineJoin = "round";
