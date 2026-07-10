@@ -172,11 +172,35 @@ function buildStreets(json: DistrictJson): THREE.Mesh {
   return mesh;
 }
 
+// one shared facade texture — a grid of windows, some lit. Instance colors
+// multiply over it, so every building gets windows plus its own tint for
+// the cost of a single 64×128 canvas.
+let _facadeTex: THREE.Texture | null = null;
+function facadeTexture(): THREE.Texture {
+  if (_facadeTex) return _facadeTex;
+  const c = document.createElement("canvas");
+  c.width = 64;
+  c.height = 128;
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#969696";
+  ctx.fillRect(0, 0, 64, 128);
+  for (let y = 6; y < 122; y += 12) {
+    for (let x = 6; x < 58; x += 12) {
+      const lit = Math.random() < 0.25;
+      ctx.fillStyle = lit ? "#ffe9a8" : "#39414a";
+      ctx.fillRect(x, y, 7, 8);
+    }
+  }
+  _facadeTex = new THREE.CanvasTexture(c);
+  _facadeTex.magFilter = THREE.NearestFilter;
+  return _facadeTex;
+}
+
 // every building of the district in a single InstancedMesh
 function buildBuildings(json: DistrictJson, accent: number) {
   const geo = new THREE.BoxGeometry(1, 1, 1);
   geo.translate(0, 0.5, 0); // origin at the base, so scaling sets height
-  const mat = new THREE.MeshLambertMaterial();
+  const mat = new THREE.MeshLambertMaterial({ map: facadeTexture() });
   const mesh = new THREE.InstancedMesh(geo, mat, json.buildings.length);
 
   const m = new THREE.Matrix4();
@@ -196,9 +220,10 @@ function buildBuildings(json: DistrictJson, accent: number) {
     if (b.lm) {
       col.copy(accentCol);
     } else {
-      // muted, deterministic per-footprint variation
+      // muted, deterministic per-footprint variation (bright enough that
+      // the multiplied facade texture keeps its window contrast)
       const t = ((b.x * 7 + b.z * 13) % 40) / 40;
-      col.setHSL(0.08 + t * 0.06, 0.12 + t * 0.1, 0.42 + t * 0.18);
+      col.setHSL(0.08 + t * 0.06, 0.12 + t * 0.1, 0.55 + t * 0.2);
     }
     mesh.setColorAt(i, col);
   });
@@ -222,9 +247,10 @@ export async function loadDistrict(
     group.add(buildStreets(json));
     group.add(buildBuildings(json, def.accent));
 
-    // district name floats high at the center — visible from far away
-    const title = textSprite(json.name, "#ffffff", 26, "rgba(0,0,0,0.55)");
-    title.position.set(0, 90, 0);
+    // district name floats high at the center — visible from far away,
+    // but not billboard-of-doom sized
+    const title = textSprite(json.name, "#ffffff", 13, "rgba(0,0,0,0.7)");
+    title.position.set(0, 80, 0);
     group.add(title);
 
     const landmarks: BuiltDistrict["landmarks"] = [];

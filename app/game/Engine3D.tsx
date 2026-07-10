@@ -1502,6 +1502,9 @@ export default function GTAEngine3D() {
         });
       });
 
+      // (the animate loop points the waypoint beacon at the first active
+      // mission once these markers land — see initialBeaconSet)
+
       // Helper to create lesson markers
       function createLessonMarker(lesson: Lesson): THREE.Group {
         const marker = new THREE.Group();
@@ -2589,8 +2592,21 @@ export default function GTAEngine3D() {
       targetZ: number;
       idleTimer: number;
       state: "walking" | "idle" | "fleeing";
+      // residents stay on their block: wander targets stay within r of home
+      home?: { x: number; z: number; r: number };
     }
     const pedestrians: Pedestrian[] = [];
+    const pickPedTarget = (ped: Pedestrian) => {
+      if (ped.home) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 3 + Math.random() * ped.home.r;
+        return {
+          x: ped.home.x + Math.cos(a) * r,
+          z: ped.home.z + Math.sin(a) * r,
+        };
+      }
+      return getRandomSidewalkPoint(ped.mesh.position);
+    };
     const pedPersonalities = [
       CHARACTERS.HOMELESS_PETE,
       CHARACTERS.SHOP_OWNER_LEE,
@@ -2639,6 +2655,90 @@ export default function GTAEngine3D() {
         targetZ: targetPoint.z,
         idleTimer: 0,
         state: "walking",
+      });
+    }
+
+    // === THE NEIGHBORS — your people, home on the spawn block ===
+    // Named residents with nameplates who never leave the street. Press E
+    // to talk: they run on the same LLM path as every pedestrian, but the
+    // prompt knows they know you. An empty spawn can't be home; this one
+    // has Eva waiting on it.
+    const NEIGHBORS = [
+      {
+        name: "Eva",
+        x: 8,
+        z: 192,
+        shirt: 0xd45577,
+        vibe: "warm, direkt, lacht viel; fragt, wie es dir WIRKLICH geht",
+      },
+      {
+        name: "Oksana",
+        x: -9,
+        z: 197,
+        shirt: 0x55a077,
+        vibe: "praktisch, cool, schraubt ständig an den Autos am Bordstein",
+      },
+      {
+        name: "Herr Röttger",
+        x: 5,
+        z: 214,
+        shirt: 0x777799,
+        vibe: "Rentner, weiß alles über die Nachbarschaft und die A73",
+      },
+      {
+        name: "MC Lukas",
+        x: -6,
+        z: 185,
+        shirt: 0xcc8833,
+        vibe: "Möchtegern-Rapper, loyal, nervig, hat immer einen neuen Track",
+      },
+    ];
+    for (const nb of NEIGHBORS) {
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 3, 0.8),
+        new THREE.MeshLambertMaterial({ color: nb.shirt }),
+      );
+      body.position.y = 1.5;
+      g.add(body);
+      const head = new THREE.Mesh(
+        new THREE.SphereGeometry(0.5, 8, 8),
+        new THREE.MeshLambertMaterial({ color: 0xffdbac }),
+      );
+      head.position.y = 3.5;
+      g.add(head);
+      const plate = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: createTextTexture(nb.name, "#ffffff", "#1a1a1a", 36),
+          transparent: true,
+          depthWrite: false,
+        }),
+      );
+      plate.scale.set(Math.max(3, nb.name.length * 0.55), 1.1, 1);
+      plate.position.y = 4.6;
+      g.add(plate);
+      const px = PLAYER_SPAWN.position.x + nb.x;
+      const pz = nb.z;
+      g.position.set(px, 0, pz);
+      scene.add(g);
+      pedestrians.push({
+        mesh: g,
+        speed: 0.012,
+        changeTimer: 200,
+        dead: false,
+        personality: {
+          name: nb.name,
+          systemPrompt:
+            `Du bist ${nb.name}, Nachbar:in am Spawn-Block (Südstadt, ` +
+            `Nürnberg). ${nb.vibe}. Ihr kennt euch seit Jahren; der Spieler ` +
+            `ist gerade nach Hause gekommen. Antworte kurz (1-3 Sätze), ` +
+            `warm, auf Deutsch.`,
+        } as (typeof CHARACTERS)[keyof typeof CHARACTERS],
+        targetX: px,
+        targetZ: pz,
+        idleTimer: 120,
+        state: "idle",
+        home: { x: px, z: pz, r: 14 },
       });
     }
 
@@ -3307,6 +3407,8 @@ export default function GTAEngine3D() {
     // Add state variable before the game loop:
     let lastZoneName = "";
     let completedMissions: string[] = [];
+    // once the lesson markers load, aim the waypoint beacon at the first one
+    let initialBeaconSet = false;
 
     // (Removed misplaced building interaction block; this logic should be inside the appropriate event handler)
 
@@ -3533,8 +3635,9 @@ export default function GTAEngine3D() {
             ctx.lineWidth = lineWidth;
             ctx.beginPath();
             points.forEach((pt, i) => {
-              const x = pt.x * 0.5;
-              const y = pt.z * 0.5;
+              // relative to the player — the map moves under you, as maps do
+              const x = (pt.x - pPos.x) * 0.5;
+              const y = (pt.z - pPos.z) * 0.5;
               if (i === 0) ctx.moveTo(x, y);
               else ctx.lineTo(x, y);
             });
@@ -3867,7 +3970,7 @@ export default function GTAEngine3D() {
             );
             if (toTarget.length() < 2 || distToPlayer > 30) {
               ped.state = "walking";
-              const newTarget = getRandomSidewalkPoint(ped.mesh.position);
+              const newTarget = pickPedTarget(ped);
               ped.targetX = newTarget.x;
               ped.targetZ = newTarget.z;
             } else {
@@ -3878,7 +3981,7 @@ export default function GTAEngine3D() {
             ped.idleTimer--;
             if (ped.idleTimer <= 0) {
               ped.state = "walking";
-              const newTarget = getRandomSidewalkPoint(ped.mesh.position);
+              const newTarget = pickPedTarget(ped);
               ped.targetX = newTarget.x;
               ped.targetZ = newTarget.z;
             }
@@ -3896,7 +3999,7 @@ export default function GTAEngine3D() {
                 ped.state = "idle";
                 ped.idleTimer = 60 + Math.random() * 120;
               } else {
-                const newTarget = getRandomSidewalkPoint(ped.mesh.position);
+                const newTarget = pickPedTarget(ped);
                 ped.targetX = newTarget.x;
                 ped.targetZ = newTarget.z;
               }
@@ -4260,12 +4363,49 @@ export default function GTAEngine3D() {
           }
         });
 
-        // Mission marker interaction
+        // Mission markers: walking into one actually starts it. Complete it,
+        // collect the reward, and the beacon jumps to the next active marker —
+        // one legible cause-and-effect loop: beacon → walk in → reward → next.
+        if (!initialBeaconSet && markers.length > 0) {
+          initialBeaconSet = true;
+          const first = markers.find((m) => m.active);
+          if (first) {
+            setWaypointFnRef.current?.(
+              first.mesh.position.x,
+              first.mesh.position.z,
+            );
+          }
+        }
         const charPos =
           playerState === "driving" ? activeCar.position : playerGroup.position;
         markers.forEach((m) => {
-          if (m.active) {
-            m.mesh.rotation.y += 0.05;
+          if (!m.active) return;
+          m.mesh.rotation.y += 0.05;
+          const mdx = charPos.x - m.mesh.position.x;
+          const mdz = charPos.z - m.mesh.position.z;
+          if (mdx * mdx + mdz * mdz < 36) {
+            m.active = false;
+            scene.remove(m.mesh);
+            const lesson = m.lesson;
+            const rewardMoney = lesson?.reward?.money ?? 50;
+            const xp = lesson?.reward?.xp ?? 25;
+            money += rewardMoney;
+            moneyRef.current = money;
+            handleDialogue({
+              title: lesson ? lesson.titleDe : m.name,
+              text:
+                (lesson ? `${lesson.description}\n\n` : "") +
+                `+${xp} XP · +$${rewardMoney}`,
+            });
+            setTimeout(() => setDialogue(null), 6000);
+            const next = markers.find((x) => x.active);
+            if (next) {
+              setWaypointFnRef.current?.(
+                next.mesh.position.x,
+                next.mesh.position.z,
+              );
+              showNotification("zone", "NÄCHSTE MISSION", next.name, 3000);
+            }
           }
         });
 
