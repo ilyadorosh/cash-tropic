@@ -52,6 +52,14 @@ export interface DistrictDef {
 // True compass directions from there: Fürth WNW, Erlangen N, Berlin far NNE.
 export const DISTRICTS: DistrictDef[] = [
   {
+    id: "aufsessplatz",
+    name: "Aufseßplatz, Nürnberg",
+    // Close enough to the old core to drive there, far enough that the real
+    // footprint does not overlap the stylized legacy blocks.
+    offset: { x: 700, z: 400 },
+    accent: 0x58a66a,
+  },
+  {
     id: "nuernberg",
     name: "Nürnberg Altstadt",
     offset: { x: 1200, z: -900 },
@@ -81,7 +89,7 @@ export interface BuiltDistrict {
   def: DistrictDef;
   json: DistrictJson;
   group: THREE.Group;
-  // AABB colliders compatible with the engine's collision loop
+  // Oriented footprint colliders compatible with the engine's collision loop
   colliders: THREE.Mesh[];
   // world-space named landmarks (for portals, exhibits, missions)
   landmarks: Array<{ name: string; x: number; z: number; h: number }>;
@@ -249,23 +257,96 @@ export async function loadDistrict(
 
     // district name floats high at the center — visible from far away,
     // but not billboard-of-doom sized
-    const title = textSprite(json.name, "#ffffff", 13, "rgba(0,0,0,0.7)");
-    title.position.set(0, 80, 0);
+    const homeDistrict = def.id === "aufsessplatz";
+    const title = textSprite(
+      json.name,
+      "#ffffff",
+      homeDistrict ? 4 : 13,
+      "rgba(0,0,0,0.7)",
+    );
+    title.position.set(0, homeDistrict ? 24 : 80, 0);
     group.add(title);
 
     const landmarks: BuiltDistrict["landmarks"] = [];
     const colliders: THREE.Mesh[] = [];
 
+    if (def.id === "aufsessplatz") {
+      const fountain = new THREE.Group();
+      const basin = new THREE.Mesh(
+        new THREE.CylinderGeometry(5.2, 5.5, 0.8, 28),
+        new THREE.MeshStandardMaterial({ color: 0x8d8980, roughness: 0.9 }),
+      );
+      basin.position.y = 0.4;
+      fountain.add(basin);
+      const water = new THREE.Mesh(
+        new THREE.CylinderGeometry(4.6, 4.6, 0.18, 28),
+        new THREE.MeshStandardMaterial({
+          color: 0x4c9db8,
+          emissive: 0x173947,
+          transparent: true,
+          opacity: 0.85,
+        }),
+      );
+      water.position.y = 0.88;
+      fountain.add(water);
+      const pedestal = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.65, 1.15, 3.2, 10),
+        new THREE.MeshStandardMaterial({ color: 0x756f65, roughness: 0.85 }),
+      );
+      pedestal.position.y = 2.2;
+      fountain.add(pedestal);
+      const figure = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.42, 1.5, 5, 8),
+        new THREE.MeshStandardMaterial({
+          color: 0x365d4d,
+          metalness: 0.7,
+          roughness: 0.55,
+        }),
+      );
+      figure.position.y = 4.6;
+      fountain.add(figure);
+      const fountainLabel = textSprite(
+        "Nymphenbrunnen · Aufseßplatz",
+        "#dff6e3",
+        3.5,
+      );
+      fountainLabel.position.y = 8;
+      fountain.add(fountainLabel);
+      group.add(fountain);
+
+      const fountainCollider = new THREE.Mesh(
+        new THREE.BoxGeometry(10.4, 2, 10.4),
+      );
+      fountainCollider.position.set(def.offset.x, 1, def.offset.z);
+      fountainCollider.visible = false;
+      fountainCollider.userData = {
+        width: 10.4,
+        depth: 10.4,
+        buildingId: "aufsessplatz-nymphenbrunnen",
+      };
+      colliders.push(fountainCollider);
+      landmarks.push({
+        name: "Nymphenbrunnen · Aufseßplatz",
+        x: def.offset.x,
+        z: def.offset.z,
+        h: 6,
+      });
+    }
+
     for (const b of json.buildings) {
-      // engine collisions are axis-aligned: use the AABB of the rotated rect
-      const cw =
-        Math.abs(b.w * Math.cos(b.rot)) + Math.abs(b.d * Math.sin(b.rot));
-      const cd =
-        Math.abs(b.w * Math.sin(b.rot)) + Math.abs(b.d * Math.cos(b.rot));
+      // Match the rendered oriented rectangle. The former AABB enclosed large
+      // empty triangles around angled buildings, so cars hit invisible space.
+      const cw = Math.max(2, b.w - 0.6);
+      const cd = Math.max(2, b.d - 0.6);
       const collider = new THREE.Mesh(new THREE.BoxGeometry(cw, b.h, cd));
       collider.position.set(def.offset.x + b.x, b.h / 2, def.offset.z + b.z);
+      collider.rotation.y = b.rot;
       collider.visible = false;
-      collider.userData = { width: cw, depth: cd, buildingId: `${def.id}` };
+      collider.userData = {
+        width: cw,
+        depth: cd,
+        buildingId: `${def.id}`,
+      };
       colliders.push(collider);
 
       if (b.n && (b.lm || b.w * b.d > 400)) {
@@ -319,6 +400,16 @@ export interface ConnectorRoad {
 export function connectorRoads(): ConnectorRoad[] {
   const d = Object.fromEntries(DISTRICTS.map((x) => [x.id, x.offset]));
   return [
+    {
+      name: "Südstadt → Aufseßplatz",
+      width: 12,
+      pts: [
+        [100, 190],
+        [300, 240],
+        [520, 330],
+        [d.aufsessplatz.x, d.aufsessplatz.z],
+      ],
+    },
     {
       name: "A73 Frankenschnellweg → Erlangen",
       width: 24,

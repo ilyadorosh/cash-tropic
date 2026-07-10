@@ -116,6 +116,41 @@ export const NUERNBERG_STREETS: StreetSegment[] = [
     type: "side",
     name: "Humboldtstraße",
   },
+  // === HOME BLOCK ===
+  // Continue the traffic graph to the player's Südstadt courtyard. These
+  // share exact endpoints because generateTrafficNetwork links by node ID.
+  {
+    id: "home_north_1",
+    start: { x: 0, z: 150 },
+    end: { x: 0, z: 190 },
+    width: 16,
+    type: "main",
+    name: "Pillenreuther Straße Süd",
+  },
+  {
+    id: "home_cross_1",
+    start: { x: 0, z: 190 },
+    end: { x: 100, z: 190 },
+    width: 10,
+    type: "side",
+    name: "Heimstraße",
+  },
+  {
+    id: "home_cross_2",
+    start: { x: 0, z: 190 },
+    end: { x: -100, z: 190 },
+    width: 10,
+    type: "side",
+    name: "Heimstraße West",
+  },
+  {
+    id: "home_east_1",
+    start: { x: 100, z: 190 },
+    end: { x: 100, z: 300 },
+    width: 9,
+    type: "side",
+    name: "Hintere Südstadt",
+  },
 
   // === NEBENSTRASSEN - Innenstadt ===
   {

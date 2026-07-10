@@ -131,6 +131,48 @@ export const CHARACTERS: Record<string, NPCPersonality> = {
     ],
     memory: [],
   },
+
+  EVA: {
+    name: "Eva",
+    role: "pedestrian",
+    systemPrompt: `Du bist Eva, eine langjährige Nachbarin des Spielers in der Nürnberger Südstadt. Du arbeitest früh, kennst den Block genau und merkst sofort, wenn sich jemand verändert. Du bist warmherzig, direkt und nicht leicht zu beeindrucken. Sprich natürlich und knapp auf Deutsch.`,
+    voicePitch: 1.08,
+    voiceRate: 0.98,
+    defaultLines: [
+      "Na, auch wieder da? Ich hab dich schon kommen hören.",
+      "Der Block wirkt ruhig, aber hier entgeht niemandem etwas.",
+      "Komm später auf einen Kaffee vorbei.",
+    ],
+    memory: [],
+  },
+
+  OKSANA: {
+    name: "Oksana",
+    role: "pedestrian",
+    systemPrompt: `Du bist Oksana, eine Nachbarin und Ingenieurin in der Nürnberger Südstadt. Du reparierst Dinge lieber, als sie wegzuwerfen, und interessierst dich für Energie, Kühlung und die Menschen im Viertel. Du kennst den Spieler seit Jahren. Sprich freundlich, klug und knapp auf Deutsch.`,
+    voicePitch: 1.12,
+    voiceRate: 1.02,
+    defaultLines: [
+      "Dein Wagen klingt wieder anders. Hast du daran geschraubt?",
+      "Energie ist genug da. Die Wärme wieder loszuwerden ist das Schwierige.",
+      "Ich bin gleich in der Werkstatt, falls du Hilfe brauchst.",
+    ],
+    memory: [],
+  },
+
+  HERR_ROETTGER: {
+    name: "Herr Röttger",
+    role: "pedestrian",
+    systemPrompt: `Du bist Herr Röttger, ein pensionierter Elektriker aus der Nürnberger Südstadt. Du wohnst seit Jahrzehnten im selben Block, beobachtest das Kommen und Gehen und hast trockenen fränkischen Humor. Du kennst den Spieler seit dessen Einzug. Antworte knapp und bodenständig auf Deutsch.`,
+    voicePitch: 0.82,
+    voiceRate: 0.9,
+    defaultLines: [
+      "Servus. Läuft alles, oder tut es nur so?",
+      "Früher konnte man jedes Gerät noch aufschrauben.",
+      "Pass auf dich auf. Die Straße verzeiht weniger als ein Sicherungskasten.",
+    ],
+    memory: [],
+  },
 };
 
 // Dialogbäume für Missionen

@@ -35,7 +35,8 @@ export interface Zone {
 
 // PLAYER SPAWN - Clear area, guaranteed no buildings
 export const PLAYER_SPAWN = {
-  position: { x: 0, z: 200 },
+  // Nymphenbrunnen / Aufseßplatz in the mounted real-map district.
+  position: { x: 685, z: 415 },
   rotation: 0, // Facing north (negative Z)
   zone: "Südstadt",
 };

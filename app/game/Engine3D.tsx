@@ -87,6 +87,17 @@ type GameModelSnapshot = {
   weather: ModelWeather;
 };
 
+type ConversationTurn = {
+  role: "player" | "npc";
+  text: string;
+};
+
+type ActiveConversation = {
+  name: string;
+  systemPrompt: string;
+  turns: ConversationTurn[];
+};
+
 type ModelZoneDefinition = {
   id: string;
   label: string;
@@ -248,12 +259,15 @@ async function callLLM(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ character, context, systemPrompt }),
     });
+    if (!res.ok) throw new Error(`characterThink returned ${res.status}`);
     const data = await res.json();
     return data.response || data.text || "... ";
   } catch (e) {
     console.error("LLM call failed:", e);
     // Fallback to character's default lines
-    const char = CHARACTERS[character];
+    const char =
+      CHARACTERS[character] ||
+      Object.values(CHARACTERS).find((entry) => entry.name === character);
     if (char?.defaultLines) {
       return char.defaultLines[
         Math.floor(Math.random() * char.defaultLines.length)
@@ -282,6 +296,10 @@ export default function GTAEngine3D() {
     gamma: 1,
   });
   const [dialogue, setDialogue] = useState<Dialogue | null>(null);
+  const [activeConversation, setActiveConversation] =
+    useState<ActiveConversation | null>(null);
+  const [conversationInput, setConversationInput] = useState("");
+  const [conversationSending, setConversationSending] = useState(false);
   const [onFoot, setOnFoot] = useState(false);
   const [showSurrenderPrompt, setShowSurrenderPrompt] = useState(false);
   const [modelHud, setModelHud] = useState<GameModelSnapshot>(() =>
@@ -556,18 +574,82 @@ export default function GTAEngine3D() {
   // not React state, to know whether a dialogue is open (stale-closure fix:
   // Space-to-skip never worked because `dialogue` was frozen at null)
   const dialogueOpenRef = useRef<Dialogue | null>(null);
+  const activeConversationRef = useRef<ActiveConversation | null>(null);
   useEffect(() => {
     dialogueOpenRef.current = dialogue;
   }, [dialogue]);
+  useEffect(() => {
+    activeConversationRef.current = activeConversation;
+  }, [activeConversation]);
 
   // Dialogue handler with options support
   const handleDialogue = useCallback((d: Dialogue) => {
+    dialogueOpenRef.current = d;
     setDialogue(d);
     if (d.text) {
       const char = Object.values(CHARACTERS).find((c) => c.name === d.title);
       speak(d.text, char?.voicePitch || 1, char?.voiceRate || 1);
     }
   }, []);
+
+  const beginConversation = useCallback(
+    (name: string, systemPrompt: string, opening: string) => {
+      const next: ActiveConversation = {
+        name,
+        systemPrompt,
+        turns: opening ? [{ role: "npc", text: opening }] : [],
+      };
+      activeConversationRef.current = next;
+      setActiveConversation(next);
+      setConversationInput("");
+      handleDialogue({ title: name, text: opening || "..." });
+    },
+    [handleDialogue],
+  );
+
+  const submitConversation = useCallback(
+    async (event: React.FormEvent) => {
+      event.preventDefault();
+      const current = activeConversationRef.current;
+      const message = conversationInput.trim();
+      if (!current || !message || conversationSending) return;
+
+      const withPlayer: ActiveConversation = {
+        ...current,
+        turns: [...current.turns, { role: "player", text: message }],
+      };
+      activeConversationRef.current = withPlayer;
+      setActiveConversation(withPlayer);
+      setConversationInput("");
+      setConversationSending(true);
+
+      const context = withPlayer.turns
+        .slice(-8)
+        .map(
+          (turn) =>
+            `${turn.role === "player" ? "Player" : current.name}: ${turn.text}`,
+        )
+        .join("\n");
+      const response = await callLLM(
+        current.name,
+        context,
+        current.systemPrompt,
+      );
+      const latest = activeConversationRef.current;
+      if (latest?.name === current.name) {
+        const answered: ActiveConversation = {
+          ...latest,
+          turns: [...latest.turns, { role: "npc", text: response }],
+        };
+        activeConversationRef.current = answered;
+        setActiveConversation(answered);
+        dialogueOpenRef.current = { title: current.name, text: response };
+        setDialogue({ title: current.name, text: response });
+      }
+      setConversationSending(false);
+    },
+    [conversationInput, conversationSending],
+  );
 
   const handleReward = useCallback((money: number, respect: number) => {
     moneyRef.current += money;
@@ -655,6 +737,7 @@ export default function GTAEngine3D() {
     let playerState: "driving" | "walking" = "driving";
     let speed = 0;
     let steering = 0;
+    let lastVehicleExit = 0;
     let health = 100;
     let wantedLevel = 0;
     let missionIndex = 0;
@@ -727,6 +810,9 @@ export default function GTAEngine3D() {
     const sun = new THREE.DirectionalLight(0xfff3e0, 0.7);
     sun.position.set(60, 80, 30);
     scene.add(sun);
+    // Keep street-level faces readable even when the moving sun is behind
+    // them. The old ambient-only fill crushed whole façades to black.
+    scene.add(new THREE.HemisphereLight(0xb9d9e8, 0x35502f, 0.78));
     // t, sky, fog, sun intensity, exposure
     const atmoStops: [number, number, number, number, number][] = [
       [0.0, 0x0a1226, 0x0a1430, 0.05, 0.5],
@@ -787,8 +873,8 @@ export default function GTAEngine3D() {
 
     // floating name tags (canvas sprite — names make a city a society)
     function makeTextSprite(text: string, color = "#ffffff") {
-      const pad = 10,
-        fs = 44;
+      const pad = 8,
+        fs = 32;
       const cnv = document.createElement("canvas");
       const m = cnv.getContext("2d")!;
       m.font = `600 ${fs}px monospace`;
@@ -808,8 +894,8 @@ export default function GTAEngine3D() {
           depthWrite: false,
         }),
       );
-      spr.scale.set(cnv.width / 28, cnv.height / 28, 1);
-      spr.position.y = 5;
+      spr.scale.set(cnv.width / 52, cnv.height / 52, 1);
+      spr.position.y = 4.7;
       return spr;
     }
 
@@ -887,6 +973,68 @@ export default function GTAEngine3D() {
     const colliders: THREE.Mesh[] = [];
     const interactables: any[] = [];
     initWorld(scene, colliders, interactables);
+
+    const colliderPush = new THREE.Vector3();
+    const colliderCenter = new THREE.Vector3();
+    const colliderLocalPoint = new THREE.Vector3();
+    const colliderWorldQuaternion = new THREE.Quaternion();
+    const colliderInverseQuaternion = new THREE.Quaternion();
+    function circleColliderPenetration(
+      position: THREE.Vector3,
+      radius: number,
+      collider: THREE.Mesh,
+      out: THREE.Vector3,
+    ): boolean {
+      const width = Number(collider.userData.width);
+      const depth = Number(collider.userData.depth);
+      if (!Number.isFinite(width) || !Number.isFinite(depth)) return false;
+
+      // Some colliders are visible wall meshes parented under a building.
+      // Their `.position` is local; always collide in world space.
+      collider.getWorldPosition(colliderCenter);
+      const dx = position.x - colliderCenter.x;
+      const dz = position.z - colliderCenter.z;
+      const halfDiagonal = Math.hypot(width, depth) / 2 + radius;
+      if (dx * dx + dz * dz > halfDiagonal * halfDiagonal) return false;
+
+      collider.getWorldQuaternion(colliderWorldQuaternion);
+      colliderInverseQuaternion.copy(colliderWorldQuaternion).invert();
+      colliderLocalPoint
+        .set(dx, 0, dz)
+        .applyQuaternion(colliderInverseQuaternion);
+      const localX = colliderLocalPoint.x;
+      const localZ = colliderLocalPoint.z;
+      const halfW = width / 2;
+      const halfD = depth / 2;
+      const closestX = Math.max(-halfW, Math.min(halfW, localX));
+      const closestZ = Math.max(-halfD, Math.min(halfD, localZ));
+      const diffX = localX - closestX;
+      const diffZ = localZ - closestZ;
+      const distanceSq = diffX * diffX + diffZ * diffZ;
+      if (distanceSq >= radius * radius) return false;
+
+      let pushX: number;
+      let pushZ: number;
+      if (distanceSq > 0.000001) {
+        const distance = Math.sqrt(distanceSq);
+        const penetration = radius - distance + 0.02;
+        pushX = (diffX / distance) * penetration;
+        pushZ = (diffZ / distance) * penetration;
+      } else {
+        const escapeX = halfW + radius - Math.abs(localX);
+        const escapeZ = halfD + radius - Math.abs(localZ);
+        if (escapeX < escapeZ) {
+          pushX = (localX >= 0 ? 1 : -1) * (escapeX + 0.02);
+          pushZ = 0;
+        } else {
+          pushX = 0;
+          pushZ = (localZ >= 0 ? 1 : -1) * (escapeZ + 0.02);
+        }
+      }
+
+      out.set(pushX, 0, pushZ).applyQuaternion(colliderWorldQuaternion).setY(0);
+      return true;
+    }
 
     // === THE LIVING TERRAIN — a neural net IS part of the world ===
     // Expensive on weak clients, so it lazy-loads and wakes around thermal/model
@@ -1905,16 +2053,184 @@ export default function GTAEngine3D() {
     const parkedCars: THREE.Group[] = [];
     // west curb row, evenly spaced, all noses north — nice and neat
     const PARKED_SPOTS: Array<[number, number, number]> = [
-      [-14, 190, 0x992222], // oxblood red
-      [-14, 202, 0x226644], // racing green
-      [-14, 214, 0xb8a24a], // sun-faded gold
+      [-14, -14, 0x992222], // oxblood red
+      [-14, 0, 0x226644], // racing green
+      [-14, 14, 0xb8a24a], // sun-faded gold
     ];
     for (const [px, pz, color] of PARKED_SPOTS) {
       const parked = makeParkedCar(color);
-      parked.position.set(PLAYER_SPAWN.position.x + px, 0, pz);
+      parked.position.set(
+        PLAYER_SPAWN.position.x + px,
+        0,
+        PLAYER_SPAWN.position.z + pz,
+      );
       parked.rotation.y = 0;
       scene.add(parked);
       parkedCars.push(parked);
+    }
+
+    // The handmade courtyard remains as an offline fallback. The normal build
+    // starts on the real Aufseßplatz footprint instead.
+    if (!DISTRICTS.some((district) => district.id === "aufsessplatz")) {
+      // A compact home courtyard: enough visual structure to feel inhabited
+      // without turning the spawn into another obstacle course.
+      const homeCourt = new THREE.Group();
+      homeCourt.position.set(
+        PLAYER_SPAWN.position.x + 7,
+        0.12,
+        PLAYER_SPAWN.position.z,
+      );
+      const courtPaving = new THREE.Mesh(
+        new THREE.PlaneGeometry(24, 34),
+        new THREE.MeshBasicMaterial({ color: 0x77736a }),
+      );
+      courtPaving.rotation.x = -Math.PI / 2;
+      courtPaving.receiveShadow = true;
+      homeCourt.add(courtPaving);
+      const seamMat = new THREE.MeshBasicMaterial({ color: 0x625f59 });
+      for (let z = -14; z <= 14; z += 4) {
+        const seam = new THREE.Mesh(
+          new THREE.PlaneGeometry(23.5, 0.08),
+          seamMat,
+        );
+        seam.rotation.x = -Math.PI / 2;
+        seam.position.set(0, 0.012, z);
+        homeCourt.add(seam);
+      }
+      for (let x = -10; x <= 10; x += 4) {
+        const seam = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.08, 33.5),
+          seamMat,
+        );
+        seam.rotation.x = -Math.PI / 2;
+        seam.position.set(x, 0.013, 0);
+        homeCourt.add(seam);
+      }
+
+      const makePlanter = (x: number, z: number) => {
+        const planter = new THREE.Group();
+        planter.position.set(x, 0, z);
+        const box = new THREE.Mesh(
+          new THREE.BoxGeometry(3.8, 0.65, 1.6),
+          new THREE.MeshLambertMaterial({ color: 0x59463a }),
+        );
+        box.position.y = 0.32;
+        planter.add(box);
+        for (let i = -1; i <= 1; i++) {
+          const shrub = new THREE.Mesh(
+            new THREE.SphereGeometry(0.62, 7, 5),
+            new THREE.MeshLambertMaterial({ color: 0x3f6b3d }),
+          );
+          shrub.position.set(i * 1.05, 0.9, 0);
+          planter.add(shrub);
+        }
+        homeCourt.add(planter);
+      };
+      makePlanter(-9.5, -13.5);
+      makePlanter(9.5, 13.5);
+
+      const bench = new THREE.Group();
+      const benchSeat = new THREE.Mesh(
+        new THREE.BoxGeometry(4.8, 0.35, 1.2),
+        new THREE.MeshLambertMaterial({ color: 0x7a4b2b }),
+      );
+      benchSeat.position.y = 1.05;
+      bench.add(benchSeat);
+      const benchBack = benchSeat.clone();
+      benchBack.scale.set(1, 2.2, 0.35);
+      benchBack.position.set(0, 1.8, 0.5);
+      bench.add(benchBack);
+      [-1.8, 1.8].forEach((x) => {
+        const leg = new THREE.Mesh(
+          new THREE.BoxGeometry(0.3, 1, 0.8),
+          new THREE.MeshLambertMaterial({ color: 0x262626 }),
+        );
+        leg.position.set(x, 0.5, 0);
+        bench.add(leg);
+      });
+      bench.position.set(7.5, 0, -10.5);
+      bench.rotation.y = Math.PI;
+      homeCourt.add(bench);
+
+      [-8.5, 8.5].forEach((x) => {
+        const lamp = new THREE.Group();
+        const pole = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.12, 0.18, 5.5, 8),
+          new THREE.MeshLambertMaterial({ color: 0x252525 }),
+        );
+        pole.position.y = 2.75;
+        lamp.add(pole);
+        const bulb = new THREE.Mesh(
+          new THREE.SphereGeometry(0.38, 8, 6),
+          new THREE.MeshStandardMaterial({
+            color: 0xffdf9b,
+            emissive: 0xffb347,
+            emissiveIntensity: 1.5,
+          }),
+        );
+        bulb.position.y = 5.6;
+        lamp.add(bulb);
+        const glow = new THREE.PointLight(0xffc46b, 0.8, 20, 2);
+        glow.position.y = 5.4;
+        lamp.add(glow);
+        lamp.position.set(x, 0, x < 0 ? -11 : 11);
+        homeCourt.add(lamp);
+      });
+
+      const facadeColors = [0xa85743, 0xd0a55e, 0x668f8a, 0x9b7067];
+      [-12, -4, 4, 12].forEach((z, index) => {
+        const house = new THREE.Group();
+        const height = 8.5 + (index % 2) * 1.2;
+        const shell = new THREE.Mesh(
+          new THREE.BoxGeometry(7, height, 7.2),
+          new THREE.MeshLambertMaterial({ color: facadeColors[index] }),
+        );
+        shell.position.y = height / 2;
+        shell.castShadow = true;
+        shell.receiveShadow = true;
+        house.add(shell);
+
+        const door = new THREE.Mesh(
+          new THREE.PlaneGeometry(1.4, 2.8),
+          new THREE.MeshBasicMaterial({ color: 0x2d2521 }),
+        );
+        door.rotation.y = -Math.PI / 2;
+        door.position.set(-3.61, 1.4, 1.8);
+        house.add(door);
+
+        [-1.8, 1.7].forEach((windowZ) => {
+          [3.1, 6.1].forEach((windowY) => {
+            if (windowY > height - 1) return;
+            const window = new THREE.Mesh(
+              new THREE.PlaneGeometry(1.45, 1.25),
+              new THREE.MeshBasicMaterial({ color: 0x9fd4de }),
+            );
+            window.rotation.y = -Math.PI / 2;
+            window.position.set(-3.62, windowY, windowZ);
+            house.add(window);
+          });
+        });
+
+        const cornice = new THREE.Mesh(
+          new THREE.BoxGeometry(7.4, 0.28, 7.5),
+          new THREE.MeshLambertMaterial({ color: 0xe1d7c7 }),
+        );
+        cornice.position.y = height;
+        house.add(cornice);
+        house.position.set(15.5, 0, z);
+        homeCourt.add(house);
+
+        const proxy = new THREE.Mesh(new THREE.BoxGeometry(7, height, 7.2));
+        proxy.position.set(
+          homeCourt.position.x + house.position.x,
+          height / 2,
+          homeCourt.position.z + house.position.z,
+        );
+        proxy.visible = false;
+        proxy.userData = { width: 7, depth: 7.2 };
+        colliders.push(proxy);
+      });
+      scene.add(homeCourt);
     }
 
     // === PLAYER ON FOOT ===
@@ -2546,7 +2862,11 @@ export default function GTAEngine3D() {
     );
     bandana.position.y = 3.8;
     ogLocGroup.add(bandana);
-    ogLocGroup.position.set(0, 0, 10);
+    ogLocGroup.position.set(
+      PLAYER_SPAWN.position.x - 12,
+      0,
+      PLAYER_SPAWN.position.z + 13,
+    );
     scene.add(ogLocGroup);
 
     storyNPCs.push({
@@ -2686,7 +3006,11 @@ export default function GTAEngine3D() {
       (navigator as any).deviceMemory <= 4
         ? 22
         : 36;
-    for (let i = 0; i < pedestrianCount; i++) {
+    const spawnPedestrian = (
+      personality: (typeof CHARACTERS)[keyof typeof CHARACTERS] | null,
+      spawnPoint = getRandomSidewalkPoint(),
+      home?: { x: number; z: number; r: number },
+    ) => {
       const ped = new THREE.Group();
       const body = new THREE.Mesh(
         new THREE.BoxGeometry(1, 3, 0.8),
@@ -2700,29 +3024,52 @@ export default function GTAEngine3D() {
       );
       head.position.y = 3.5;
       ped.add(head);
-
-      // Spawn on sidewalks
-      const spawnPoint = getRandomSidewalkPoint();
       ped.position.set(spawnPoint.x, 0, spawnPoint.z);
-
-      // Initial target
-      const targetPoint = getRandomSidewalkPoint();
-
       scene.add(ped);
 
-      pedestrians.push({
+      const resident: Pedestrian = {
         mesh: ped,
         speed: 0.02 + Math.random() * 0.02, // Slower, more natural
         changeTimer: 100 + Math.random() * 200,
         dead: false,
-        personality:
-          pedPersonalities[Math.floor(Math.random() * pedPersonalities.length)],
-        targetX: targetPoint.x,
-        targetZ: targetPoint.z,
+        personality,
+        targetX: spawnPoint.x,
+        targetZ: spawnPoint.z,
         idleTimer: 0,
         state: "walking",
-      });
+        home,
+      };
+      const targetPoint = pickPedTarget(resident);
+      resident.targetX = targetPoint.x;
+      resident.targetZ = targetPoint.z;
+      pedestrians.push(resident);
+    };
+
+    for (let i = 0; i < pedestrianCount; i++) {
+      spawnPedestrian(
+        pedPersonalities[Math.floor(Math.random() * pedPersonalities.length)],
+      );
     }
+
+    // The home block has actual neighbors, not anonymous ambient traffic.
+    // Their small home radii keep them observable around the spawn courtyard.
+    const homeX = PLAYER_SPAWN.position.x;
+    const homeZ = PLAYER_SPAWN.position.z;
+    spawnPedestrian(
+      CHARACTERS.EVA,
+      { x: homeX + 5, z: homeZ - 7 },
+      { x: homeX + 5, z: homeZ - 7, r: 12 },
+    );
+    spawnPedestrian(
+      CHARACTERS.OKSANA,
+      { x: homeX + 9, z: homeZ + 5 },
+      { x: homeX + 9, z: homeZ + 5, r: 13 },
+    );
+    spawnPedestrian(
+      CHARACTERS.HERR_ROETTGER,
+      { x: homeX + 2, z: homeZ + 11 },
+      { x: homeX + 2, z: homeZ + 11, r: 10 },
+    );
 
     // === POLICE SYSTEM ===
     interface PoliceCar {
@@ -2829,7 +3176,7 @@ export default function GTAEngine3D() {
     );
     m1Halo.position.y = 2;
     m1.add(m1Halo);
-    m1.position.set(0, 0, 10);
+    m1.position.copy(ogLocGroup.position);
     scene.add(m1);
     markers.push({
       mesh: m1,
@@ -2915,8 +3262,10 @@ export default function GTAEngine3D() {
       // === SPACE KEY - BRAKE / SURRENDER ===
       if (e.key === " " || e.code === "Space") {
         e.preventDefault();
-        // If dialogue is showing, dismiss it (via ref — state here is stale)
-        if (dialogueOpenRef.current) {
+        // If dialogue is showing, dismiss it (via refs — state here is stale)
+        if (dialogueOpenRef.current || activeConversationRef.current) {
+          activeConversationRef.current = null;
+          setActiveConversation(null);
           setDialogue(null);
           currentDialogueOptions = null;
           return; // Don't do anything else!
@@ -3000,6 +3349,7 @@ export default function GTAEngine3D() {
           playerGroup.rotation.y = activeCar.rotation.y;
           playerGroup.visible = true;
           setOnFoot(true);
+          lastVehicleExit = performance.now();
         } else {
           const ncaStation = ncaStations.find(
             (station) =>
@@ -3021,14 +3371,19 @@ export default function GTAEngine3D() {
             playerGroup.visible = false;
             setOnFoot(false);
           };
+          const canEnterVehicle = performance.now() - lastVehicleExit > 800;
 
           // Try to enter vehicles
-          if (playerGroup.position.distanceTo(activeCar.position) < 6) {
+          if (
+            canEnterVehicle &&
+            playerGroup.position.distanceTo(activeCar.position) < 6
+          ) {
             enterVehicle(activeCar);
             return;
           }
 
           if (
+            canEnterVehicle &&
             activeCar !== carGroup &&
             playerGroup.position.distanceTo(carGroup.position) < 6
           ) {
@@ -3040,6 +3395,7 @@ export default function GTAEngine3D() {
           // no wanted level. Everyone on this street knows you.
           for (const parked of parkedCars) {
             if (
+              canEnterVehicle &&
               parked !== activeCar &&
               playerGroup.position.distanceTo(parked.position) < 6
             ) {
@@ -3052,7 +3408,10 @@ export default function GTAEngine3D() {
           // hands the mesh to the player controller.
           const trafficVehicles = trafficRef.current?.getVehicles() ?? [];
           for (const vehicle of trafficVehicles) {
-            if (playerGroup.position.distanceTo(vehicle.mesh.position) < 6) {
+            if (
+              canEnterVehicle &&
+              playerGroup.position.distanceTo(vehicle.mesh.position) < 6
+            ) {
               const claimed =
                 trafficRef.current?.claimVehicle(vehicle.id) ?? vehicle;
               enterVehicle(claimed.mesh);
@@ -3070,6 +3429,7 @@ export default function GTAEngine3D() {
           // Hijack police car
           for (const pc of policeCars) {
             if (
+              canEnterVehicle &&
               !pc.hijacked &&
               playerGroup.position.distanceTo(pc.mesh.position) < 6
             ) {
@@ -3079,6 +3439,22 @@ export default function GTAEngine3D() {
               playerGroup.visible = false;
               setOnFoot(false);
               wantedLevel = Math.min(wantedLevel + 2, 5);
+              return;
+            }
+          }
+
+          // Interact with story NPCs
+          for (const d of dbNpcs) {
+            if (playerGroup.position.distanceTo(d.mesh.position) < 6) {
+              const opening =
+                d.npc.dialogues?.[0]?.text ||
+                `Hallo. Ich bin ${d.npc.name || "dein Nachbar"}.`;
+              recordMeeting(d.npc.id);
+              beginConversation(
+                d.npc.name || "Nachbar",
+                `Du bist ${d.npc.name}. ${d.npc.personality || "Du lebst in Nürnberg."} Du kennst den Spieler aus der Nachbarschaft. Antworte natürlich, konkret und knapp auf Deutsch.`,
+                opening,
+              );
               return;
             }
           }
@@ -3095,17 +3471,20 @@ export default function GTAEngine3D() {
           for (const ped of pedestrians) {
             if (
               !ped.dead &&
-              playerGroup.position.distanceTo(ped.mesh.position) < 5
+              playerGroup.position.distanceTo(ped.mesh.position) < 7
             ) {
               if (ped.personality) {
-                // LLM-powered response
-                const response = await callLLM(
+                const opening =
+                  ped.personality.defaultLines[
+                    Math.floor(
+                      Math.random() * ped.personality.defaultLines.length,
+                    )
+                  ] || "Na, was gibt's?";
+                beginConversation(
                   ped.personality.name,
-                  `A stranger approached me on the street.  Wanted level: ${wantedLevel}`,
                   ped.personality.systemPrompt,
+                  opening,
                 );
-                handleDialogue({ title: ped.personality.name, text: response });
-                sendPedestrianAway(ped, playerGroup.position);
               } else {
                 // Generic response
                 const lines = [
@@ -3119,8 +3498,8 @@ export default function GTAEngine3D() {
                   text: lines[Math.floor(Math.random() * lines.length)],
                 });
                 sendPedestrianAway(ped, playerGroup.position);
+                setTimeout(() => setDialogue(null), 3000);
               }
-              setTimeout(() => setDialogue(null), 3000);
               return;
             }
           }
@@ -3429,9 +3808,7 @@ export default function GTAEngine3D() {
         try {
           for (const ped of pedestrians) {
             if (ped.personality?.name)
-              ped.mesh.add(
-                makeTextSprite("💬 " + ped.personality.name, "#ffd76e"),
-              );
+              ped.mesh.add(makeTextSprite(ped.personality.name, "#ffe3a3"));
           }
           for (const n of storyNPCs) {
             const nm = (n as any).character?.name;
@@ -3479,19 +3856,16 @@ export default function GTAEngine3D() {
             const dist = playerGroup.position.distanceTo(ped.mesh.position);
             if (dist < 3.5 && !pedNear.has(ped)) {
               pedNear.add(ped);
-              callLLM(
-                ped.personality.name,
-                `A stranger approached me on the street. Wanted level: ${wantedLevel}`,
-                ped.personality.systemPrompt,
-              )
-                .then((response) => {
-                  handleDialogue({
-                    title: ped.personality!.name,
-                    text: response,
-                  });
-                  setTimeout(() => setDialogue(null), 4000);
-                })
-                .catch(() => {});
+              const lines = ped.personality.defaultLines;
+              const greeting =
+                lines[Math.floor(Math.random() * lines.length)] || "Hallo.";
+              handleDialogue({
+                title: ped.personality.name,
+                text: `${greeting}\n\n[E] Gespräch`,
+              });
+              setTimeout(() => {
+                if (!activeConversationRef.current) setDialogue(null);
+              }, 4000);
             } else if (dist > 7 && pedNear.has(ped)) {
               pedNear.delete(ped);
             }
@@ -3602,9 +3976,9 @@ export default function GTAEngine3D() {
 
           ctx.save();
           ctx.translate(100, 100);
-          // Canvas Y points down; flip it so the rider's forward direction is up.
-          ctx.scale(1, -1);
-          ctx.rotate(pRot);
+          // Match the third-person camera: forward is up and screen-left is
+          // local +X. The previous reflected transform made turns feel reversed.
+          ctx.rotate(pRot + Math.PI);
           ctx.lineCap = "round";
           ctx.lineJoin = "round";
 
@@ -3768,10 +4142,7 @@ export default function GTAEngine3D() {
 
           let collide = false;
           for (const b of colliders) {
-            if (
-              Math.abs(nextPos.x - b.position.x) < b.userData.width / 2 + 3 &&
-              Math.abs(nextPos.z - b.position.z) < b.userData.depth / 2 + 3
-            ) {
+            if (circleColliderPenetration(nextPos, 3, b, colliderPush)) {
               collide = true;
               const impactSpeed = Math.abs(speed);
               speed *= -0.4;
@@ -3784,6 +4155,7 @@ export default function GTAEngine3D() {
                 );
                 spawnImpactSparks(nextPos.x, 1.3, nextPos.z, 7, 0xffaa33);
               }
+              break;
             }
           }
 
@@ -3852,16 +4224,14 @@ export default function GTAEngine3D() {
 
           colliders.forEach((b) => {
             if (
-              Math.abs(playerGroup.position.x - b.position.x) <
-                b.userData.width / 2 + 1 &&
-              Math.abs(playerGroup.position.z - b.position.z) <
-                b.userData.depth / 2 + 1
+              circleColliderPenetration(
+                playerGroup.position,
+                1,
+                b,
+                colliderPush,
+              )
             ) {
-              const dir = playerGroup.position
-                .clone()
-                .sub(b.position)
-                .normalize();
-              playerGroup.position.add(dir.multiplyScalar(0.5));
+              playerGroup.position.add(colliderPush);
             }
           });
 
@@ -4192,7 +4562,7 @@ export default function GTAEngine3D() {
             pPos.z,
             6,
           );
-          if (nearbyBuilding && !dialogue) {
+          if (nearbyBuilding && !dialogueOpenRef.current) {
             // Only if not already showing dialogue
             handleBuildingInteraction(nearbyBuilding); // No await - fire and forget
           }
@@ -4368,20 +4738,45 @@ export default function GTAEngine3D() {
           const mdx = charPos.x - m.mesh.position.x;
           const mdz = charPos.z - m.mesh.position.z;
           if (mdx * mdx + mdz * mdz < 36) {
+            // Story encounters are pedestrian-scale interactions. Driving
+            // through the marker should not silently consume the mission.
+            if (m.npcId && playerState !== "walking") return;
+
             m.active = false;
             scene.remove(m.mesh);
-            const lesson = m.lesson;
-            const rewardMoney = lesson?.reward?.money ?? 50;
-            const xp = lesson?.reward?.xp ?? 25;
-            money += rewardMoney;
-            moneyRef.current = money;
-            handleDialogue({
-              title: lesson ? lesson.titleDe : m.name,
-              text:
-                (lesson ? `${lesson.description}\n\n` : "") +
+            missionIndex++;
+
+            if (m.npcId) {
+              const giver = storyNPCs.find((npc) => npc.id === m.npcId);
+              showNotification("mission", "MISSION STARTED", m.name, 4000);
+              // The walk-up system normally opened this conversation earlier
+              // in the frame. This fallback covers markers placed a little
+              // farther from their giver.
+              if (giver && !storyNpcNear.has(giver.id)) {
+                storyNpcNear.add(giver.id);
+                void interactWithStoryNPC(giver);
+              }
+            } else {
+              const lesson = m.lesson;
+              const rewardMoney = lesson?.reward?.money ?? 50;
+              const xp = lesson?.reward?.xp ?? 25;
+              money += rewardMoney;
+              moneyRef.current = money;
+              showNotification(
+                "mission",
+                lesson ? lesson.titleDe : m.name,
                 `+${xp} XP · +$${rewardMoney}`,
-            });
-            setTimeout(() => setDialogue(null), 6000);
+                5000,
+              );
+              handleDialogue({
+                title: lesson ? lesson.titleDe : m.name,
+                text:
+                  (lesson ? `${lesson.description}\n\n` : "") +
+                  `+${xp} XP · +$${rewardMoney}`,
+              });
+              setTimeout(() => setDialogue(null), 6000);
+            }
+
             const next = markers.find((x) => x.active);
             if (next) {
               setWaypointFnRef.current?.(
@@ -4507,7 +4902,7 @@ export default function GTAEngine3D() {
       if (mountElement) mountElement.innerHTML = "";
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handleDialogue, handleReward]);
+  }, [beginConversation, handleDialogue, handleReward]);
   // Cleanup:
   neuralCityRef.current?.dispose();
 
@@ -4754,16 +5149,16 @@ export default function GTAEngine3D() {
       )}
 
       {/* Dialogue Box */}
-      {dialogue && (
+      {(dialogue || activeConversation) && (
         <div
           style={{
             position: "absolute",
             bottom: "15%",
             left: "50%",
             transform: "translateX(-50%)",
-            width: "70%",
-            background:
-              "linear-gradient(to right, rgba(0,0,0,0.9), rgba(0,0,0,0.7))",
+            width: "min(720px, calc(100vw - 32px))",
+            boxSizing: "border-box",
+            background: "rgba(7, 11, 14, 0.94)",
             borderLeft: "8px solid #4caf50",
             padding: "25px",
             color: "white",
@@ -4781,21 +5176,109 @@ export default function GTAEngine3D() {
               letterSpacing: "2px",
             }}
           >
-            {dialogue.title}
+            {activeConversation?.name || dialogue?.title}
           </h3>
-          <p
-            style={{
-              fontSize: "20px",
-              lineHeight: "1.5",
-              margin: 0,
-              textShadow: "1px 1px 2px black",
-            }}
-          >
-            {dialogue.text}
-          </p>
+          {activeConversation ? (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                maxHeight: "30vh",
+                overflowY: "auto",
+                paddingRight: 4,
+              }}
+            >
+              {activeConversation.turns.slice(-8).map((turn, index) => (
+                <div
+                  key={`${turn.role}-${index}`}
+                  style={{
+                    alignSelf:
+                      turn.role === "player" ? "flex-end" : "flex-start",
+                    maxWidth: "84%",
+                    padding: "8px 10px",
+                    borderLeft:
+                      turn.role === "npc" ? "3px solid #4caf50" : undefined,
+                    background:
+                      turn.role === "player"
+                        ? "rgba(125, 231, 255, 0.14)"
+                        : "rgba(255, 255, 255, 0.06)",
+                    fontSize: 16,
+                    lineHeight: 1.4,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {turn.text}
+                </div>
+              ))}
+              {conversationSending && (
+                <div style={{ color: "#8aac94", fontSize: 14 }}>...</div>
+              )}
+            </div>
+          ) : (
+            <p
+              style={{
+                fontSize: "20px",
+                lineHeight: "1.5",
+                margin: 0,
+                whiteSpace: "pre-wrap",
+                textShadow: "1px 1px 2px black",
+              }}
+            >
+              {dialogue?.text}
+            </p>
+          )}
+
+          {activeConversation && (
+            <form
+              onSubmit={submitConversation}
+              style={{ display: "flex", gap: 8, marginTop: 14 }}
+            >
+              <input
+                autoFocus
+                value={conversationInput}
+                onChange={(event) => setConversationInput(event.target.value)}
+                onKeyDown={(event) => event.stopPropagation()}
+                onKeyUp={(event) => event.stopPropagation()}
+                placeholder={`Nachricht an ${activeConversation.name}`}
+                aria-label={`Nachricht an ${activeConversation.name}`}
+                disabled={conversationSending}
+                style={{
+                  minWidth: 0,
+                  flex: 1,
+                  height: 40,
+                  boxSizing: "border-box",
+                  border: "1px solid rgba(255,255,255,0.3)",
+                  background: "rgba(255,255,255,0.08)",
+                  color: "white",
+                  padding: "0 12px",
+                  font: "15px monospace",
+                  outline: "none",
+                }}
+              />
+              <button
+                type="submit"
+                disabled={!conversationInput.trim() || conversationSending}
+                title="Nachricht senden"
+                style={{
+                  width: 44,
+                  height: 40,
+                  border: 0,
+                  background: "#4caf50",
+                  color: "#071008",
+                  fontSize: 20,
+                  cursor: "pointer",
+                  opacity:
+                    !conversationInput.trim() || conversationSending ? 0.45 : 1,
+                }}
+              >
+                ↑
+              </button>
+            </form>
+          )}
 
           {/* Dialogue Options */}
-          {dialogue.options && (
+          {dialogue?.options && !activeConversation && (
             <div
               style={{
                 marginTop: "15px",
@@ -4806,6 +5289,9 @@ export default function GTAEngine3D() {
               {dialogue.options.map((opt, i) => (
                 <div
                   key={i}
+                  onClick={() => {
+                    opt.action?.();
+                  }}
                   style={{
                     padding: "8px",
                     margin: "5px 0",
@@ -4823,7 +5309,7 @@ export default function GTAEngine3D() {
             </div>
           )}
 
-          {!dialogue.options && (
+          {!activeConversation && !dialogue?.options && (
             <p
               style={{
                 textAlign: "right",

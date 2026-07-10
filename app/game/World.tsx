@@ -320,6 +320,7 @@ export function initWorld(
       const proxy = new THREE.Mesh(new THREE.BoxGeometry(obj.w, obj.h, obj.d));
       proxy.position.copy(group.position);
       proxy.position.y = obj.h! / 2;
+      proxy.rotation.y = group.rotation.y;
       proxy.userData = { width: obj.w, depth: obj.d };
       colliders.push(proxy);
     } else if (obj.type === "player_house") {
@@ -338,6 +339,9 @@ export function initWorld(
       const right = new THREE.Mesh(new THREE.BoxGeometry(1, 15, 20), wallMat);
       right.position.set(10, 7.5, 0);
       group.add(right);
+      back.userData = { width: 20, depth: 1 };
+      left.userData = { width: 1, depth: 20 };
+      right.userData = { width: 1, depth: 20 };
       const floor = new THREE.Mesh(
         new THREE.BoxGeometry(20, 1, 20),
         new THREE.MeshLambertMaterial({ color: 0x553311 }),
@@ -402,6 +406,9 @@ export function initWorld(
       const right = new THREE.Mesh(new THREE.BoxGeometry(1, obj.h, obj.d), mat);
       right.position.set(obj.w! / 2, obj.h! / 2, 0);
       group.add(right);
+      back.userData = { width: obj.w, depth: 1 };
+      left.userData = { width: 1, depth: obj.d };
+      right.userData = { width: 1, depth: obj.d };
       const floor = new THREE.Mesh(
         new THREE.BoxGeometry(obj.w, 1, obj.d),
         new THREE.MeshLambertMaterial({ color: 0x110011 }),
@@ -472,6 +479,9 @@ export function initWorld(
       const right = new THREE.Mesh(new THREE.BoxGeometry(1, 20, 60), wallMat);
       right.position.set(15, 10, 0);
       group.add(right);
+      back.userData = { width: 30, depth: 1 };
+      left.userData = { width: 1, depth: 60 };
+      right.userData = { width: 1, depth: 60 };
 
       // Roof (The part that hides)
       const mainRoof = new THREE.Mesh(
