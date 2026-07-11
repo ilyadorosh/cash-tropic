@@ -76,6 +76,13 @@ My research framework unifies several key concepts:
 \item \textbf{Energy Capture:} Understanding these fundamentals to engineer systems that capture and control more energy — the core of human progress.
 \end{itemize}
 
+\cvsection{Research}
+
+\begin{itemize}
+\item \textbf{KAM Theory Meets Hamiltonian Neural Networks} (single-author paper, NeurIPS format): the flow learned by an HNN is the exact flow of a perturbed Hamiltonian, so KAM/Nekhoroshev theory bounds which invariant structures training preserves. \printlink{Read the paper (PDF)}{/papers/kam-hnn.pdf} — \printlink{interactive kicked-rotor demo}{/kam}
+\item \textbf{In progress:} networks approaching the Landauer limit — the thermodynamic floor of computation.
+\end{itemize}
+
 \cvsection{Technical Portfolio: ActInLove Platform}
 
 \cvevent{Physics-Informed Game Engine}{actinlove.com}{2023 -- Present}{Live Demo}

@@ -71,7 +71,9 @@ export async function speak(
     clearTimeout(timer);
     if (!res.ok) return fallback;
     const data = await res.json();
-    const line = typeof data?.response === "string" ? data.response.trim() : "";
+    let line = typeof data?.response === "string" ? data.response.trim() : "";
+    // models love to echo their own name; the HUD already prefixes "VEX:"
+    line = line.replace(/^\s*VEX\s*:\s*/i, "").replace(/^["']|["']$/g, "");
     return line && line.length <= 120 ? line : fallback;
   } catch {
     return fallback;
