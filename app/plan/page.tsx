@@ -1,55 +1,51 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import styles from "../components/home.module.scss";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 
-const legoColors = [
-  "#FFADAD", // light red
-  "#FFD6A5", // orange
-  "#FDFFB6", // yellow
-  "#CAFFBF", // green
-  "#9BF6FF", // cyan
-  "#A0C4FF", // blue
-  "#BDB2FF", // purple
-  "#FFC6FF", // pink
-];
+// one restrained palette: paper, ink, a single accent — this page has to
+// read as a research plan, not a toy box
+const PAPER = "#f7f7f4";
+const CARD = "#ffffff";
+const INK = "#22252a";
+const MUTED = "#6b7078";
+const ACCENT = "#2456a6";
+const HAIRLINE = "#e4e4df";
 
 const markdownComponents = {
   p: (props: React.HTMLAttributes<HTMLParagraphElement>) => (
     <p
       {...props}
       style={{
-        marginBottom: "12px",
-        color: "inherit",
-        fontWeight: 500,
-        lineHeight: 1.5,
+        margin: "0 0 12px",
+        color: INK,
+        lineHeight: 1.65,
       }}
     />
   ),
   ul: (props: React.HTMLAttributes<HTMLUListElement>) => (
-    <ul
-      {...props}
-      style={{ margin: "12px 0 0 20px", color: "inherit", fontWeight: 500 }}
-    />
+    <ul {...props} style={{ margin: "12px 0 0 20px", color: INK }} />
   ),
   li: (props: React.HTMLAttributes<HTMLLIElement>) => (
-    <li {...props} style={{ marginBottom: "8px" }} />
+    <li {...props} style={{ marginBottom: "8px", lineHeight: 1.6 }} />
+  ),
+  strong: (props: React.HTMLAttributes<HTMLElement>) => (
+    <strong {...props} style={{ fontWeight: 650, color: "#101216" }} />
   ),
   code: (props: React.HTMLAttributes<HTMLElement>) => (
     <code
       {...props}
       style={{
-        background: "rgba(255,255,255,0.7)",
-        padding: "2px 6px",
+        background: "#f1f1ed",
+        padding: "1px 6px",
         borderRadius: "4px",
-        border: "2px solid #111",
-        fontWeight: "bold",
-        color: "#111",
+        border: `1px solid ${HAIRLINE}`,
+        fontSize: "0.92em",
+        color: INK,
       }}
     />
   ),
@@ -340,59 +336,94 @@ export default function PlanPage() {
 
   return (
     <div
-      className={styles["window-content"]}
-      style={{ height: "100vh", display: "flex", flexDirection: "column" }}
+      style={{
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        background: PAPER,
+        color: INK,
+        fontFamily:
+          "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      }}
     >
       <style>{`
         .katex-display {
-          background: #ffffff;
-          border: 3px solid #111;
+          background: #f3f5f9;
           border-radius: 8px;
-          padding: 12px;
-          box-shadow: 3px 3px 0 #111;
+          padding: 14px 16px;
           margin: 16px 0 !important;
           overflow-x: auto;
         }
-        .katex {
-          color: #111;
-        }
+        .katex { color: ${INK}; }
       `}</style>
-      <div className={styles["page-header"]}>
-        <div className={styles["page-title"]}>
-          <h1>Master Plan: Accelerating Civilization</h1>
-          <p>EXIST Stipendium Application & Beyond</p>
-        </div>
-        <div className={styles["page-actions"]}>
-          <button onClick={() => router.push("/")}>← Back</button>
-        </div>
-      </div>
+      <header
+        style={{
+          maxWidth: 780,
+          width: "100%",
+          margin: "0 auto",
+          padding: "36px 20px 8px",
+        }}
+      >
+        <button
+          onClick={() => router.push("/")}
+          style={{
+            background: "none",
+            border: "none",
+            color: MUTED,
+            cursor: "pointer",
+            padding: 0,
+            fontSize: 13,
+            marginBottom: 18,
+          }}
+        >
+          ← actinlove.com
+        </button>
+        <h1
+          style={{
+            fontSize: 30,
+            lineHeight: 1.2,
+            margin: 0,
+            fontWeight: 700,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          Master Plan: Accelerating Civilization
+        </h1>
+        <p style={{ color: MUTED, margin: "8px 0 0", fontSize: 15 }}>
+          EXIST Stipendium Application & Beyond · Illia Dorosh
+        </p>
+      </header>
 
       <div
-        className={styles["page-body"]}
         style={{
           display: "grid",
-          gap: "24px",
+          gap: "18px",
           flex: 1,
           minHeight: 0,
           overflowY: "auto",
-          padding: "12px 12px 32px 12px",
+          padding: "18px 20px 48px",
+          maxWidth: 780,
+          width: "100%",
+          margin: "0 auto",
         }}
       >
         <section
           style={{
-            padding: "20px",
-            background: "#fff",
-            border: "4px solid #111",
-            borderRadius: "12px",
-            boxShadow: "6px 6px 0 #111",
-            color: "#111",
+            padding: "22px 24px",
+            background: CARD,
+            border: `1px solid ${HAIRLINE}`,
+            borderLeft: `3px solid ${ACCENT}`,
+            borderRadius: "10px",
+            boxShadow: "0 1px 3px rgba(20,20,20,0.05)",
+            color: INK,
           }}
         >
           <h2
             style={{
-              marginBottom: "10px",
-              fontWeight: 900,
-              textTransform: "uppercase",
+              margin: "0 0 10px",
+              fontWeight: 650,
+              fontSize: 17,
+              color: ACCENT,
             }}
           >
             Mission
@@ -429,16 +460,16 @@ export default function PlanPage() {
                 }
                 onDragOver={(e) => e.preventDefault()}
                 style={{
-                  padding: "8px 12px",
-                  borderRadius: "8px",
-                  border: "3px solid #111",
-                  background: legoColors[i % legoColors.length],
-                  color: "#111",
-                  fontWeight: "bold",
-                  fontSize: "0.95rem",
-                  boxShadow: "2px 2px 0 #111",
+                  padding: "6px 12px",
+                  borderRadius: "999px",
+                  border: `1px solid ${HAIRLINE}`,
+                  background: "#f4f6fa",
+                  color: ACCENT,
+                  fontWeight: 550,
+                  fontSize: "0.85rem",
                   cursor: "grab",
                 }}
+                title="drag to reprioritize"
               >
                 {area}
               </span>
@@ -462,20 +493,22 @@ export default function PlanPage() {
             }
             onDragOver={(e) => e.preventDefault()}
             style={{
-              padding: "20px",
-              background: legoColors[index % legoColors.length],
-              border: "4px solid #111",
-              borderRadius: "12px",
-              boxShadow: "6px 6px 0 #111",
-              color: "#111",
+              padding: "22px 24px",
+              background: CARD,
+              border: `1px solid ${HAIRLINE}`,
+              borderRadius: "10px",
+              boxShadow: "0 1px 3px rgba(20,20,20,0.05)",
+              color: INK,
               cursor: "grab",
             }}
+            title="drag to reorder"
           >
             <h2
               style={{
-                marginBottom: "12px",
-                fontWeight: 900,
-                borderBottom: "3px solid #111",
+                margin: "0 0 12px",
+                fontWeight: 650,
+                fontSize: 17,
+                borderBottom: `1px solid ${HAIRLINE}`,
                 paddingBottom: "8px",
               }}
             >
@@ -493,19 +526,21 @@ export default function PlanPage() {
 
         <section
           style={{
-            padding: "20px",
-            background: "#fff",
-            border: "4px solid #111",
-            borderRadius: "12px",
-            boxShadow: "6px 6px 0 #111",
-            color: "#111",
+            padding: "22px 24px",
+            background: CARD,
+            border: `1px solid ${HAIRLINE}`,
+            borderLeft: `3px solid ${ACCENT}`,
+            borderRadius: "10px",
+            boxShadow: "0 1px 3px rgba(20,20,20,0.05)",
+            color: INK,
           }}
         >
           <h2
             style={{
-              marginBottom: "12px",
-              fontWeight: 900,
-              textTransform: "uppercase",
+              margin: "0 0 12px",
+              fontWeight: 650,
+              fontSize: 17,
+              color: ACCENT,
             }}
           >
             Near-Term Execution
@@ -513,9 +548,8 @@ export default function PlanPage() {
           <ul
             style={{
               margin: 0,
-              paddingLeft: "24px",
-              color: "inherit",
-              fontWeight: 500,
+              paddingLeft: "22px",
+              color: INK,
             }}
           >
             {orderedMilestones.map((milestone, i) => (
