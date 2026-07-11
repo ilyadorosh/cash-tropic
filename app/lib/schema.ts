@@ -194,3 +194,19 @@ export const textSnippet = pgTable("TextSnippet", {
 });
 
 export type TextSnippet = InferSelectModel<typeof textSnippet>;
+
+// Tron grid: one row per finished match — the AI's long-term memory of you
+export const tronMatch = pgTable("TronMatch", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("userId").references(() => user.id),
+  won: boolean("won").notNull(),
+  playerScore: integer("playerScore").notNull().default(0),
+  aiScore: integer("aiScore").notNull().default(0),
+  rounds: integer("rounds").notNull().default(0),
+  survivalTicks: integer("survivalTicks").notNull().default(0),
+  // net turn preference this match: rightTurns - leftTurns
+  turnBias: integer("turnBias").notNull().default(0),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+});
+
+export type TronMatch = InferSelectModel<typeof tronMatch>;
