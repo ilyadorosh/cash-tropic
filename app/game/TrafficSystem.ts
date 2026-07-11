@@ -7,6 +7,11 @@ import {
   generateTrafficNetwork,
   NUERNBERG_STREETS,
 } from "./CityLayout";
+import {
+  disposeKenneyCar,
+  mountKenneyCar,
+  type KenneyCarModel,
+} from "./KenneyCarKit";
 
 export interface TrafficVehicle {
   id: string;
@@ -32,6 +37,16 @@ export const VEHICLE_STATS: Record<
   taxi: { hitRadius: 4.5, speedMul: 1.05, weight: 4 },
   truck: { hitRadius: 5.5, speedMul: 0.75, weight: 3 },
   bus: { hitRadius: 6.5, speedMul: 0.55, weight: 2 },
+};
+
+const KENNEY_TRAFFIC_MODELS: Record<
+  Exclude<TrafficVehicle["type"], "motorcycle">,
+  KenneyCarModel[]
+> = {
+  car: ["sedan", "sedan-sports", "hatchback-sports", "suv-luxury", "van"],
+  taxi: ["taxi"],
+  truck: ["truck", "delivery"],
+  bus: ["garbage-truck", "delivery"],
 };
 
 function pickVehicleType(): TrafficVehicle["type"] {
@@ -243,7 +258,7 @@ export class TrafficSystem {
         0.6,
         0.5,
       );
-      return group;
+      return this.upgradeWithKenneyModel(group, type, 7.5);
     }
 
     if (type === "bus") {
@@ -271,7 +286,7 @@ export class TrafficSystem {
         0.6,
         0.45,
       );
-      return group;
+      return this.upgradeWithKenneyModel(group, type, 10);
     }
 
     // car / taxi share a chassis; taxi gets the roof sign + livery
@@ -314,6 +329,18 @@ export class TrafficSystem {
       0.4,
     );
 
+    return this.upgradeWithKenneyModel(group, type, 6);
+  }
+
+  private upgradeWithKenneyModel(
+    group: THREE.Group,
+    type: Exclude<TrafficVehicle["type"], "motorcycle">,
+    targetLength: number,
+  ) {
+    const choices = KENNEY_TRAFFIC_MODELS[type];
+    const model = choices[Math.floor(Math.random() * choices.length)];
+    const fallback = [...group.children];
+    void mountKenneyCar(group, model, { targetLength, fallback });
     return group;
   }
 
@@ -426,6 +453,7 @@ export class TrafficSystem {
       const dist = v.mesh.position.distanceTo(playerPosition);
       if (dist > 300) {
         this.scene.remove(v.mesh);
+        disposeKenneyCar(v.mesh);
         return false;
       }
       return true;
@@ -436,6 +464,7 @@ export class TrafficSystem {
     const vehicle = this.vehicles[index];
     if (vehicle) {
       this.scene.remove(vehicle.mesh);
+      disposeKenneyCar(vehicle.mesh);
       this.vehicles.splice(index, 1);
     }
   }
@@ -449,6 +478,14 @@ export class TrafficSystem {
 
   getVehicles(): TrafficVehicle[] {
     return this.vehicles;
+  }
+
+  dispose() {
+    this.vehicles.forEach((vehicle) => {
+      this.scene.remove(vehicle.mesh);
+      disposeKenneyCar(vehicle.mesh);
+    });
+    this.vehicles = [];
   }
 
   // Draw streets (call once during init)
