@@ -38,6 +38,7 @@ import {
 } from "./CityLayout";
 import { CityDatabase } from "./CityDatabase";
 import { TrafficSystem, VEHICLE_STATS } from "./TrafficSystem";
+import { GameRadio, RADIO_STATIONS, type RadioSnapshot } from "./GameRadio";
 // Add import
 import { InteriorSystem } from "./InteriorSystem";
 // Add to Engine.tsx imports:
@@ -300,6 +301,11 @@ export default function GTAEngine3D() {
     useState<ActiveConversation | null>(null);
   const [conversationInput, setConversationInput] = useState("");
   const [conversationSending, setConversationSending] = useState(false);
+  const [radioHud, setRadioHud] = useState<RadioSnapshot>({
+    station: RADIO_STATIONS[0],
+    playing: false,
+    inVehicle: true,
+  });
   const [onFoot, setOnFoot] = useState(false);
   const [showSurrenderPrompt, setShowSurrenderPrompt] = useState(false);
   const [modelHud, setModelHud] = useState<GameModelSnapshot>(() =>
@@ -309,6 +315,7 @@ export default function GTAEngine3D() {
   // Add refs:
   const cityDbRef = useRef<CityDatabase | null>(null);
   const trafficRef = useRef<TrafficSystem | null>(null);
+  const radioRef = useRef<GameRadio | null>(null);
   const cityBlocksRef = useRef<CityBlock[]>([]);
   const moneyRef = useRef(500);
 
@@ -581,6 +588,9 @@ export default function GTAEngine3D() {
   useEffect(() => {
     activeConversationRef.current = activeConversation;
   }, [activeConversation]);
+  useEffect(() => {
+    radioRef.current?.setDucked(Boolean(dialogue || activeConversation));
+  }, [activeConversation, dialogue]);
 
   // Dialogue handler with options support
   const handleDialogue = useCallback((d: Dialogue) => {
@@ -766,6 +776,9 @@ export default function GTAEngine3D() {
     const minimapElement = minimapRef.current;
 
     if (!mountElement) return;
+
+    const radio = new GameRadio(setRadioHud);
+    radioRef.current = radio;
 
     // ...  all your existing code ...
 
@@ -3236,6 +3249,13 @@ export default function GTAEngine3D() {
     const onKeyDown = async (e: KeyboardEvent) => {
       keys[e.key.toLowerCase()] = true;
 
+      if (e.key.toLowerCase() === "r") {
+        e.preventDefault();
+        void radio.cycle();
+        return;
+      }
+      if (playerState === "driving") void radio.activate();
+
       // Region map: M or Escape toggles the full map
       if (e.key === "m" || e.key === "M" || e.key === "Escape") {
         setShowMap((v) => !v);
@@ -3284,6 +3304,7 @@ export default function GTAEngine3D() {
             playerState = "walking";
             playerGroup.visible = true;
             setOnFoot(true);
+            void radio.setInVehicle(false);
           }
           playerGroup.position.set(0, 0, -100);
 
@@ -3350,6 +3371,7 @@ export default function GTAEngine3D() {
           playerGroup.visible = true;
           setOnFoot(true);
           lastVehicleExit = performance.now();
+          void radio.setInVehicle(false);
         } else {
           const ncaStation = ncaStations.find(
             (station) =>
@@ -3370,6 +3392,7 @@ export default function GTAEngine3D() {
             playerState = "driving";
             playerGroup.visible = false;
             setOnFoot(false);
+            void radio.setInVehicle(true);
           };
           const canEnterVehicle = performance.now() - lastVehicleExit > 800;
 
@@ -3438,6 +3461,7 @@ export default function GTAEngine3D() {
               playerState = "driving";
               playerGroup.visible = false;
               setOnFoot(false);
+              void radio.setInVehicle(true);
               wantedLevel = Math.min(wantedLevel + 2, 5);
               return;
             }
@@ -4627,6 +4651,7 @@ export default function GTAEngine3D() {
             playerState = "walking";
             playerGroup.visible = true;
             setOnFoot(true);
+            void radio.setInVehicle(false);
             playerGroup.position.set(
               PLAYER_SPAWN.position.x,
               0,
@@ -4895,6 +4920,8 @@ export default function GTAEngine3D() {
       moneyDrops.forEach((drop) => scene.remove(drop.mesh));
       ncaLifeRef.current?.destroy();
       ncaLifeRef.current = null;
+      void radio.dispose();
+      if (radioRef.current === radio) radioRef.current = null;
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
@@ -5033,6 +5060,59 @@ export default function GTAEngine3D() {
               {modelHud.weather.toUpperCase()}
             </div>
           </div>
+
+          {!onFoot && (
+            <button
+              type="button"
+              onClick={() => void radioRef.current?.cycle()}
+              title="Radiosender wechseln (R)"
+              aria-label="Radiosender wechseln"
+              style={{
+                width: "250px",
+                minHeight: 34,
+                marginTop: 6,
+                boxSizing: "border-box",
+                display: "flex",
+                alignItems: "center",
+                gap: 9,
+                border: "1px solid rgba(255, 211, 105, 0.42)",
+                borderRadius: 6,
+                padding: "6px 9px",
+                background: "rgba(16, 12, 6, 0.76)",
+                color: radioHud.station ? "#ffe5a3" : "#8d8d8d",
+                font: "600 12px monospace",
+                textAlign: "left",
+                cursor: "pointer",
+                pointerEvents: "auto",
+                textShadow: "none",
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 18,
+                  fontSize: 17,
+                  color: radioHud.playing ? "#77e68d" : "currentColor",
+                }}
+              >
+                {radioHud.playing ? "♫" : "♪"}
+              </span>
+              <span
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {radioHud.station
+                  ? `${radioHud.station.name} · ${radioHud.station.frequency}`
+                  : "RADIO OFF"}
+              </span>
+              <span style={{ opacity: 0.55 }}>R</span>
+            </button>
+          )}
 
           {/* Relationship indicator */}
           {stats.relationship !== 50 && (
