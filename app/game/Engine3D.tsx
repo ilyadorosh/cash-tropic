@@ -38,6 +38,11 @@ import {
 } from "./CityLayout";
 import { CityDatabase } from "./CityDatabase";
 import { TrafficSystem, VEHICLE_STATS } from "./TrafficSystem";
+import {
+  disposeKenneyCar,
+  mountKenneyCar,
+  type KenneyCarModel,
+} from "./KenneyCarKit";
 import { GameRadio, RADIO_STATIONS, type RadioSnapshot } from "./GameRadio";
 // Add import
 import { InteriorSystem } from "./InteriorSystem";
@@ -776,6 +781,9 @@ export default function GTAEngine3D() {
     const minimapElement = minimapRef.current;
 
     if (!mountElement) return;
+    let stopped = false;
+    let animationFrameId = 0;
+    let editorCityKeyHandler: ((event: KeyboardEvent) => void) | null = null;
 
     const radio = new GameRadio(setRadioHud);
     radioRef.current = radio;
@@ -1444,15 +1452,18 @@ export default function GTAEngine3D() {
         beaconLight.position.set(192, 12, DZ);
         g.add(beaconLight);
 
+        if (stopped) return;
+
         // G = go to your city (teleport to the gate)
-        window.addEventListener("keydown", (ev) => {
+        editorCityKeyHandler = (ev) => {
           if (ev.key.toLowerCase() !== "g") return;
           try {
             const rider = playerState === "driving" ? activeCar : playerGroup;
             rider.position.x = 200;
             rider.position.z = DZ;
           } catch {}
-        });
+        };
+        window.addEventListener("keydown", editorCityKeyHandler);
 
         scene.add(g);
         console.log(
@@ -2016,6 +2027,12 @@ export default function GTAEngine3D() {
       w.position.set(pos[0], pos[1], pos[2]);
       carGroup.add(w);
     });
+    // Keep the stable gameplay group, but replace its loading silhouette with
+    // the downloaded Kenney model as soon as the GLB is ready.
+    void mountKenneyCar(carGroup, "sedan-sports", {
+      targetLength: 8,
+      fallback: [...carGroup.children],
+    });
     // Your car waits at the curb beside the spawn, not on top of you —
     // parked parallel like everything else on this street.
     carGroup.position.set(
@@ -2064,14 +2081,24 @@ export default function GTAEngine3D() {
     };
 
     const parkedCars: THREE.Group[] = [];
-    // west curb row, evenly spaced, all noses north — nice and neat
-    const PARKED_SPOTS: Array<[number, number, number]> = [
-      [-14, -14, 0x992222], // oxblood red
-      [-14, 0, 0x226644], // racing green
-      [-14, 14, 0xb8a24a], // sun-faded gold
+    // west curb row, evenly spaced, all noses north — nice and neat.
+    // These are offsets from PLAYER_SPAWN (world coords), which sits at
+    // district-local (-15, 15) inside the real Aufseßplatz footprint.
+    // px=-14 used to land at district-local x≈-29, inside two actual
+    // buildings (x -26..-49) — cars parked visibly through a wall on
+    // first launch. px=-5 lands at local x=-20, verified clear against
+    // public/maps/aufsessplatz.json.
+    const PARKED_SPOTS: Array<[number, number, number, KenneyCarModel]> = [
+      [-5, -14, 0x992222, "sedan"],
+      [-5, 0, 0x226644, "hatchback-sports"],
+      [-5, 14, 0xb8a24a, "suv-luxury"],
     ];
-    for (const [px, pz, color] of PARKED_SPOTS) {
+    for (const [px, pz, color, model] of PARKED_SPOTS) {
       const parked = makeParkedCar(color);
+      void mountKenneyCar(parked, model, {
+        targetLength: 8,
+        fallback: [...parked.children],
+      });
       parked.position.set(
         PLAYER_SPAWN.position.x + px,
         0,
@@ -3143,6 +3170,11 @@ export default function GTAEngine3D() {
       sirenB.position.set(-0.8, 3.6, -0.5);
       pc.add(sirenB);
 
+      void mountKenneyCar(pc, "police", {
+        targetLength: 8,
+        fallback: [pcBody, pcDoor, pcText, pcTop],
+      });
+
       const angle = Math.random() * Math.PI * 2;
       const dist = 150;
       const pPos =
@@ -3802,7 +3834,8 @@ export default function GTAEngine3D() {
     let lastFrameTime = performance.now();
 
     function animate() {
-      requestAnimationFrame(animate);
+      if (stopped) return;
+      animationFrameId = requestAnimationFrame(animate);
       const now = performance.now();
       const deltaTime = (now - lastFrameTime) / 1000;
       lastFrameTime = now;
@@ -4915,24 +4948,35 @@ export default function GTAEngine3D() {
 
     // Then at the END, in the cleanup function, use the captured values:
     return () => {
+      stopped = true;
+      cancelAnimationFrame(animationFrameId);
       clockEl.remove();
+      trafficRef.current?.dispose();
+      trafficRef.current = null;
+      disposeKenneyCar(carGroup);
+      parkedCars.forEach(disposeKenneyCar);
+      policeCars.forEach((policeCar) => disposeKenneyCar(policeCar.mesh));
       airplanes.forEach((plane) => scene.remove(plane.mesh));
       moneyDrops.forEach((drop) => scene.remove(drop.mesh));
       ncaLifeRef.current?.destroy();
       ncaLifeRef.current = null;
+      neuralCityRef.current?.dispose();
+      neuralCityRef.current = null;
       void radio.dispose();
       if (radioRef.current === radio) radioRef.current = null;
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
+      if (editorCityKeyHandler) {
+        window.removeEventListener("keydown", editorCityKeyHandler);
+      }
       onKeyDownRef.current = null;
-      if (mountElement) mountElement.innerHTML = "";
+      renderer.dispose();
+      renderer.forceContextLoss();
+      mountElement.replaceChildren();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [beginConversation, handleDialogue, handleReward]);
-  // Cleanup:
-  neuralCityRef.current?.dispose();
-
   return (
     <div
       style={{

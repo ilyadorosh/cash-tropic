@@ -324,6 +324,11 @@ export async function loadDistrict(
         depth: 10.4,
         buildingId: "aufsessplatz-nymphenbrunnen",
       };
+      // never parented into the scene graph — matrixWorld would stay
+      // identity forever and getWorldPosition() would read (0,0,0),
+      // so collision against it silently never fires. Static object,
+      // one-time compute is enough.
+      fountainCollider.updateMatrixWorld(true);
       colliders.push(fountainCollider);
       landmarks.push({
         name: "Nymphenbrunnen · Aufseßplatz",
@@ -347,6 +352,11 @@ export async function loadDistrict(
         depth: cd,
         buildingId: `${def.id}`,
       };
+      // same fix as the fountain collider above: this mesh is never added
+      // to the scene, so its matrixWorld is never auto-computed by the
+      // renderer — force it once so getWorldPosition/getWorldQuaternion
+      // return the real building position instead of the world origin.
+      collider.updateMatrixWorld(true);
       colliders.push(collider);
 
       if (b.n && (b.lm || b.w * b.d > 400)) {
