@@ -819,21 +819,100 @@ export default function GTAEngine3D() {
       0.1,
       8000,
     );
-    const renderer = new THREE.WebGLRenderer({ antialias: false });
+    // MSAA + capped DPR: crisp edges are most of what separates "clean
+    // low-poly" from "unfinished" — and this scene is cheap enough to afford
+    // both (same 1.5 DPR cap the Plaza uses).
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     mountRef.current.appendChild(renderer.domElement);
 
     // === ATMOSPHERE — day/night cycle + weather. Cheap on purpose:
     // color lerps, one directional sun, one Points cloud for rain.
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
-    const sun = new THREE.DirectionalLight(0xfff3e0, 0.7);
+    // THE one sun. World.tsx no longer adds its own static light — that one
+    // washed out the day/night cycle and cast shadows only near the origin.
+    // This sun follows the player (position AND shadow frustum), so shadows
+    // exist everywhere in the 9000×9000 world, not just downtown.
+    const sun = new THREE.DirectionalLight(0xfff3e0, 1.6);
     sun.position.set(60, 80, 30);
+    sun.castShadow = true;
+    sun.shadow.mapSize.width = 2048;
+    sun.shadow.mapSize.height = 2048;
+    sun.shadow.camera.left = -170;
+    sun.shadow.camera.right = 170;
+    sun.shadow.camera.top = 170;
+    sun.shadow.camera.bottom = -170;
+    sun.shadow.camera.near = 10;
+    sun.shadow.camera.far = 600;
+    sun.shadow.bias = -0.0004;
+    sun.shadow.normalBias = 0.02;
     scene.add(sun);
+    scene.add(sun.target);
     // Keep street-level faces readable even when the moving sun is behind
     // them. The old ambient-only fill crushed whole façades to black.
     scene.add(new THREE.HemisphereLight(0xb9d9e8, 0x35502f, 0.78));
+
+    // Gradient sky dome — the flat background color read as "programmer art".
+    // Zenith and horizon are driven by the same palette as fog, so the ground
+    // line dissolves into haze instead of a hard seam.
+    const skyUniforms = {
+      topColor: { value: new THREE.Color(0x87ceeb) },
+      bottomColor: { value: new THREE.Color(0x9fc4e0) },
+    };
+    const skyDome = new THREE.Mesh(
+      new THREE.SphereGeometry(6200, 24, 12),
+      new THREE.ShaderMaterial({
+        uniforms: skyUniforms,
+        side: THREE.BackSide,
+        fog: false,
+        depthWrite: false,
+        vertexShader: `
+          varying vec3 vPos;
+          void main() {
+            vPos = position;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }`,
+        fragmentShader: `
+          uniform vec3 topColor;
+          uniform vec3 bottomColor;
+          varying vec3 vPos;
+          void main() {
+            float h = clamp(normalize(vPos).y, 0.0, 1.0);
+            gl_FragColor = vec4(mix(bottomColor, topColor, pow(h, 0.55)), 1.0);
+          }`,
+      }),
+    );
+    skyDome.frustumCulled = false;
+    scene.add(skyDome);
+
+    // Visible sun disc riding the dome — golden hour needs a light source
+    // you can actually look at.
+    const sunDiscCanvas = document.createElement("canvas");
+    sunDiscCanvas.width = 128;
+    sunDiscCanvas.height = 128;
+    const sdc = sunDiscCanvas.getContext("2d")!;
+    const sunGrad = sdc.createRadialGradient(64, 64, 6, 64, 64, 64);
+    sunGrad.addColorStop(0, "rgba(255,252,240,1)");
+    sunGrad.addColorStop(0.25, "rgba(255,236,190,0.9)");
+    sunGrad.addColorStop(0.6, "rgba(255,205,130,0.25)");
+    sunGrad.addColorStop(1, "rgba(255,190,110,0)");
+    sdc.fillStyle = sunGrad;
+    sdc.fillRect(0, 0, 128, 128);
+    const sunDisc = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: new THREE.CanvasTexture(sunDiscCanvas),
+        blending: THREE.AdditiveBlending,
+        transparent: true,
+        depthWrite: false,
+        fog: false,
+      }),
+    );
+    sunDisc.scale.setScalar(900);
+    scene.add(sunDisc);
     // t, sky, fog, sun intensity, exposure
     const atmoStops: [number, number, number, number, number][] = [
       [0.0, 0x0a1226, 0x0a1430, 0.05, 0.5],
@@ -846,6 +925,7 @@ export default function GTAEngine3D() {
     let atmoT = DAY_LEN * 0.35; // start mid-morning
     const _atmoA = new THREE.Color(),
       _atmoB = new THREE.Color();
+    const _sunDir = new THREE.Vector3();
     let currentWeather = makeGameModelSnapshot().weather;
     let raining = currentWeather === "rain";
     let lastModelWeatherSync = 0;
@@ -963,9 +1043,27 @@ export default function GTAEngine3D() {
         // 1200–3400 units out). Weather still swallows them — as in life.
         scene.fog.far = raining ? 150 : foggy ? 95 : 2600;
       }
-      sun.intensity = sunI;
+      // World.tsx's old always-on 1.2 light is gone, so this sun carries the
+      // scene alone — scaled up accordingly (ACES handles the range).
+      sun.intensity = sunI * 2.3;
       const ang = (t - 0.25) * Math.PI * 2;
-      sun.position.set(Math.cos(ang) * 80, Math.max(6, Math.sin(ang) * 90), 30);
+      // Orbit around the PLAYER, not the origin: the shadow frustum is only
+      // ±170m, so both light and shadows must travel with you.
+      const anchor =
+        playerState === "driving" ? activeCar.position : playerGroup.position;
+      sun.position.set(
+        anchor.x + Math.cos(ang) * 180,
+        Math.max(14, Math.sin(ang) * 220),
+        anchor.z + 70,
+      );
+      sun.target.position.set(anchor.x, 0, anchor.z);
+      // Sky dome + sun disc are camera-relative scenery
+      skyDome.position.copy(camera.position);
+      skyUniforms.topColor.value.copy(sky).multiplyScalar(0.62);
+      skyUniforms.bottomColor.value.copy(fogC).multiplyScalar(1.12);
+      _sunDir.copy(sun.position).sub(anchor).normalize();
+      sunDisc.position.copy(camera.position).addScaledVector(_sunDir, 5400);
+      sunDisc.material.opacity = Math.min(1, sunI * 1.6 + 0.08);
       renderer.toneMappingExposure = expo;
       const clockTick = Math.floor(atmoT * 2);
       if (clockTick !== lastClockTick) {

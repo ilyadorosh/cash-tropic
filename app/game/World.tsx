@@ -264,24 +264,52 @@ export function initWorld(
   colliders: THREE.Mesh[],
   interactables: any[],
 ) {
-  // Lighting
-  const sun = new THREE.DirectionalLight(0xffffff, 1.2);
-  sun.position.set(100, 150, 100);
-  sun.castShadow = true;
-  sun.shadow.mapSize.width = 2048;
-  sun.shadow.mapSize.height = 2048;
-  sun.shadow.camera.left = -200;
-  sun.shadow.camera.right = 200;
-  sun.shadow.camera.top = 200;
-  sun.shadow.camera.bottom = -200;
-  scene.add(sun);
-  scene.add(new THREE.AmbientLight(0x404040, 0.6));
+  // Lighting note: this module used to add its own static shadow sun at the
+  // origin plus an ambient fill. That silently fought the engine's day/night
+  // sun — the static 1.2-intensity light washed out sunsets and nights, and
+  // its ±200m shadow box around the ORIGIN meant the player (who spawns at
+  // Aufseßplatz, ~800 units away) never saw a single shadow. Engine3D now
+  // owns the one true sun; keep only a faint ambient floor so interiors and
+  // undersides never crush to pure black.
+  scene.add(new THREE.AmbientLight(0x404040, 0.35));
 
   // Ground — sized for the metropolitan region: the core city plus the
   // real-world OSM districts (Fürth, Erlangen, Nürnberg Altstadt, Berlin
   // Mitte) which sit 1200–3400 units out. Franconia is grass all the way.
+  // A generated blotch texture breaks up the single-green plane that made
+  // 60% of every frame look like untextured programmer art.
+  const grassCanvas = document.createElement("canvas");
+  grassCanvas.width = 256;
+  grassCanvas.height = 256;
+  const gctx = grassCanvas.getContext("2d")!;
+  gctx.fillStyle = "#2d5a27";
+  gctx.fillRect(0, 0, 256, 256);
+  const grassTones = ["#274e22", "#33642c", "#2a5525", "#3b6b31", "#59653a"];
+  for (let i = 0; i < 340; i++) {
+    gctx.fillStyle = grassTones[i % grassTones.length];
+    gctx.globalAlpha = 0.5 + Math.random() * 0.4;
+    const r = 3 + Math.random() * 15;
+    gctx.beginPath();
+    gctx.ellipse(
+      Math.random() * 256,
+      Math.random() * 256,
+      r,
+      r * (0.5 + Math.random() * 0.6),
+      Math.random() * Math.PI,
+      0,
+      Math.PI * 2,
+    );
+    gctx.fill();
+  }
+  gctx.globalAlpha = 1;
+  const grassTex = new THREE.CanvasTexture(grassCanvas);
+  grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
+  grassTex.repeat.set(70, 70); // ~128m per tile — visible variation, no obvious tiling up close
   const grassGeo = new THREE.PlaneGeometry(9000, 9000);
-  const grassMat = new THREE.MeshLambertMaterial({ color: 0x2d5a27 });
+  const grassMat = new THREE.MeshLambertMaterial({
+    color: 0xffffff,
+    map: grassTex,
+  });
   const grass = new THREE.Mesh(grassGeo, grassMat);
   grass.rotation.x = -Math.PI / 2;
   grass.receiveShadow = true;
