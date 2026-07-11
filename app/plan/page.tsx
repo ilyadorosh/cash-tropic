@@ -1,51 +1,328 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-import styles from "../components/home.module.scss";
-import planStyles from "./plan.module.scss";
+import React, { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
+import planStyles from "./plan.module.scss";
 
-const legoColors = [
-  "#FFADAD", // light red
-  "#FFD6A5", // orange
-  "#FDFFB6", // yellow
-  "#CAFFBF", // green
-  "#9BF6FF", // cyan
-  "#A0C4FF", // blue
-  "#BDB2FF", // purple
-  "#FFC6FF", // pink
+type ViewMode = "story" | "build";
+type ClaimKind =
+  | "RUNNING"
+  | "TESTABLE"
+  | "ENGINEERING BET"
+  | "OPEN QUESTION"
+  | "PRINCIPLE";
+
+type PlanSection = {
+  id: string;
+  title: string;
+  category: string;
+  icon: string;
+  color: string;
+  kind: ClaimKind;
+  summary: string;
+  content: string;
+};
+
+const claimKinds: Array<{
+  kind: ClaimKind;
+  description: string;
+  color: string;
+}> = [
+  {
+    kind: "RUNNING",
+    description: "You can open it, inspect it, or run it now.",
+    color: "#22c55e",
+  },
+  {
+    kind: "TESTABLE",
+    description: "A claim with a metric and a way to be wrong.",
+    color: "#3b82f6",
+  },
+  {
+    kind: "ENGINEERING BET",
+    description: "Plausible, useful, and not demonstrated yet.",
+    color: "#f59e0b",
+  },
+  {
+    kind: "OPEN QUESTION",
+    description: "We do not know. That is the point of the experiment.",
+    color: "#a855f7",
+  },
+  {
+    kind: "PRINCIPLE",
+    description: "A value or design constraint, not a scientific result.",
+    color: "#ec4899",
+  },
 ];
 
-const blockMeta = [
-  { label: "proof", icon: "✓", color: "#22c55e" },
-  { label: "thesis", icon: "◆", color: "#f59e0b" },
-  { label: "learning", icon: "↻", color: "#3b82f6" },
-  { label: "control", icon: "⌁", color: "#8b5cf6" },
-  { label: "hardware", icon: "⚡", color: "#ef4444" },
-  { label: "physics", icon: "∑", color: "#06b6d4" },
-  { label: "scale", icon: "↗", color: "#ec4899" },
-  { label: "economics", icon: "◎", color: "#f97316" },
-  { label: "principles", icon: "★", color: "#14b8a6" },
-  { label: "memory", icon: "▦", color: "#6366f1" },
-  { label: "entropy", icon: "≈", color: "#a855f7" },
-  { label: "life", icon: "✣", color: "#84cc16" },
+const focusAreas = [
+  "adaptive learning",
+  "stable dynamics",
+  "energy-aware compute",
+  "local rules",
+  "shared worlds",
+  "human agency",
+];
+
+const sections: PlanSection[] = [
+  {
+    id: "evidence",
+    title: "Begin with receipts",
+    category: "evidence",
+    icon: "✓",
+    color: "#22c55e",
+    kind: "RUNNING",
+    summary:
+      "The vision earns attention only where a smaller version already works.",
+    content: String.raw`
+Three pieces exist today:
+
+- **Stability theory for learned dynamics.** The [KAM/HNN paper](/papers/kam-hnn.pdf) treats a Hamiltonian Neural Network as a perturbed Hamiltonian system and asks which invariant structures survive. The [kicked-rotor demo](/kam) makes the geometry visible. This is a result about a defined class of systems—not a proof that arbitrary neural networks are safe.
+- **A trained local-rule system.** The [Neural Cellular Automata lab](/nca) runs in the browser and regenerates learned forms after damage. Metabolism and physical energy measurement are proposed experiments, not shipped results.
+- **A playable integration laboratory.** [Action in Love](/) combines generated social pages, persistent state, model-driven characters, browser physics, and explorable simulations. It is evidence that the pieces can meet in one world; it is not a claim of AGI.
+
+$$\text{credibility} = \text{working artifact} + \text{stated limits} + \text{reproduction path}$$
+
+If a visitor cannot distinguish the demo from the dream, the communication has failed.
+`,
+  },
+  {
+    id: "thesis",
+    title: "The thesis—and its burden of proof",
+    category: "thesis",
+    icon: "◆",
+    color: "#f59e0b",
+    kind: "TESTABLE",
+    summary: "Useful intelligence is a system property, not a parameter count.",
+    content: String.raw`
+The working hypothesis is that many real environments need **adaptation, efficiency, and recoverable stability** more than another static increase in scale. A practical scorecard is:
+
+$$J = \frac{C \cdot A}{E \cdot \tau \cdot (1 + F)}$$
+
+where $C$ is task capability, $A$ is adaptation quality, $E$ is measured or estimated energy, $\tau$ is response/update latency, and $F$ is a fragility penalty: forgetting, divergence, or failure to recover after perturbation.
+
+This is **not a law of physics** and the units do not magically cancel. It is a decision tool. Every experiment must publish the components separately so a flattering composite score cannot hide a regression.
+
+The thesis loses if constrained local adaptation produces no useful Pareto improvement over a static model plus retrieval—or if its stability and measurement overhead erase the gain. That would be a valuable result.
+`,
+  },
+  {
+    id: "learning-loop",
+    title: "Build a learning loop, not a mutable mystery",
+    category: "learning",
+    icon: "↻",
+    color: "#3b82f6",
+    kind: "ENGINEERING BET",
+    summary: "Adapt locally, measure continuously, and preserve a route back.",
+    content: String.raw`
+A safe online learner needs more structure than gradient descent. One candidate loop is:
+
+$$\theta_{t+1} = \Pi_{\mathcal S}\left(\theta_t - \eta P_t \nabla_{\theta}L_t\right)$$
+
+$P_t$ restricts the update to a small, inspectable subspace; $\Pi_{\mathcal S}$ projects or rejects changes that leave a defined stability set. Low-rank adaptation supplies one such subspace:
+
+$$\Delta W = BA, \qquad \operatorname{rank}(\Delta W)=r \ll d$$
+
+The first benchmark compares four honest baselines on the same task stream: frozen model, frozen model plus retrieval, full update, and gated low-rank update. Measure time-to-adapt, joules or a disclosed energy proxy, retained performance, rollback rate, and recovery after distribution shift.
+
+“Real-time learning” only counts when the system learns something useful before the environment changes again.
+`,
+  },
+  {
+    id: "stability",
+    title: "Stability before swagger",
+    category: "control",
+    icon: "⌁",
+    color: "#8b5cf6",
+    kind: "TESTABLE",
+    summary:
+      "A learner that cannot fail legibly is not ready to steer anything important.",
+    content: String.raw`
+Control theory offers a disciplined vocabulary when—and only when—the state, input, output, and disturbance can be defined:
+
+$$x_{t+1}=Ax_t+Bu_t+w_t, \qquad y_t=Cx_t, \qquad u_t=-Kx_t$$
+
+For this discrete-time linearized regime, $\rho(A-BK)<1$ is a meaningful local condition. It is not a universal safety certificate for a language model. The research task is to find narrower settings where Lyapunov functions, energy drift, spectral bounds, runtime monitors, or reversible checkpoints give useful guarantees.
+
+Each adaptive experiment therefore needs: a safe baseline, a bounded update region, a tripwire, a rollback state, and an account of what the monitor cannot see. Performance without recoverability is an incomplete result.
+`,
+  },
+  {
+    id: "energy",
+    title: "Energy belongs inside the algorithm",
+    category: "physics",
+    icon: "⚡",
+    color: "#06b6d4",
+    kind: "ENGINEERING BET",
+    summary:
+      "A computation includes memory movement, heat, cooling, and the machine around it.",
+    content: String.raw`
+Logical irreversibility has a thermodynamic floor:
+
+$$E_{\mathrm{erase}} \geq k_B T \ln 2$$
+
+Conventional switching is often approximated by $P_{\mathrm{switch}} \approx \alpha C V^2 f$. These equations orient the search; they do not predict a modern computer's wall-plug energy by themselves.
+
+- Landauer bounds logically irreversible erasure, not every operation.
+- Lower temperature lowers that bound, but refrigeration has a system-level cost.
+- Superconducting or cryogenic logic wins only if the full stack—including cooling and I/O—wins.
+- Memory movement can dominate arithmetic, but the ratio depends on workload and hardware.
+
+The first useful artifact is therefore mundane and powerful: a reproducible harness that records latency, device power or a named proxy, memory traffic, temperature assumptions, and useful work. Cryogenic compute remains an open hardware path, not a shortcut in the spreadsheet.
+`,
+  },
+  {
+    id: "local-life",
+    title: "Local rules can make resilient worlds",
+    category: "life",
+    icon: "✣",
+    color: "#84cc16",
+    kind: "OPEN QUESTION",
+    summary:
+      "Can a system repair itself while paying an explicit cost for staying alive?",
+    content: String.raw`
+An NCA cell updates from local information rather than a central blueprint:
+
+$$c_{i,j}^{(t+1)}=c_{i,j}^{(t)}+f_{\theta}(\mathcal N(c^{(t)}_{i,j}))\,m_{i,j}$$
+
+The running demo shows regeneration. The next experiment adds a resource channel $r_{i,j}$, charges updates, and removes cells that cannot meet a maintenance threshold. Sweep damage size and resource supply, then report recovery probability, time, update count, and a clearly labeled energy proxy.
+
+The interesting question is not whether this is literally alive. It is whether decentralized learned rules can deliver repair, graceful degradation, and legible local behavior more efficiently than centralized control. The playful interface matters here: people should be able to poke the organism, damage it, feed it, and understand the result with their hands.
+`,
+  },
+  {
+    id: "strategy",
+    title: "Listen to the giants; do not borrow their certainty",
+    category: "strategy",
+    icon: "↗",
+    color: "#f97316",
+    kind: "PRINCIPLE",
+    summary: "Advice from powerful builders is input data, not destiny.",
+    content: String.raw`
+[Paul Graham argues](https://paulgraham.com/hubs.html) that hubs concentrate people, capital, and norms that amplify ambition. [Jensen Huang's older execution advice](https://ecorner.stanford.edu/wp-content/uploads/sites/2/2003/01/1125.pdf) pairs a long horizon with deliberately narrow projects. [Sam Altman's “steamroll” warning](https://www.thetwentyminutevc.com/sam-altman-brad-lightcap) is best read as a constraint: do not build a thin layer whose only advantage is a temporary model limitation.
+
+All three can be useful without becoming commandments. Networks matter; so do independent thought, places outside the dominant hub, and problems that a frontier lab's roadmap will not automatically absorb. Scale is real. So are embodiment, trust, energy, local context, and the long tail of human purposes.
+
+An inspired mission post should make a talented person feel that their presence changes the outcome. It should not pretend the founder invented the ingredients or that victory is guaranteed.
+
+$$\text{strategy}=\text{trajectory awareness}\times\text{independent thesis}\times\text{proof}$$
+`,
+  },
+  {
+    id: "shared-machine",
+    title: "We are one machine, with many authors",
+    category: "community",
+    icon: "♡",
+    color: "#ec4899",
+    kind: "PRINCIPLE",
+    summary:
+      "Ambition becomes trustworthy when contribution and correction stay visible.",
+    content: String.raw`
+There is no lone-genius version of this work. KAM carries Kolmogorov, Arnold, Moser, Hamilton, and generations of mathematicians. Neural cellular automata inherit cellular automata, developmental biology, differentiable programming, and open research code. The product inherits browsers, databases, model builders, chip designers, maintainers, critics, friends, and the people who contributed care when the work was still hard to explain.
+
+Machines contribute search, synthesis, drafts, and labor. Humans contribute labor too—and judgment, consent, responsibility, lived stakes, and the right to say no. Neither contribution should be erased.
+
+So the operating agreement is simple:
+
+- name sources and contributors;
+- separate evidence, hypothesis, metaphor, and marketing;
+- publish useful negative results;
+- invite criticism before certainty hardens into identity;
+- increase human agency without hiding physical or social costs.
+
+“Act in love” is not a claim that good intentions make a system good. It is a demand to keep asking who gains agency, who pays, who is missing, and whether we can still enjoy building it together.
+`,
+  },
+  {
+    id: "falsifiers",
+    title: "What would change our minds?",
+    category: "falsifiers",
+    icon: "?",
+    color: "#a855f7",
+    kind: "OPEN QUESTION",
+    summary:
+      "A plan that cannot lose an argument is a brand, not a research program.",
+    content: String.raw`
+We should narrow, redirect, or stop a branch when:
+
+- local adaptation fails to beat a frozen-plus-retrieval baseline under the same budget;
+- stability gates cost more capability than they protect, with no safer niche found;
+- an apparent cryogenic advantage disappears after cooling, I/O, and utilization are counted;
+- NCA “metabolism” produces pretty motion but no measurable resilience insight;
+- independent users cannot reproduce the result or understand the interface;
+- the work reduces people's agency, even while improving a technical metric.
+
+Failure is not the opposite of the plan. Hidden failure is. The public artifact should keep a changelog of what survived contact with evidence.
+`,
+  },
+];
+
+const milestones = [
+  {
+    horizon: "NOW",
+    title: "Publish the measurement harness",
+    measure:
+      "One task stream; four baselines; latency, energy proxy, forgetting, and rollback reported together.",
+  },
+  {
+    horizon: "NEXT",
+    title: "Give the NCA a metabolism",
+    measure:
+      "Interactive resource channel plus damage sweeps with recovery curves—not only a beautiful animation.",
+  },
+  {
+    horizon: "THEN",
+    title: "Gate a low-rank online learner",
+    measure:
+      "A bounded update, monitor, tripwire, and reversible checkpoint running in one demonstrator.",
+  },
+  {
+    horizon: "OPEN",
+    title: "Extend the stability result",
+    measure:
+      "A precise theorem or a precise counterexample connecting learned updates to invariant-structure loss.",
+  },
+  {
+    horizon: "ALWAYS",
+    title: "Keep a public field notebook",
+    measure:
+      "Sources, contributors, costs, failures, and changed beliefs remain visible beside the demos.",
+  },
+];
+
+const sources = [
+  { label: "KAM theory meets HNNs", href: "/papers/kam-hnn.pdf" },
+  {
+    label: "Growing Neural Cellular Automata",
+    href: "https://distill.pub/2020/growing-ca/",
+  },
+  {
+    label: "Hamiltonian Neural Networks",
+    href: "https://proceedings.neurips.cc/paper/2019/hash/26cd8ecadce0d4efd6cc8a8725cbd1f8-Abstract.html",
+  },
+  { label: "LoRA", href: "https://arxiv.org/abs/2106.09685" },
+  { label: "Landauer's principle", href: "https://doi.org/10.1147/rd.53.0183" },
+  { label: "Why Startup Hubs Work", href: "https://paulgraham.com/hubs.html" },
+  {
+    label: "The Importance of Execution",
+    href: "https://ecorner.stanford.edu/wp-content/uploads/sites/2/2003/01/1125.pdf",
+  },
+  {
+    label: "The steamroller question",
+    href: "https://www.thetwentyminutevc.com/sam-altman-brad-lightcap",
+  },
 ];
 
 const markdownComponents = {
-  p: (props: React.HTMLAttributes<HTMLParagraphElement>) => (
-    <p
-      {...props}
-      style={{
-        marginBottom: "12px",
-        color: "inherit",
-        fontWeight: 500,
-        lineHeight: 1.5,
-      }}
-    />
+  p: ({
+    node: _node,
+    ...props
+  }: React.HTMLAttributes<HTMLParagraphElement> & { node?: unknown }) => (
+    <p {...props} />
   ),
   ul: ({
     ordered: _ordered,
@@ -54,12 +331,7 @@ const markdownComponents = {
   }: React.HTMLAttributes<HTMLUListElement> & {
     ordered?: boolean;
     node?: unknown;
-  }) => (
-    <ul
-      {...props}
-      style={{ margin: "12px 0 0 20px", color: "inherit", fontWeight: 500 }}
-    />
-  ),
+  }) => <ul {...props} />,
   li: ({
     ordered: _ordered,
     index: _index,
@@ -69,7 +341,7 @@ const markdownComponents = {
     ordered?: boolean;
     index?: number;
     node?: unknown;
-  }) => <li {...props} style={{ marginBottom: "8px" }} />,
+  }) => <li {...props} />,
   code: ({
     inline: _inline,
     node: _node,
@@ -77,452 +349,298 @@ const markdownComponents = {
   }: React.HTMLAttributes<HTMLElement> & {
     inline?: boolean;
     node?: unknown;
-  }) => (
-    <code
-      {...props}
-      style={{
-        background: "rgba(255,255,255,0.7)",
-        padding: "2px 6px",
-        borderRadius: "4px",
-        border: "2px solid #111",
-        fontWeight: "bold",
-        color: "#111",
-      }}
-    />
-  ),
+  }) => <code {...props} />,
+  a: ({
+    node: _node,
+    href,
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { node?: unknown }) => {
+    const external = href?.startsWith("http");
+    return (
+      <a
+        href={href}
+        target={external ? "_blank" : undefined}
+        rel={external ? "noreferrer" : undefined}
+        {...props}
+      />
+    );
+  },
 };
 
-const focusAreas = [
-  "Real-time learning systems",
-  "Transfer learning via LoRA and localized updates",
-  "Neuroscience-inspired architectures",
-  "Control theory for robust adaptation",
-  "Physics-aware computing infrastructure",
-  "Cryogenic energy + compute integration",
-];
+const issueUrl =
+  "https://github.com/ilyadorosh/cash-tropic/issues/new?title=I%20want%20to%20help%20with%20the%20plan&body=The%20block%20I%20care%20about%3A%0A%0AWhat%20I%20can%20contribute%3A%0A%0AWhat%20I%20think%20the%20plan%20gets%20wrong%3A";
 
-const mission = `
-Build a research and engineering platform around a simple thesis: the next step is not just bigger models, but systems that maximize
-
-$$\\frac{\\text{capability}}{\\text{energy} \\times \\text{latency} \\times \\text{fragility}}$$
-`;
-
-const sections = [
-  {
-    title: "Evidence: What Already Runs",
-    content: `
-Per the Fifth Commandment below: *ship or it didn't happen.* This plan was not written before the work — the receipts exist and run:
-
-- **KAM theory meets Hamiltonian Neural Networks** — single-author paper: the flow learned by an HNN is the *exact* flow of a perturbed Hamiltonian, so KAM/Nekhoroshev theory bounds which invariant structures survive training. Stability of learned dynamics, proven rather than hoped. [Paper (PDF)](/papers/kam-hnn.pdf) · [interactive kicked-rotor demo](/kam)
-- **Trained Neural Cellular Automata** — learned local rules regenerating target morphologies under damage, running on GPU in the browser. [Live](/nca)
-- **actinlove.com** — the working laboratory: real-time 3D simulation with relativistic rendering, LLM-driven agents with persistent memory, Postgres-backed anonymous state. Every claim in this plan has a runnable ancestor here.
-
-The strategy is *thesis first*, not *startup first*: use the EXIST stipendium to close the gap between "trained an NCA" and "measured $E_{\\text{cell}} / k_B T \\ln 2$ for an NCA" — then decide whether the output is a lab, a company, or a platform.
-`,
-  },
-  {
-    title: "Unique Value Proposition",
-    content: `
-The core thesis is that intelligence should be treated as a coupled system of learning dynamics, control, and physical substrate. Current AI mostly scales parameters; the proposed direction scales adaptation quality per joule:
-
-$$\\text{useful intelligence} \\approx \\text{adaptation} \\times \\text{efficiency} \\times \\text{stability}$$
-
-That changes the optimization target from brute-force capability to a more durable objective function:
-
-$$J = \\frac{\\text{capability}}{\\text{energy} \\times \\text{latency} \\times \\text{fragility}}$$
-`,
-  },
-  {
-    title: "Real-Time & Transfer Learning",
-    content: `
-Static deployment is a dead end for many real environments. The model should update online:
-
-$$\\theta_{t+1} = \\theta_t - \\eta \\nabla_{\\theta} L_t$$
-
-with constraints that preserve stability and avoid catastrophic drift.
-
-LoRA factorizes adaptation into low-rank structure $\\Delta W = BA$ with $\\operatorname{rank}(\\Delta W) = r \\ll d$. This makes continual adaptation cheaper, more local, and easier to gate.
-
-The first-class metric becomes:
-
-$$\\frac{\\text{adaptation rate}}{\\text{watt}}$$
-`,
-  },
-  {
-    title: "Interdisciplinary Mastery: ML, Neuroscience & Control Theory",
-    content: `
-The ML side provides representation learning; neuroscience provides sparse, event-driven computation; control theory provides stability guarantees. A minimal state-space framing:
-
-$$x_{t+1} = A x_t + B u_t, \\quad y_t = C x_t, \\quad u_t = -K x_t$$
-
-A useful cognitive architecture is not just expressive; it must remain controllable under perturbation. The target is high plasticity but bounded instability — maximize learning subject to:
-
-$$\\operatorname{Re}(\\lambda(A - BK)) < 0$$
-`,
-  },
-  {
-    title: "Hardware & Physical Foundations",
-    content: `
-Software abstractions eventually hit hardware limits. Conventional digital switching pays:
-
-$$P \\approx C V^2 f$$
-
-Meaningful gains require attacking $C$, $V$, $f$, or the substrate itself.
-
-- **RAM Physics & Capacitors:** reduce switching cost and improve state persistence.
-- **High-Temperature Superconductors:** push resistive loss toward zero.
-- **Cryogenic Storage & Superfluidity:** treat cooling as infrastructure and explore co-design around low-temperature regimes.
-`,
-  },
-  {
-    title: "The Energy and Entropy Paradigm",
-    content: `
-Computation is thermodynamic bookkeeping. At minimum:
-
-$$dS = \\frac{dE}{T}$$
-
-Irreversible bit operations are bounded by Landauer:
-
-$$E_{\\min} = k_B T \\ln 2$$
-
-Thermal noise scales with temperature:
-
-$$v_n^2 = 4 k_B T R B$$
-
-Lower temperature simultaneously reduces minimum dissipation, suppresses noise, and enables superconducting substrates. Cryogenic storage can therefore serve as both an energy buffer and a compute enabler.
-`,
-  },
-  {
-    title: "Scaling Laws and the Open Frontier",
-    content: `
-Frontier labs dominate the regime described by empirical scaling laws:
-
-$$L(N, D, C) \\approx \\frac{A}{N^{\\alpha}} + \\frac{B}{D^{\\beta}} + \\frac{E}{C^{\\gamma}}$$
-
-That regime rewards capital intensity. The opportunity is in architectures where:
-
-$$\\frac{d(\\text{capability})}{d(\\text{joule})} \\gg \\frac{d(\\text{capability})}{d(\\text{parameter})}$$
-`,
-  },
-  {
-    title: "Energy & Entropy Cost of Key Processes",
-    content: `
-Every strategic move—whether training a model or funding a lab—has an entropic signature. The goal is to maximize $\\Delta \\text{Capability}$ against $\\Delta S_{\\text{global}}$.
-
-**1. Brute-Force Pretraining (LLMs)**
-- **Regime:** High irreversibility, static weights.
-- **Cost:** $E \\propto C V^2 f \\times \\text{FLOPs} \\approx 10^{10}\\ \\text{Joules}$.
-- **Entropy logic:** Massive global entropy increase to create a locally ordered artifact (the weights). Once trained, $\\dot{S}_{\\text{internal}} = 0$ (it does not live, adapt, or repair).
-
-**2. Biological Learning (The Target)**
-- **Regime:** Continuous adaptation, near reversible limits.
-- **Cost:** $P \\approx 20\\text{W}$.
-- **Entropy logic:** Open system. High initial capital cost (evolution/development), but negligible marginal cost for real-time localized weight updates. $\\dot{S}_{\\text{exported}}$ is minimized per inference.
-
-**3. Venture Capital & Resource Allocation**
-- **Regime:** Financial thermodynamics.
-- **Cost:** Information acquisition and risk bounding.
-- **Entropy logic:** Capital is stored potential energy. Spraying capital uniformly into an overheated market (Silicon Valley AI wrapper boom) maximizes entropy dissipation with minimal structural gain. Focused injection into low-T, high-gradient domains (cryo-compute, theoretical physics) yields the highest negentropic leverage. 
-
-$$ \\text{ROI}_{\\text{true}} = \\frac{\\text{Structural order gained}}{\\text{Capital entropy dissipated}} $$
-`,
-  },
-  {
-    title: "The Church of Efficient Intelligence",
-    content: `
-Every serious research direction eventually becomes a religion, so let's be explicit about the dogma.
-
-**First Commandment:** Thou shalt not worship parameter count. $N \\to \\infty$ is not a strategy.
-
-**Second Commandment:** Energy is not a footnote. Every system must be able to answer $\\frac{\\text{capability}}{\\text{joule}}$ honestly.
-
-**Third Commandment:** Stability is sacred. A system that learns but cannot be controlled is not an agent — it is a hazard. All weights shall satisfy $\\operatorname{Re}(\\lambda(A - BK)) < 0$.
-
-**Fourth Commandment:** Physics is not optional. Landauer sets the floor: $E_{\\min} = k_B T \\ln 2$. No architecture escapes thermodynamics.
-
-**Fifth Commandment:** Ship or it didn't happen. Equations without implementations are theology. Implementations without equations are magic. The goal is engineering.
-
-The congregation meets wherever there is a good compiler, liquid nitrogen, and an open research question.
-`,
-  },
-  {
-    title: "RAM, Memory Hierarchy, and Landauer's Limit",
-    content: `
-The bottleneck is not just how much RAM you have — it is how much energy and time it costs to move bits between layers of the memory hierarchy. Every cache miss, every page fault, every swap read is a thermodynamic event.
-
-Landauer's principle sets the absolute minimum energy to erase one bit at temperature $T$:
-
-$$E_{\\min} = k_B T \\ln 2 \\approx 2.9 \\times 10^{-21}\\ \\text{J at 300K}$$
-
-Modern DRAM refresh operations erase and rewrite billions of bits per second. The gap between Landauer's floor and actual DRAM energy consumption is roughly $10^6\\times$. That gap is the engineering opportunity.
-
-The memory hierarchy can be modeled as a sequence of energy-latency tradeoffs. For a cache level $i$ with access energy $E_i$ and latency $\\tau_i$:
-
-$$\\text{effective cost} = \\sum_i p_i \\cdot E_i \\cdot \\tau_i$$
-
-where $p_i$ is the probability of accessing level $i$ (miss rate cascade). Optimizing this is equivalent to minimizing entropy production across the hierarchy.
-
-**Why swap hurts:** Disk/SSD swap increases $E_i$ and $\\tau_i$ by $10^3$–$10^6\\times$ relative to DRAM. Compressed RAM swap (zram) keeps the access in DRAM at the cost of CPU cycles for compression — a worthwhile trade when CPU is underutilized.
-
-**The cryogenic path:** At $T = 4\\text{K}$ (liquid helium), Landauer's floor drops to $\\approx 4 \\times 10^{-23}\\ \\text{J per bit}$. Superconducting logic (RSFQ — Rapid Single Flux Quantum) operates near this limit. The theoretical energy per operation:
-
-$$E_{\\text{RSFQ}} = \\Phi_0 I_c \\approx 10^{-19}\\ \\text{J}$$
-
-still $10^4\\times$ above Landauer but $10^6\\times$ below CMOS. The path from 8GB DRAM to post-silicon memory runs through this physics.
-
-**Immediate levers (no new hardware):**
-- \`zram\` compressed swap — effectively multiplies usable RAM by 2–3× at CPU cost
-- Tune \`vm.swappiness=10\` to prefer RAM over disk
-- \`vm.page-cluster=0\` to reduce readahead on swap
-- \`earlyoom\` to kill runaway processes before OOM freezes the system
-`,
-  },
-  {
-    title: "Reversibility, Irreversibility, and the Cost of Life",
-    content: `
-Living systems are not thermodynamic anomalies — they are exceptionally well-engineered dissipative structures. The key quantity is entropy production rate $\\dot{S}$. A living system maintains low internal entropy by exporting entropy to its environment at a rate that satisfies:
-
-$$\\dot{S}_{\\text{internal}} < 0, \\quad \\dot{S}_{\\text{total}} = \\dot{S}_{\\text{internal}} + \\dot{S}_{\\text{exported}} > 0$$
-
-This is Prigogine's condition for a dissipative structure. Life is not magic — it is a locally negentropic process sustained by global entropy increase.
-
-For computation, reversible operations cost no entropy in principle (Landauer: only erasure costs $k_B T \\ln 2$). Irreversible operations are thermodynamically lossy. Biological neurons operate closer to the reversible limit than CMOS logic:
-
-$$\\eta_{\\text{neuron}} = \\frac{\\text{useful computation}}{E_{\\text{consumed}}} \\gg \\eta_{\\text{CMOS}}$$
-
-The implication: building artificial life that is robust and energy-efficient requires understanding *which* computations must be irreversible (decisions, memory writes, signal amplification) and which can be made reversible or adiabatic.
-
-For a reversible gate operating at rate $f$ with residual dissipation $\\epsilon$:
-
-$$P_{\\text{rev}} = \\epsilon f \\ll C V^2 f = P_{\\text{CMOS}}$$
-
-The engineering goal is to push $\\epsilon \\to k_B T \\ln 2$ per irreversible bit operation.
-`,
-  },
-  {
-    title: "Neural Cellular Automata: Modeling Robust Life",
-    content: `
-Neural Cellular Automata (NCA) are among the most honest models of life we have. Each cell $c_{i,j}$ updates according to a learned local rule $f_\\theta$ applied to its neighborhood $\\mathcal{N}(i,j)$:
-
-$$c_{i,j}^{(t+1)} = f_\\theta\\left(\\{c_{k,l}^{(t)} : (k,l) \\in \\mathcal{N}(i,j)\\}\\right)$$
-
-What makes NCAs profound is **robustness**: trained NCAs regenerate target morphologies after arbitrary damage. This is precisely what biological development does. The robustness emerges not from central control but from local rules applied in parallel — a distributed computation with no single point of failure.
-
-The perception step uses learned filters (analogous to biological receptive fields):
-
-$$p_{i,j} = \\sum_k W_k * c^{(t)}_{i,j}$$
-
-The update rule is then a small MLP applied per cell:
-
-$$c_{i,j}^{(t+1)} = c_{i,j}^{(t)} + \\text{MLP}_\\theta(p_{i,j}) \\cdot m_{i,j}$$
-
-where $m_{i,j} \\sim \\text{Bernoulli}(0.5)$ is a stochastic update mask that forces each cell to function even when its neighbors are silent — a direct model of biological noise tolerance.
-
-**Why this matters for funding:** NCAs demonstrate a concrete path from toy models to real robustness. The same principles — local rules, no central controller, graceful degradation — apply to distributed AI systems, fault-tolerant hardware, and self-repairing biological interfaces. This is not academic. The measurable deliverables are:
-
-- Train an NCA to regenerate a target pattern after $k$-cell ablation, measure $k_{\\max}$
-- Show that robustness scales with $\\operatorname{rank}(f_\\theta)$ — lower rank = more generalizable local rule
-- Connect NCA update energy per cell to Landauer's limit: $E_{\\text{cell}} / k_B T \\ln 2 = ?$
-
-**Connection to artificial life:** A sufficiently general NCA with a metabolism term — where cells consume a resource $r_{i,j}$ and die when $r_{i,j} < r_{\\min}$ — becomes a minimal model of a living system satisfying:
-
-$$\\frac{d}{dt}\\left[\\text{order}\\right] > 0 \\quad \\text{while} \\quad \\dot{S}_{\\text{total}} > 0$$
-
-That is life. The question is whether we can engineer the $f_\\theta$ that sustains it indefinitely.
-`,
-  },
-];
-
-const milestones = [
-  "Extend the KAM/HNN stability result ([paper](/papers/kam-hnn.pdf)) into an online-learning loop $\\theta_{t+1} = \\theta_t - \\eta \\nabla_{\\theta} L_t$ with explicit stability constraints — the theorem already bounds what training may destroy.",
-  "Prototype low-rank real-time adaptation ($\\Delta W = BA$) measurable against strict latency and energy budgets.",
-  "Add a metabolism term to the [already-trained NCAs](/nca) to quantify the energy-robustness tradeoff ($k_{\\max}$ vs $E_{\\text{cell}}$).",
-  "Model physical compute-energy coupling, mapping conventional CMOS ($P \\approx C V^2 f$) against cryogenic RSFQ assumptions.",
-  "Produce a research roadmap credible enough to justify whether the next step is a lab, a company, or a platform.",
-];
+const missionFormula = String.raw`$$J = \frac{\text{capability}\times\text{adaptation}}{\text{energy}\times\text{latency}\times\text{fragility}}$$`;
 
 export default function PlanPage() {
   const router = useRouter();
-
-  const [orderedAreas, setOrderedAreas] = useState(focusAreas);
-  const dragArea = useRef<number | null>(null);
-  const dragOverArea = useRef<number | null>(null);
-
+  const [viewMode, setViewMode] = useState<ViewMode>("story");
   const [orderedSections, setOrderedSections] = useState(sections);
   const [activeBlock, setActiveBlock] = useState<string | null>(null);
+  const [shareState, setShareState] = useState("Share this plan");
   const dragSection = useRef<number | null>(null);
   const dragOverSection = useRef<number | null>(null);
 
-  const [orderedMilestones, setOrderedMilestones] = useState(milestones);
-  const dragMilestone = useRef<number | null>(null);
-  const dragOverMilestone = useRef<number | null>(null);
+  const reorderSections = () => {
+    if (dragSection.current === null || dragOverSection.current === null)
+      return;
+    const next = [...orderedSections];
+    const [dragged] = next.splice(dragSection.current, 1);
+    next.splice(dragOverSection.current, 0, dragged);
+    setOrderedSections(next);
+    dragSection.current = null;
+    dragOverSection.current = null;
+  };
 
-  const handleSort = (
-    list: any[],
-    setList: any,
-    dragRef: React.MutableRefObject<number | null>,
-    dragOverRef: React.MutableRefObject<number | null>,
-  ) => {
-    if (dragRef.current === null || dragOverRef.current === null) return;
-    const _list = [...list];
-    const dragged = _list.splice(dragRef.current, 1)[0];
-    _list.splice(dragOverRef.current, 0, dragged);
-    setList(_list);
-    dragRef.current = null;
-    dragOverRef.current = null;
+  const resetOrder = () => {
+    setOrderedSections(sections);
+    setActiveBlock(null);
+  };
+
+  const sharePlan = async () => {
+    const url = `${window.location.origin}/plan`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Action in Love — an open research plan",
+          text: "A buildable plan for adaptive, stable, energy-aware intelligence—and an invitation to challenge it.",
+          url,
+        });
+        setShareState("Shared ♡");
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareState("Link copied ♡");
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setShareState("Could not copy—use the address bar");
+    }
+  };
+
+  const copySectionLink = async (id: string) => {
+    const url = `${window.location.origin}/plan#${id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareState("Section link copied ♡");
+    } catch {
+      window.location.hash = id;
+      setShareState("Section selected—copy the address bar");
+    }
   };
 
   return (
-    <div
-      className={styles["window-content"]}
-      style={{ height: "100vh", display: "flex", flexDirection: "column" }}
-    >
-      <style>{`
-        .katex-display {
-          background: color-mix(in srgb, var(--block-color, #f59e0b) 13%, white);
-          border: 3px solid #111;
-          border-left: 10px solid var(--block-color, #f59e0b);
-          border-radius: 8px;
-          padding: 12px;
-          box-shadow: 3px 3px 0 #111;
-          margin: 16px 0 !important;
-          overflow-x: auto;
-        }
-        .katex {
-          color: #111;
-        }
-        p > .katex, li > .katex {
-          display: inline-block;
-          background: #fff4a8;
-          border: 1px solid #111;
-          border-radius: 5px;
-          padding: 1px 5px;
-          box-shadow: 1px 1px 0 #111;
-        }
-      `}</style>
-      <div className={styles["page-header"]}>
-        <div className={styles["page-title"]}>
-          <h1>Master Plan: Accelerating Civilization</h1>
-          <p>EXIST Stipendium Application & Beyond</p>
+    <div className={planStyles.page}>
+      <header className={planStyles.topbar}>
+        <button
+          className={planStyles.brand}
+          onClick={() => router.push("/")}
+          aria-label="Back to Action in Love"
+        >
+          <span className={planStyles.heartMark}>▶</span>
+          <span>
+            <b>actinlove</b>
+            <small>OPEN RESEARCH PLAN</small>
+          </span>
+        </button>
+        <div className={planStyles.viewSwitch} aria-label="Plan view">
+          <button
+            className={viewMode === "story" ? planStyles.selected : ""}
+            onClick={() => setViewMode("story")}
+            aria-pressed={viewMode === "story"}
+          >
+            Read
+          </button>
+          <button
+            className={viewMode === "build" ? planStyles.selected : ""}
+            onClick={() => setViewMode("build")}
+            aria-pressed={viewMode === "build"}
+          >
+            Build
+          </button>
         </div>
-        <div className={styles["page-actions"]}>
-          <button onClick={() => router.push("/")}>← Back</button>
-        </div>
-      </div>
+        <button className={planStyles.shareButton} onClick={sharePlan}>
+          ↗ {shareState}
+        </button>
+      </header>
 
-      <div className={`${styles["page-body"]} ${planStyles.builder}`}>
-        <aside className={planStyles.toolbox}>
+      <div
+        className={`${planStyles.builder} ${viewMode === "story" ? planStyles.storyMode : ""}`}
+      >
+        <aside className={planStyles.toolbox} aria-label="Plan blocks">
           <div className={planStyles.toolboxTitle}>
             <span>▦</span> BLOCK BOX
           </div>
-          <p>Drag blocks to rebuild the plan.</p>
-          <div className={planStyles.categories}>
-            {blockMeta.map((meta, i) => (
+          <p>
+            The argument is modular. Drag it, challenge it, replace a weak
+            block.
+          </p>
+          <nav className={planStyles.categories}>
+            {orderedSections.map((section) => (
               <button
-                key={meta.label}
+                key={section.id}
                 onClick={() =>
                   document
-                    .getElementById(`plan-block-${i}`)
+                    .getElementById(section.id)
                     ?.scrollIntoView({ behavior: "smooth", block: "center" })
                 }
               >
-                <i style={{ background: meta.color }} /> {meta.icon}{" "}
-                {meta.label}
+                <i style={{ background: section.color }} /> {section.icon}{" "}
+                {section.category}
               </button>
             ))}
-          </div>
+          </nav>
           <div className={planStyles.toolboxHint}>
             <b>BUILD MODE</b>
-            <span>● drag</span>
-            <span>⊕ connect</span>
-            <span>↕ reorder</span>
+            <span>⠿ drag to reorder</span>
+            <span># copy one block</span>
+            <button onClick={resetOrder}>↺ reset sequence</button>
           </div>
         </aside>
 
         <main className={planStyles.workspace}>
-          <div className={planStyles.gridLabel}>
-            PLAN WORKSPACE <span>12 blocks</span>
-          </div>
-          <section className={`${planStyles.block} ${planStyles.missionBlock}`}>
-            <div className={planStyles.studs}>
-              {[1, 2, 3, 4, 5].map((n) => (
-                <i key={n} />
-              ))}
+          <section className={planStyles.hero}>
+            <div className={planStyles.heroGlow} />
+            <div className={planStyles.heroCopy}>
+              <div className={planStyles.eyebrow}>
+                LOVE IN ACTION · ENERGY IN FLOW · VERSION 0.2
+              </div>
+              <h1>
+                Build intelligence that learns{" "}
+                <em>without burning the world around it.</em>
+              </h1>
+              <p>
+                Action in Love is an open research playground for adaptive
+                learning, stable dynamics, local repair, and the physical cost
+                of computation. Not a prophecy. A set of buildable questions—and
+                an invitation.
+              </p>
+              <div className={planStyles.heroActions}>
+                <button
+                  onClick={() =>
+                    document
+                      .getElementById("evidence")
+                      ?.scrollIntoView({ behavior: "smooth" })
+                  }
+                >
+                  See what runs ↓
+                </button>
+                <button
+                  className={planStyles.secondaryAction}
+                  onClick={sharePlan}
+                >
+                  Share the question ↗
+                </button>
+              </div>
             </div>
-            <div className={planStyles.blockTag}>START • MISSION</div>
-            <h2
-              style={{
-                marginBottom: "10px",
-                fontWeight: 900,
-                textTransform: "uppercase",
-              }}
-            >
-              Mission
-            </h2>
-            <ReactMarkdown
-              remarkPlugins={[remarkMath]}
-              rehypePlugins={[rehypeKatex]}
-              components={markdownComponents}
-            >
-              {mission}
-            </ReactMarkdown>
-
             <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "10px",
-                marginTop: "16px",
-              }}
+              className={planStyles.coreMachine}
+              aria-label="The plan's core loop"
             >
-              {orderedAreas.map((area, i) => (
+              <div className={planStyles.machineTop}>ACTINLOVE / CORE</div>
+              <div className={planStyles.coreHeart}>▶</div>
+              <div className={planStyles.machineEquation}>
+                perceive → remember → model → decide → act
+              </div>
+              <div className={planStyles.machinePorts}>
+                <i />
+                <i />
+                <i />
+                <i />
+              </div>
+            </div>
+            <div className={planStyles.heroFoot}>
+              <span>
+                <b>3</b> running artifacts
+              </span>
+              <span>
+                <b>9</b> claim blocks
+              </span>
+              <span>
+                <b>∞</b> room to contribute
+              </span>
+            </div>
+          </section>
+
+          <section className={planStyles.preamble}>
+            <div>
+              <span>THE SHORT VERSION</span>
+              <h2>Capability is not enough.</h2>
+            </div>
+            <div className={planStyles.preambleFormula}>
+              <ReactMarkdown
+                remarkPlugins={[remarkMath]}
+                rehypePlugins={[rehypeKatex]}
+              >
+                {missionFormula}
+              </ReactMarkdown>
+            </div>
+            <p>
+              That expression is a scorecard, not a natural law. The research
+              program is to define every term honestly, build smaller systems
+              where the trade-offs are measurable, and publish what fails.
+            </p>
+            <div className={planStyles.focusRow}>
+              {focusAreas.map((area, index) => (
                 <span
                   key={area}
-                  draggable
-                  onDragStart={() => (dragArea.current = i)}
-                  onDragEnter={() => (dragOverArea.current = i)}
-                  onDragEnd={() =>
-                    handleSort(
-                      orderedAreas,
-                      setOrderedAreas,
-                      dragArea,
-                      dragOverArea,
-                    )
+                  style={
+                    {
+                      "--chip": sections[index % sections.length].color,
+                    } as React.CSSProperties
                   }
-                  onDragOver={(e) => e.preventDefault()}
-                  className={planStyles.miniBlock}
-                  style={{ background: legoColors[i % legoColors.length] }}
                 >
-                  <b>⠿</b> {area}
-                  <i />
+                  {area}
                 </span>
               ))}
             </div>
           </section>
 
+          <section className={planStyles.legend} aria-labelledby="claims-title">
+            <div className={planStyles.legendIntro}>
+              <span>TRUST LAYER</span>
+              <h2 id="claims-title">
+                Know what kind of claim you are reading.
+              </h2>
+              <p>Color is epistemology, not decoration.</p>
+            </div>
+            <div className={planStyles.legendGrid}>
+              {claimKinds.map((item) => (
+                <div key={item.kind}>
+                  <i style={{ background: item.color }} />
+                  <b>{item.kind}</b>
+                  <p>{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <div className={planStyles.gridLabel}>
+            THE ARGUMENT{" "}
+            <span>
+              {viewMode === "build"
+                ? "drag blocks to change the sequence"
+                : "about 7 minutes"}
+            </span>
+          </div>
+
           {orderedSections.map((section, index) => (
-            <section
-              key={section.title}
-              id={`plan-block-${index}`}
-              draggable
-              onDragStart={() => (dragSection.current = index)}
-              onDragEnter={() => (dragOverSection.current = index)}
-              onDragEnd={() =>
-                handleSort(
-                  orderedSections,
-                  setOrderedSections,
-                  dragSection,
-                  dragOverSection,
-                )
-              }
-              onDragOver={(e) => e.preventDefault()}
-              onClick={() => setActiveBlock(section.title)}
-              className={`${planStyles.block} ${planStyles.contentBlock} ${activeBlock === section.title ? planStyles.active : ""}`}
-              style={
-                {
-                  "--block-color": blockMeta[index % blockMeta.length].color,
-                } as React.CSSProperties
-              }
+            <article
+              key={section.id}
+              id={section.id}
+              draggable={viewMode === "build"}
+              onDragStart={() => {
+                if (viewMode === "build") dragSection.current = index;
+              }}
+              onDragEnter={() => {
+                if (viewMode === "build") dragOverSection.current = index;
+              }}
+              onDragEnd={reorderSections}
+              onDragOver={(event) => {
+                if (viewMode === "build") event.preventDefault();
+              }}
+              onClick={() => viewMode === "build" && setActiveBlock(section.id)}
+              className={`${planStyles.block} ${activeBlock === section.id ? planStyles.active : ""}`}
+              style={{ "--block-color": section.color } as React.CSSProperties}
             >
               <div className={planStyles.studs}>
                 {[1, 2, 3, 4].map((n) => (
@@ -530,87 +648,126 @@ export default function PlanPage() {
                 ))}
               </div>
               <div className={planStyles.blockHead}>
-                <span className={planStyles.grip}>⠿</span>
+                <span className={planStyles.grip} aria-hidden="true">
+                  ⠿
+                </span>
                 <span className={planStyles.kind}>
-                  {blockMeta[index % blockMeta.length].icon}{" "}
-                  {blockMeta[index % blockMeta.length].label}
+                  {section.icon} {section.kind}
                 </span>
                 <span className={planStyles.blockNumber}>
                   BLOCK {String(index + 1).padStart(2, "0")}
                 </span>
+                <button
+                  className={planStyles.anchorButton}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    copySectionLink(section.id);
+                  }}
+                  aria-label={`Copy link to ${section.title}`}
+                >
+                  #
+                </button>
               </div>
-              <h2 className={planStyles.blockTitle}>{section.title}</h2>
-              <ReactMarkdown
-                remarkPlugins={[remarkMath]}
-                rehypePlugins={[rehypeKatex]}
-                components={markdownComponents}
-              >
-                {section.content}
-              </ReactMarkdown>
-            </section>
+              <p className={planStyles.blockSummary}>{section.summary}</p>
+              <h2>{section.title}</h2>
+              <div className={planStyles.markdown}>
+                <ReactMarkdown
+                  remarkPlugins={[remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                  components={markdownComponents}
+                >
+                  {section.content}
+                </ReactMarkdown>
+              </div>
+            </article>
           ))}
 
-          <section
-            className={`${planStyles.block} ${planStyles.executionBlock}`}
-          >
-            <div className={planStyles.studs}>
-              {[1, 2, 3, 4, 5].map((n) => (
-                <i key={n} />
+          <section className={planStyles.roadmap} id="roadmap">
+            <div className={planStyles.roadmapHead}>
+              <span>OUTPUT / EXECUTE</span>
+              <h2>Five commitments that make the vision expensive to fake.</h2>
+            </div>
+            <div className={planStyles.milestones}>
+              {milestones.map((milestone, index) => (
+                <article key={milestone.title}>
+                  <span>{milestone.horizon}</span>
+                  <b>{String(index + 1).padStart(2, "0")}</b>
+                  <h3>{milestone.title}</h3>
+                  <p>{milestone.measure}</p>
+                </article>
               ))}
             </div>
-            <div className={planStyles.blockTag}>OUTPUT • EXECUTE</div>
-            <h2
-              style={{
-                marginBottom: "12px",
-                fontWeight: 900,
-                textTransform: "uppercase",
-              }}
-            >
-              Near-Term Execution
-            </h2>
-            <ul
-              style={{
-                margin: 0,
-                paddingLeft: "24px",
-                color: "inherit",
-                fontWeight: 500,
-              }}
-            >
-              {orderedMilestones.map((milestone, i) => (
-                <li
-                  key={milestone}
-                  draggable
-                  onDragStart={() => (dragMilestone.current = i)}
-                  onDragEnter={() => (dragOverMilestone.current = i)}
-                  onDragEnd={() =>
-                    handleSort(
-                      orderedMilestones,
-                      setOrderedMilestones,
-                      dragMilestone,
-                      dragOverMilestone,
-                    )
-                  }
-                  onDragOver={(e) => e.preventDefault()}
-                  className={planStyles.milestone}
-                >
-                  <ReactMarkdown
-                    remarkPlugins={[remarkMath]}
-                    rehypePlugins={[rehypeKatex]}
-                    components={{
-                      p: ({ node, ...props }) => <span {...props} />,
-                      code: markdownComponents.code,
-                    }}
-                  >
-                    {milestone}
-                  </ReactMarkdown>
-                </li>
-              ))}
-            </ul>
           </section>
-          <div className={planStyles.finish}>
-            ● PLAN COMPILES <span>drag any block to change the sequence</span>
-          </div>
+
+          <section className={planStyles.lineage} id="lineage">
+            <div>
+              <span>LINEAGE / SOURCES</span>
+              <h2>Nothing here arrived alone.</h2>
+              <p>
+                These are starting points, not decorative citations. Follow
+                them, challenge the interpretation, and add what is missing.
+              </p>
+            </div>
+            <nav>
+              {sources.map((source, index) => (
+                <a
+                  key={source.label}
+                  href={source.href}
+                  target={source.href.startsWith("http") ? "_blank" : undefined}
+                  rel="noreferrer"
+                >
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  {source.label}
+                  <b>↗</b>
+                </a>
+              ))}
+            </nav>
+          </section>
+
+          <section className={planStyles.invitation} id="join">
+            <div className={planStyles.invitationHeart}>♡</div>
+            <div>
+              <span>THIS IS THE OPEN PORT</span>
+              <h2>Take a block. Improve it. Bring it back.</h2>
+              <p>
+                You do not have to believe the whole plan. Reproduce one result,
+                falsify one assumption, make one demo legible, or explain one
+                missing cost. The goal is not agreement; it is shared contact
+                with reality.
+              </p>
+            </div>
+            <div className={planStyles.invitationActions}>
+              <a href={issueUrl} target="_blank" rel="noreferrer">
+                I want to contribute ↗
+              </a>
+              <a
+                href="https://github.com/ilyadorosh/cash-tropic"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Inspect the code ↗
+              </a>
+              <button onClick={sharePlan}>Invite someone ♡</button>
+              <button onClick={() => window.print()}>Save / print</button>
+            </div>
+          </section>
+
+          <footer className={planStyles.footer}>
+            <span>● OPEN PLAN · EXPECT IT TO CHANGE</span>
+            <p>
+              Built with equations, code, criticism, care, and a
+              still-functioning sense of play.
+            </p>
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            >
+              Back to top ↑
+            </button>
+          </footer>
         </main>
+      </div>
+      <div className={planStyles.toast} role="status" aria-live="polite">
+        {shareState}
       </div>
     </div>
   );
