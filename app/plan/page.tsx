@@ -1,51 +1,92 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import styles from "../components/home.module.scss";
+import planStyles from "./plan.module.scss";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 
-// one restrained palette: paper, ink, a single accent — this page has to
-// read as a research plan, not a toy box
-const PAPER = "#f7f7f4";
-const CARD = "#ffffff";
-const INK = "#22252a";
-const MUTED = "#6b7078";
-const ACCENT = "#2456a6";
-const HAIRLINE = "#e4e4df";
+const legoColors = [
+  "#FFADAD", // light red
+  "#FFD6A5", // orange
+  "#FDFFB6", // yellow
+  "#CAFFBF", // green
+  "#9BF6FF", // cyan
+  "#A0C4FF", // blue
+  "#BDB2FF", // purple
+  "#FFC6FF", // pink
+];
+
+const blockMeta = [
+  { label: "proof", icon: "✓", color: "#22c55e" },
+  { label: "thesis", icon: "◆", color: "#f59e0b" },
+  { label: "learning", icon: "↻", color: "#3b82f6" },
+  { label: "control", icon: "⌁", color: "#8b5cf6" },
+  { label: "hardware", icon: "⚡", color: "#ef4444" },
+  { label: "physics", icon: "∑", color: "#06b6d4" },
+  { label: "scale", icon: "↗", color: "#ec4899" },
+  { label: "economics", icon: "◎", color: "#f97316" },
+  { label: "principles", icon: "★", color: "#14b8a6" },
+  { label: "memory", icon: "▦", color: "#6366f1" },
+  { label: "entropy", icon: "≈", color: "#a855f7" },
+  { label: "life", icon: "✣", color: "#84cc16" },
+];
 
 const markdownComponents = {
   p: (props: React.HTMLAttributes<HTMLParagraphElement>) => (
     <p
       {...props}
       style={{
-        margin: "0 0 12px",
-        color: INK,
-        lineHeight: 1.65,
+        marginBottom: "12px",
+        color: "inherit",
+        fontWeight: 500,
+        lineHeight: 1.5,
       }}
     />
   ),
-  ul: (props: React.HTMLAttributes<HTMLUListElement>) => (
-    <ul {...props} style={{ margin: "12px 0 0 20px", color: INK }} />
+  ul: ({
+    ordered: _ordered,
+    node: _node,
+    ...props
+  }: React.HTMLAttributes<HTMLUListElement> & {
+    ordered?: boolean;
+    node?: unknown;
+  }) => (
+    <ul
+      {...props}
+      style={{ margin: "12px 0 0 20px", color: "inherit", fontWeight: 500 }}
+    />
   ),
-  li: (props: React.HTMLAttributes<HTMLLIElement>) => (
-    <li {...props} style={{ marginBottom: "8px", lineHeight: 1.6 }} />
-  ),
-  strong: (props: React.HTMLAttributes<HTMLElement>) => (
-    <strong {...props} style={{ fontWeight: 650, color: "#101216" }} />
-  ),
-  code: (props: React.HTMLAttributes<HTMLElement>) => (
+  li: ({
+    ordered: _ordered,
+    index: _index,
+    node: _node,
+    ...props
+  }: React.HTMLAttributes<HTMLLIElement> & {
+    ordered?: boolean;
+    index?: number;
+    node?: unknown;
+  }) => <li {...props} style={{ marginBottom: "8px" }} />,
+  code: ({
+    inline: _inline,
+    node: _node,
+    ...props
+  }: React.HTMLAttributes<HTMLElement> & {
+    inline?: boolean;
+    node?: unknown;
+  }) => (
     <code
       {...props}
       style={{
-        background: "#f1f1ed",
-        padding: "1px 6px",
+        background: "rgba(255,255,255,0.7)",
+        padding: "2px 6px",
         borderRadius: "4px",
-        border: `1px solid ${HAIRLINE}`,
-        fontSize: "0.92em",
-        color: INK,
+        border: "2px solid #111",
+        fontWeight: "bold",
+        color: "#111",
       }}
     />
   ),
@@ -68,19 +109,15 @@ $$\\frac{\\text{capability}}{\\text{energy} \\times \\text{latency} \\times \\te
 
 const sections = [
   {
-    title: "Navigating Conflicting Advice",
+    title: "Evidence: What Already Runs",
     content: `
-The apparent contradiction is mostly a change of variables. Paul Graham optimizes for surface area of opportunity:
+Per the Fifth Commandment below: *ship or it didn't happen.* This plan was not written before the work — the receipts exist and run:
 
-$$O \\approx f(\\text{network},\\ \\text{ambition},\\ \\text{speed})$$
+- **KAM theory meets Hamiltonian Neural Networks** — single-author paper: the flow learned by an HNN is the *exact* flow of a perturbed Hamiltonian, so KAM/Nekhoroshev theory bounds which invariant structures survive training. Stability of learned dynamics, proven rather than hoped. [Paper (PDF)](/papers/kam-hnn.pdf) · [interactive kicked-rotor demo](/kam)
+- **Trained Neural Cellular Automata** — learned local rules regenerating target morphologies under damage, running on GPU in the browser. [Live](/nca)
+- **actinlove.com** — the working laboratory: real-time 3D simulation with relativistic rendering, LLM-driven agents with persistent memory, Postgres-backed anonymous state. Every claim in this plan has a runnable ancestor here.
 
-Jensen Huang warns about the denominator: modern frontier AI has $\\text{barrier} \\approx \\text{compute} \\times \\text{capital} \\times \\text{data} \\times \\text{talent}$. Going to Silicon Valley can still maximize optionality without pretending that the right first move is to start a conventional model company.
-
-The strategy is not *startup first* but *thesis first*. The neglected space is adaptation, control, and physical efficiency:
-
-$$\\text{edge} = \\text{novelty} \\times \\text{technical depth} \\times \\text{underexploredness}$$
-
-Use the EXIST stipendium as a research launchpad. Validate the core equations, build prototypes, then decide whether the output should become a lab, a company, or a platform.
+The strategy is *thesis first*, not *startup first*: use the EXIST stipendium to close the gap between "trained an NCA" and "measured $E_{\\text{cell}} / k_B T \\ln 2$ for an NCA" — then decide whether the output is a lab, a company, or a platform.
 `,
   },
   {
@@ -297,9 +334,9 @@ That is life. The question is whether we can engineer the $f_\\theta$ that susta
 ];
 
 const milestones = [
-  "Derive a minimal online-learning loop with $\\theta_{t+1} = \\theta_t - \\eta \\nabla_{\\theta} L_t$ under explicit stability constraints.",
+  "Extend the KAM/HNN stability result ([paper](/papers/kam-hnn.pdf)) into an online-learning loop $\\theta_{t+1} = \\theta_t - \\eta \\nabla_{\\theta} L_t$ with explicit stability constraints — the theorem already bounds what training may destroy.",
   "Prototype low-rank real-time adaptation ($\\Delta W = BA$) measurable against strict latency and energy budgets.",
-  "Train a metabolic Neural Cellular Automata (NCA) to quantify the energy-robustness tradeoff ($k_{\\max}$ vs $E_{\\text{cell}}$).",
+  "Add a metabolism term to the [already-trained NCAs](/nca) to quantify the energy-robustness tradeoff ($k_{\\max}$ vs $E_{\\text{cell}}$).",
   "Model physical compute-energy coupling, mapping conventional CMOS ($P \\approx C V^2 f$) against cryogenic RSFQ assumptions.",
   "Produce a research roadmap credible enough to justify whether the next step is a lab, a company, or a platform.",
 ];
@@ -312,6 +349,7 @@ export default function PlanPage() {
   const dragOverArea = useRef<number | null>(null);
 
   const [orderedSections, setOrderedSections] = useState(sections);
+  const [activeBlock, setActiveBlock] = useState<string | null>(null);
   const dragSection = useRef<number | null>(null);
   const dragOverSection = useRef<number | null>(null);
 
@@ -336,257 +374,243 @@ export default function PlanPage() {
 
   return (
     <div
-      style={{
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        background: PAPER,
-        color: INK,
-        fontFamily:
-          "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-      }}
+      className={styles["window-content"]}
+      style={{ height: "100vh", display: "flex", flexDirection: "column" }}
     >
       <style>{`
         .katex-display {
-          background: #f3f5f9;
+          background: color-mix(in srgb, var(--block-color, #f59e0b) 13%, white);
+          border: 3px solid #111;
+          border-left: 10px solid var(--block-color, #f59e0b);
           border-radius: 8px;
-          padding: 14px 16px;
+          padding: 12px;
+          box-shadow: 3px 3px 0 #111;
           margin: 16px 0 !important;
           overflow-x: auto;
         }
-        .katex { color: ${INK}; }
+        .katex {
+          color: #111;
+        }
+        p > .katex, li > .katex {
+          display: inline-block;
+          background: #fff4a8;
+          border: 1px solid #111;
+          border-radius: 5px;
+          padding: 1px 5px;
+          box-shadow: 1px 1px 0 #111;
+        }
       `}</style>
-      <header
-        style={{
-          maxWidth: 780,
-          width: "100%",
-          margin: "0 auto",
-          padding: "36px 20px 8px",
-        }}
-      >
-        <button
-          onClick={() => router.push("/")}
-          style={{
-            background: "none",
-            border: "none",
-            color: MUTED,
-            cursor: "pointer",
-            padding: 0,
-            fontSize: 13,
-            marginBottom: 18,
-          }}
-        >
-          ← actinlove.com
-        </button>
-        <h1
-          style={{
-            fontSize: 30,
-            lineHeight: 1.2,
-            margin: 0,
-            fontWeight: 700,
-            letterSpacing: "-0.01em",
-          }}
-        >
-          Master Plan: Accelerating Civilization
-        </h1>
-        <p style={{ color: MUTED, margin: "8px 0 0", fontSize: 15 }}>
-          EXIST Stipendium Application & Beyond · Illia Dorosh
-        </p>
-      </header>
+      <div className={styles["page-header"]}>
+        <div className={styles["page-title"]}>
+          <h1>Master Plan: Accelerating Civilization</h1>
+          <p>EXIST Stipendium Application & Beyond</p>
+        </div>
+        <div className={styles["page-actions"]}>
+          <button onClick={() => router.push("/")}>← Back</button>
+        </div>
+      </div>
 
-      <div
-        style={{
-          display: "grid",
-          gap: "18px",
-          flex: 1,
-          minHeight: 0,
-          overflowY: "auto",
-          padding: "18px 20px 48px",
-          maxWidth: 780,
-          width: "100%",
-          margin: "0 auto",
-        }}
-      >
-        <section
-          style={{
-            padding: "22px 24px",
-            background: CARD,
-            border: `1px solid ${HAIRLINE}`,
-            borderLeft: `3px solid ${ACCENT}`,
-            borderRadius: "10px",
-            boxShadow: "0 1px 3px rgba(20,20,20,0.05)",
-            color: INK,
-          }}
-        >
-          <h2
-            style={{
-              margin: "0 0 10px",
-              fontWeight: 650,
-              fontSize: 17,
-              color: ACCENT,
-            }}
-          >
-            Mission
-          </h2>
-          <ReactMarkdown
-            remarkPlugins={[remarkMath]}
-            rehypePlugins={[rehypeKatex]}
-            components={markdownComponents}
-          >
-            {mission}
-          </ReactMarkdown>
-
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "10px",
-              marginTop: "16px",
-            }}
-          >
-            {orderedAreas.map((area, i) => (
-              <span
-                key={area}
-                draggable
-                onDragStart={() => (dragArea.current = i)}
-                onDragEnter={() => (dragOverArea.current = i)}
-                onDragEnd={() =>
-                  handleSort(
-                    orderedAreas,
-                    setOrderedAreas,
-                    dragArea,
-                    dragOverArea,
-                  )
+      <div className={`${styles["page-body"]} ${planStyles.builder}`}>
+        <aside className={planStyles.toolbox}>
+          <div className={planStyles.toolboxTitle}>
+            <span>▦</span> BLOCK BOX
+          </div>
+          <p>Drag blocks to rebuild the plan.</p>
+          <div className={planStyles.categories}>
+            {blockMeta.map((meta, i) => (
+              <button
+                key={meta.label}
+                onClick={() =>
+                  document
+                    .getElementById(`plan-block-${i}`)
+                    ?.scrollIntoView({ behavior: "smooth", block: "center" })
                 }
-                onDragOver={(e) => e.preventDefault()}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: "999px",
-                  border: `1px solid ${HAIRLINE}`,
-                  background: "#f4f6fa",
-                  color: ACCENT,
-                  fontWeight: 550,
-                  fontSize: "0.85rem",
-                  cursor: "grab",
-                }}
-                title="drag to reprioritize"
               >
-                {area}
-              </span>
+                <i style={{ background: meta.color }} /> {meta.icon}{" "}
+                {meta.label}
+              </button>
             ))}
           </div>
-        </section>
+          <div className={planStyles.toolboxHint}>
+            <b>BUILD MODE</b>
+            <span>● drag</span>
+            <span>⊕ connect</span>
+            <span>↕ reorder</span>
+          </div>
+        </aside>
 
-        {orderedSections.map((section, index) => (
-          <section
-            key={section.title}
-            draggable
-            onDragStart={() => (dragSection.current = index)}
-            onDragEnter={() => (dragOverSection.current = index)}
-            onDragEnd={() =>
-              handleSort(
-                orderedSections,
-                setOrderedSections,
-                dragSection,
-                dragOverSection,
-              )
-            }
-            onDragOver={(e) => e.preventDefault()}
-            style={{
-              padding: "22px 24px",
-              background: CARD,
-              border: `1px solid ${HAIRLINE}`,
-              borderRadius: "10px",
-              boxShadow: "0 1px 3px rgba(20,20,20,0.05)",
-              color: INK,
-              cursor: "grab",
-            }}
-            title="drag to reorder"
-          >
+        <main className={planStyles.workspace}>
+          <div className={planStyles.gridLabel}>
+            PLAN WORKSPACE <span>12 blocks</span>
+          </div>
+          <section className={`${planStyles.block} ${planStyles.missionBlock}`}>
+            <div className={planStyles.studs}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <i key={n} />
+              ))}
+            </div>
+            <div className={planStyles.blockTag}>START • MISSION</div>
             <h2
               style={{
-                margin: "0 0 12px",
-                fontWeight: 650,
-                fontSize: 17,
-                borderBottom: `1px solid ${HAIRLINE}`,
-                paddingBottom: "8px",
+                marginBottom: "10px",
+                fontWeight: 900,
+                textTransform: "uppercase",
               }}
             >
-              {section.title}
+              Mission
             </h2>
             <ReactMarkdown
               remarkPlugins={[remarkMath]}
               rehypePlugins={[rehypeKatex]}
               components={markdownComponents}
             >
-              {section.content}
+              {mission}
             </ReactMarkdown>
-          </section>
-        ))}
 
-        <section
-          style={{
-            padding: "22px 24px",
-            background: CARD,
-            border: `1px solid ${HAIRLINE}`,
-            borderLeft: `3px solid ${ACCENT}`,
-            borderRadius: "10px",
-            boxShadow: "0 1px 3px rgba(20,20,20,0.05)",
-            color: INK,
-          }}
-        >
-          <h2
-            style={{
-              margin: "0 0 12px",
-              fontWeight: 650,
-              fontSize: 17,
-              color: ACCENT,
-            }}
-          >
-            Near-Term Execution
-          </h2>
-          <ul
-            style={{
-              margin: 0,
-              paddingLeft: "22px",
-              color: INK,
-            }}
-          >
-            {orderedMilestones.map((milestone, i) => (
-              <li
-                key={milestone}
-                draggable
-                onDragStart={() => (dragMilestone.current = i)}
-                onDragEnter={() => (dragOverMilestone.current = i)}
-                onDragEnd={() =>
-                  handleSort(
-                    orderedMilestones,
-                    setOrderedMilestones,
-                    dragMilestone,
-                    dragOverMilestone,
-                  )
-                }
-                onDragOver={(e) => e.preventDefault()}
-                style={{
-                  marginBottom: "12px",
-                  paddingLeft: "8px",
-                  cursor: "grab",
-                }}
-              >
-                <ReactMarkdown
-                  remarkPlugins={[remarkMath]}
-                  rehypePlugins={[rehypeKatex]}
-                  components={{
-                    p: ({ node, ...props }) => <span {...props} />,
-                    code: markdownComponents.code,
-                  }}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "10px",
+                marginTop: "16px",
+              }}
+            >
+              {orderedAreas.map((area, i) => (
+                <span
+                  key={area}
+                  draggable
+                  onDragStart={() => (dragArea.current = i)}
+                  onDragEnter={() => (dragOverArea.current = i)}
+                  onDragEnd={() =>
+                    handleSort(
+                      orderedAreas,
+                      setOrderedAreas,
+                      dragArea,
+                      dragOverArea,
+                    )
+                  }
+                  onDragOver={(e) => e.preventDefault()}
+                  className={planStyles.miniBlock}
+                  style={{ background: legoColors[i % legoColors.length] }}
                 >
-                  {milestone}
-                </ReactMarkdown>
-              </li>
-            ))}
-          </ul>
-        </section>
+                  <b>⠿</b> {area}
+                  <i />
+                </span>
+              ))}
+            </div>
+          </section>
+
+          {orderedSections.map((section, index) => (
+            <section
+              key={section.title}
+              id={`plan-block-${index}`}
+              draggable
+              onDragStart={() => (dragSection.current = index)}
+              onDragEnter={() => (dragOverSection.current = index)}
+              onDragEnd={() =>
+                handleSort(
+                  orderedSections,
+                  setOrderedSections,
+                  dragSection,
+                  dragOverSection,
+                )
+              }
+              onDragOver={(e) => e.preventDefault()}
+              onClick={() => setActiveBlock(section.title)}
+              className={`${planStyles.block} ${planStyles.contentBlock} ${activeBlock === section.title ? planStyles.active : ""}`}
+              style={
+                {
+                  "--block-color": blockMeta[index % blockMeta.length].color,
+                } as React.CSSProperties
+              }
+            >
+              <div className={planStyles.studs}>
+                {[1, 2, 3, 4].map((n) => (
+                  <i key={n} />
+                ))}
+              </div>
+              <div className={planStyles.blockHead}>
+                <span className={planStyles.grip}>⠿</span>
+                <span className={planStyles.kind}>
+                  {blockMeta[index % blockMeta.length].icon}{" "}
+                  {blockMeta[index % blockMeta.length].label}
+                </span>
+                <span className={planStyles.blockNumber}>
+                  BLOCK {String(index + 1).padStart(2, "0")}
+                </span>
+              </div>
+              <h2 className={planStyles.blockTitle}>{section.title}</h2>
+              <ReactMarkdown
+                remarkPlugins={[remarkMath]}
+                rehypePlugins={[rehypeKatex]}
+                components={markdownComponents}
+              >
+                {section.content}
+              </ReactMarkdown>
+            </section>
+          ))}
+
+          <section
+            className={`${planStyles.block} ${planStyles.executionBlock}`}
+          >
+            <div className={planStyles.studs}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <i key={n} />
+              ))}
+            </div>
+            <div className={planStyles.blockTag}>OUTPUT • EXECUTE</div>
+            <h2
+              style={{
+                marginBottom: "12px",
+                fontWeight: 900,
+                textTransform: "uppercase",
+              }}
+            >
+              Near-Term Execution
+            </h2>
+            <ul
+              style={{
+                margin: 0,
+                paddingLeft: "24px",
+                color: "inherit",
+                fontWeight: 500,
+              }}
+            >
+              {orderedMilestones.map((milestone, i) => (
+                <li
+                  key={milestone}
+                  draggable
+                  onDragStart={() => (dragMilestone.current = i)}
+                  onDragEnter={() => (dragOverMilestone.current = i)}
+                  onDragEnd={() =>
+                    handleSort(
+                      orderedMilestones,
+                      setOrderedMilestones,
+                      dragMilestone,
+                      dragOverMilestone,
+                    )
+                  }
+                  onDragOver={(e) => e.preventDefault()}
+                  className={planStyles.milestone}
+                >
+                  <ReactMarkdown
+                    remarkPlugins={[remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                    components={{
+                      p: ({ node, ...props }) => <span {...props} />,
+                      code: markdownComponents.code,
+                    }}
+                  >
+                    {milestone}
+                  </ReactMarkdown>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <div className={planStyles.finish}>
+            ● PLAN COMPILES <span>drag any block to change the sequence</span>
+          </div>
+        </main>
       </div>
     </div>
   );
