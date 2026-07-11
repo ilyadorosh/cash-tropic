@@ -1,0 +1,405 @@
+{
+  "id": "ai-llm-workshop",
+  "title": "KI & LLMs in der Softwareentwicklung",
+  "description": "Umfassender Workshop zu LLMs im Coding-Kontext: Von Grundlagen über Best Practices bis zur praktischen Anwendung",
+  "author": "Nika Klassen",
+  "difficulty": "intermediate",
+  "estimatedHours": 8,
+  "tags": ["AI", "LLM", "Prompting", "Coding", "GPT", "Copilot"],
+  "modules": [
+    {
+      "id": "intro-basics",
+      "title": "Einführung: Grundlagen & Überblick",
+      "description": "Grundverständnis: Wie funktionieren LLMs im Coding-Kontext?",
+      "lessons": [
+        {
+          "id": "llm-architecture",
+          "title": "Architektur-Grundlagen",
+          "type": "text",
+          "content": {
+            "text": "## Transformer & Attention-Mechanismen\n\nLarge Language Models (LLMs) basieren auf der Transformer-Architektur, die 2017 von Google eingeführt wurde.\n\n### Kernkonzepte:\n- **Self-Attention**: Ermöglicht dem Modell, Beziehungen zwischen allen Wörtern in einem Text zu verstehen\n- **Positional Encoding**: Gibt dem Modell Information über die Position von Wörtern\n- **Multi-Head Attention**: Mehrere parallele Attention-Mechanismen für verschiedene Aspekte\n\n### Unterschied: Reasoning-Modelle vs. klassische LLMs\n- **Klassische LLMs** (GPT-3.5): Schnelle Antworten, gut für einfache Aufgaben\n- **Reasoning-Modelle** (o1, Claude 3): Mehrschrittiges Denken, besser für komplexe Probleme"
+          }
+        },
+        {
+          "id": "use-cases",
+          "title": "Einsatzgebiete von LLMs in der Softwareentwicklung",
+          "type": "text",
+          "content": {
+            "text": "## Praktische Anwendungen\n\n### Code-Generierung\n- Boilerplate-Code schnell erstellen\n- Algorithmen implementieren\n- API-Integrationen schreiben\n\n### Debugging\n- Fehlermeldungen analysieren\n- Lösungsvorschläge generieren\n- Stack Traces verstehen\n\n### Refactoring\n- Code-Qualität verbessern\n- Design Patterns anwenden\n- Performance optimieren\n\n### Testautomatisierung\n- Unit-Tests generieren\n- Test-Coverage erhöhen\n- Edge-Cases identifizieren\n\n### Dokumentation\n- Code-Kommentare schreiben\n- README-Dateien erstellen\n- API-Dokumentation generieren\n\n### Story-Refinement\n- User Stories in Tasks übersetzen\n- Acceptance Criteria formulieren\n- Technische Anforderungen ableiten"
+          }
+        },
+        {
+          "id": "tools-overview",
+          "title": "Überblick über aktuelle Tools & Modelle",
+          "type": "text",
+          "content": {
+            "text": "## AI-Tools für Entwickler\n\n### IDE-Integrationen\n| Tool | Stärken | IDE-Support |\n|------|---------|-------------|\n| **GitHub Copilot** | Code-Completion, Chat | VS Code, JetBrains, Neovim |\n| **Cursor** | Full IDE with AI | Standalone |\n| **Tabnine** | Privacy-focused | Alle gängigen IDEs |\n| **Windsurf** | Pair-Programming | VS Code |\n\n### Standalone-Tools\n- **ChatGPT**: Allrounder für alle Aufgaben\n- **Claude**: Starkes Reasoning, lange Kontexte\n- **Lovable AI**: UI/UX-fokussiert\n- **bolt.new**: Schnelles Prototyping\n\n### Vor- und Nachteile\n✅ **Vorteile**: Schnellere Entwicklung, weniger Boilerplate, bessere Dokumentation\n❌ **Nachteile**: Halluzinationen, veraltetes Wissen, Datenschutz-Bedenken"
+          }
+        },
+        {
+          "id": "tools-quiz",
+          "title": "Quiz: Tools & Grundlagen",
+          "type": "quiz",
+          "content": {
+            "questions": [
+              {
+                "question": "Welche Architektur liegt den meisten modernen LLMs zugrunde?",
+                "options": ["RNN", "CNN", "Transformer", "LSTM"],
+                "correct": 2,
+                "explanation": "Die Transformer-Architektur mit Self-Attention ist die Grundlage für GPT, Claude und andere moderne LLMs."
+              },
+              {
+                "question": "Was ist der Hauptvorteil von Reasoning-Modellen gegenüber klassischen LLMs?",
+                "options": ["Schnellere Antworten", "Günstigerer Preis", "Besseres mehrschrittiges Denken", "Mehr Trainings-Daten"],
+                "correct": 2,
+                "explanation": "Reasoning-Modelle wie o1 sind für komplexe Probleme optimiert, die mehrere Denkschritte erfordern."
+              },
+              {
+                "question": "Welches Tool ist bekannt für seinen Fokus auf Datenschutz?",
+                "options": ["GitHub Copilot", "ChatGPT", "Tabnine", "Cursor"],
+                "correct": 2,
+                "explanation": "Tabnine bietet on-premise Lösungen und legt besonderen Wert auf Datenschutz."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "prompting-best-practices",
+      "title": "Best Practices: Effektives Prompting",
+      "description": "Was macht einen guten Prompt aus? Techniken und Strategien für optimale Ergebnisse",
+      "lessons": [
+        {
+          "id": "good-prompt-basics",
+          "title": "Was macht einen guten Prompt aus?",
+          "type": "text",
+          "content": {
+            "text": "## Die drei Säulen eines guten Prompts\n\n### 1. Präzision\n- Sei spezifisch über das gewünschte Ergebnis\n- Vermeide vage Formulierungen\n- Definiere das Format der Antwort\n\n### 2. Kontext\n- Erkläre den Hintergrund der Aufgabe\n- Teile relevante Code-Snippets\n- Beschreibe die Umgebung (Framework, Sprache, Version)\n\n### 3. Zieldefinition\n- Was soll erreicht werden?\n- Welche Constraints gibt es?\n- Wie sieht Erfolg aus?\n\n## Beispiel\n\n❌ **Schlecht**: \"Schreib mir eine Funktion\"\n\n✅ **Gut**: \"Schreibe eine TypeScript-Funktion, die ein Array von Objekten nach einem gegebenen Schlüssel sortiert. Die Funktion soll:\n- Generic sein (funktioniert mit beliebigen Objekttypen)\n- Aufsteigende und absteigende Sortierung unterstützen\n- Null-Werte ans Ende sortieren\n- Unit-Tests mit Jest enthalten\""
+          }
+        },
+        {
+          "id": "few-shot-prompting",
+          "title": "Few-Shot-Prompting",
+          "type": "text",
+          "content": {
+            "text": "## Few-Shot-Prompting: Lernen durch Beispiele\n\nBeim Few-Shot-Prompting gibst du dem LLM Beispiele, die das gewünschte Muster zeigen.\n\n### Struktur\n```\nAufgabe: [Beschreibung]\n\nBeispiel 1:\nInput: [Beispiel-Input]\nOutput: [Gewünschter Output]\n\nBeispiel 2:\nInput: [Beispiel-Input]\nOutput: [Gewünschter Output]\n\nJetzt du:\nInput: [Dein tatsächlicher Input]\nOutput:\n```\n\n### Praxis-Beispiel: Code-Review-Kommentare\n\n```\nSchreibe konstruktive Code-Review-Kommentare.\n\nBeispiel 1:\nCode: `if (x == true)`\nKommentar: \"Vereinfache zu `if (x)` - der Vergleich mit true ist redundant.\"\n\nBeispiel 2:\nCode: `catch (Exception e) {}`\nKommentar: \"Leere catch-Blöcke verschlucken Fehler. Logge mindestens den Fehler oder wirf ihn weiter.\"\n\nJetzt du:\nCode: `for (int i = 0; i < list.size(); i++)`\nKommentar:\n```"
+          }
+        },
+        {
+          "id": "chain-of-thought",
+          "title": "Chain-of-Thought-Prompting",
+          "type": "text",
+          "content": {
+            "text": "## Chain-of-Thought: Schritt für Schritt zum Ziel\n\nBei komplexen Problemen hilft es, das LLM zum schrittweisen Denken anzuleiten.\n\n### Technik\nFüge Phrasen hinzu wie:\n- \"Denke Schritt für Schritt\"\n- \"Erkläre deinen Denkprozess\"\n- \"Lass uns das Problem aufteilen\"\n\n### Beispiel: Algorithmus-Design\n\n❌ **Ohne CoT**:\n\"Schreibe einen Algorithmus für das Rucksackproblem.\"\n\n✅ **Mit CoT**:\n\"Entwickle einen Algorithmus für das 0/1-Rucksackproblem. Gehe dabei wie folgt vor:\n\n1. Erkläre zuerst, was das Problem ist\n2. Überlege, welche Lösungsansätze möglich sind (Brute-Force, Greedy, DP)\n3. Wähle den besten Ansatz und begründe warum\n4. Implementiere die Lösung schrittweise\n5. Analysiere die Zeitkomplexität\"\n\n### Wann nutzen?\n- Komplexe Algorithmen\n- Debugging schwieriger Fehler\n- Architektur-Entscheidungen\n- Mathematische Probleme"
+          }
+        },
+        {
+          "id": "role-play-prompts",
+          "title": "Role-Play-Prompts",
+          "type": "text",
+          "content": {
+            "text": "## Role-Play-Prompts: Das LLM in Rollen versetzen\n\nDurch Rollenzuweisung erhältst du spezialisiertere und konsistentere Antworten.\n\n### Beliebte Rollen für Entwickler\n\n#### Code-Reviewer\n```\nDu bist ein erfahrener Senior Developer, der Code-Reviews durchführt.\nFokussiere dich auf:\n- Clean Code Prinzipien\n- Performance-Optimierungen\n- Security-Schwachstellen\n- Testbarkeit\n\nReviewe folgenden Code:\n[Code hier]\n```\n\n#### Tech-Lead\n```\nDu bist ein Tech-Lead, der Architektur-Entscheidungen trifft.\nBerücksichtige:\n- Skalierbarkeit\n- Wartbarkeit\n- Team-Expertise\n- Time-to-Market\n\nBewerte folgende Architektur:\n[Beschreibung]\n```\n\n#### Rubber Duck Debugger\n```\nDu bist mein Rubber Duck für Debugging.\nStelle mir Fragen, die mir helfen, den Bug selbst zu finden.\nGib keine direkten Lösungen, sondern führe mich mit Fragen.\n\nMein Problem:\n[Beschreibung]\n```"
+          }
+        },
+        {
+          "id": "iterative-prompting",
+          "title": "Iteratives Prompting & Debugging",
+          "type": "text",
+          "content": {
+            "text": "## Warum der erste Versuch oft nicht reicht\n\nLLMs sind keine Gedankenleser. Iteration ist Teil des Prozesses!\n\n### Der iterative Workflow\n\n```\n1. Erster Prompt → Ergebnis analysieren\n2. Feedback geben → Verfeinerter Prompt\n3. Wiederholen bis zufrieden\n```\n\n### Prompt Debugging: Typische Fehlerbilder\n\n| Problem | Ursache | Lösung |\n|---------|---------|--------|\n| Zu generische Antwort | Zu wenig Kontext | Mehr Details hinzufügen |\n| Falsches Format | Format nicht spezifiziert | Explizit Format vorgeben |\n| Halluzinationen | Fakten nicht verifizierbar | Nach Quellen fragen |\n| Veraltete Info | Wissens-Cutoff | Aktuellen Stand mitgeben |\n| Zu lang/kurz | Länge nicht definiert | Explizite Längenvorgabe |\n\n### Feedback-Phrasen\n\n- \"Das ist gut, aber bitte kürzer\"\n- \"Füge mehr Fehlerbehandlung hinzu\"\n- \"Nutze stattdessen [Library X]\"\n- \"Erkläre den Teil mit [Y] genauer\"\n- \"Das funktioniert nicht weil [Fehler]. Bitte korrigiere.\""
+          }
+        },
+        {
+          "id": "prompting-quiz",
+          "title": "Quiz: Prompting-Techniken",
+          "type": "quiz",
+          "content": {
+            "questions": [
+              {
+                "question": "Welche Technik eignet sich am besten, um ein LLM zur schrittweisen Problemlösung anzuleiten?",
+                "options": ["Few-Shot-Prompting", "Chain-of-Thought", "Role-Play", "Zero-Shot"],
+                "correct": 1,
+                "explanation": "Chain-of-Thought-Prompting ermutigt das LLM, seinen Denkprozess zu zeigen und Schritt für Schritt vorzugehen."
+              },
+              {
+                "question": "Was ist der Hauptvorteil von Few-Shot-Prompting?",
+                "options": ["Schnellere Antworten", "Das Modell lernt das gewünschte Muster durch Beispiele", "Weniger Token-Verbrauch", "Bessere Kreativität"],
+                "correct": 1,
+                "explanation": "Durch konkrete Beispiele versteht das LLM besser, welches Format und welchen Stil du erwartest."
+              },
+              {
+                "question": "Wann solltest du Role-Play-Prompts verwenden?",
+                "options": ["Immer", "Nur bei kreativen Aufgaben", "Wenn du spezialisierte, konsistente Antworten brauchst", "Nur für Debugging"],
+                "correct": 2,
+                "explanation": "Role-Play hilft, wenn du Antworten aus einer bestimmten Perspektive brauchst, z.B. als Code-Reviewer oder Architekt."
+              }
+            ]
+          }
+        },
+        {
+          "id": "prompt-playground",
+          "title": "Prompt Playground: Probiere es aus!",
+          "type": "playground",
+          "content": {
+            "description": "Experimentiere mit verschiedenen Prompting-Techniken",
+            "challenges": [
+              {
+                "title": "Verbessere diesen Prompt",
+                "badPrompt": "Schreib mir eine Login-Funktion",
+                "hints": ["Welche Sprache?", "Welches Framework?", "Welche Security-Anforderungen?", "Wie soll mit Fehlern umgegangen werden?"],
+                "exampleGoodPrompt": "Schreibe eine Login-Funktion in TypeScript für ein Next.js 14 Projekt mit folgenden Anforderungen:\n- Nutze bcrypt für Passwort-Hashing\n- Implementiere Rate-Limiting (max 5 Versuche pro Minute)\n- Gib aussagekräftige Fehlermeldungen zurück (ohne Security-relevante Details)\n- Nutze Zod für Input-Validierung\n- Schreibe Jest-Tests für Success- und Failure-Cases"
+              },
+              {
+                "title": "Few-Shot Übung",
+                "task": "Erstelle einen Few-Shot-Prompt, der das LLM anleitet, TypeScript-Interfaces aus JSON-Beispielen zu generieren",
+                "hint": "Zeige 2-3 Beispiele von JSON → Interface Transformationen"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "hands-on",
+      "title": "Hands-On Übungen: Praktische Anwendung",
+      "description": "Praktische Übungen für Code-Generierung, Debugging, Refactoring und mehr",
+      "lessons": [
+        {
+          "id": "improve-prompts",
+          "title": "Uneffektive Prompts verbessern",
+          "type": "challenge",
+          "content": {
+            "description": "Analysiere diese Prompts und verbessere sie",
+            "challenges": [
+              {
+                "original": "Fix this bug",
+                "context": "Der Entwickler hat einen TypeError in einer React-Komponente",
+                "task": "Formuliere einen besseren Prompt, der alle nötigen Informationen enthält"
+              },
+              {
+                "original": "Make this code better",
+                "context": "500 Zeilen JavaScript-Code ohne Struktur",
+                "task": "Erstelle einen Prompt, der schrittweises Refactoring ermöglicht"
+              },
+              {
+                "original": "Write tests",
+                "context": "Eine API-Route mit mehreren Edge-Cases",
+                "task": "Formuliere einen Prompt für umfassende Testabdeckung"
+              }
+            ]
+          }
+        },
+        {
+          "id": "code-generation",
+          "title": "Code-Generierung für kleine und große Aufgaben",
+          "type": "challenge",
+          "content": {
+            "description": "Übe Code-Generierung mit optimierten Prompts",
+            "exercises": [
+              {
+                "title": "Kleine Aufgabe: Utility-Funktion",
+                "task": "Generiere eine Funktion, die Datums-Strings in verschiedenen Formaten parst und normalisiert",
+                "requirements": ["TypeScript", "Fehlerbehandlung", "Tests", "JSDoc-Dokumentation"]
+              },
+              {
+                "title": "Große Aufgabe: REST-API-Endpoint",
+                "task": "Generiere einen kompletten CRUD-Endpoint für eine User-Ressource",
+                "requirements": ["Next.js App Router", "Zod-Validierung", "Error-Handling", "Rate-Limiting", "Tests"]
+              }
+            ]
+          }
+        },
+        {
+          "id": "debugging-exercise",
+          "title": "Debugging: Fehlermeldungen verstehen und lösen",
+          "type": "challenge",
+          "content": {
+            "description": "Nutze LLMs effektiv zum Debugging",
+            "scenarios": [
+              {
+                "error": "TypeError: Cannot read properties of undefined (reading 'map')",
+                "context": "React-Komponente mit API-Call",
+                "task": "Erstelle einen Prompt, der das Problem identifiziert und löst"
+              },
+              {
+                "error": "ECONNREFUSED 127.0.0.1:5432",
+                "context": "PostgreSQL-Verbindung in Docker",
+                "task": "Formuliere einen Prompt für systematische Fehlersuche"
+              }
+            ]
+          }
+        },
+        {
+          "id": "refactoring-exercise",
+          "title": "Refactoring: Code-Qualität verbessern",
+          "type": "challenge",
+          "content": {
+            "description": "Refactore Legacy-Code mit LLM-Unterstützung",
+            "codeToRefactor": "function processData(d) {\n  var result = [];\n  for (var i = 0; i < d.length; i++) {\n    if (d[i].status == 'active') {\n      if (d[i].type == 'premium') {\n        result.push({n: d[i].name, v: d[i].value * 1.2});\n      } else {\n        result.push({n: d[i].name, v: d[i].value});\n      }\n    }\n  }\n  return result;\n}",
+            "goals": ["Modern ES6+ Syntax", "Aussagekräftige Variablennamen", "Funktionale Programmierung", "TypeScript-Typen", "Tests"]
+          }
+        },
+        {
+          "id": "test-automation",
+          "title": "Testautomatisierung: Unit-Tests mit KI",
+          "type": "challenge",
+          "content": {
+            "description": "Lasse Unit-Tests generieren und verbessere sie",
+            "functionToTest": "async function fetchUserData(userId: string): Promise<User | null> {\n  try {\n    const response = await fetch(`/api/users/${userId}`);\n    if (!response.ok) {\n      if (response.status === 404) return null;\n      throw new Error(`HTTP ${response.status}`);\n    }\n    return response.json();\n  } catch (error) {\n    console.error('Failed to fetch user:', error);\n    throw error;\n  }\n}",
+            "requirements": ["Jest + Testing Library", "Mock fetch", "Test alle Branches", "Edge-Cases", "Error-Scenarios"]
+          }
+        },
+        {
+          "id": "story-refinement",
+          "title": "Story-Refinements: Anforderungen in Code-Tasks übersetzen",
+          "type": "challenge",
+          "content": {
+            "description": "Übersetze User Stories in technische Tasks",
+            "userStory": "Als Benutzer möchte ich mich mit meiner E-Mail-Adresse registrieren können, damit ich Zugang zu Premium-Features habe.",
+            "task": "Erstelle einen Prompt, der diese Story in detaillierte technische Tasks aufteilt",
+            "expectedOutput": ["API-Endpoints", "Datenbank-Schema", "Frontend-Komponenten", "Validierung", "E-Mail-Verifizierung", "Tests", "Acceptance Criteria"]
+          }
+        },
+        {
+          "id": "challenge-round",
+          "title": "Challenge-Runde: Wer generiert die beste Lösung?",
+          "type": "challenge",
+          "content": {
+            "description": "Kompetitiver Modus: Optimiere deinen Prompt für die beste Lösung",
+            "challenge": {
+              "title": "Real-Time Search mit Debouncing",
+              "requirements": "Implementiere eine React-Komponente für Echtzeit-Suche mit:\n- Debounced API-Calls (300ms)\n- Loading-State\n- Error-Handling\n- Keyboard-Navigation durch Ergebnisse\n- Accessibility (ARIA)\n- TypeScript\n- Tests",
+              "evaluation": ["Code-Qualität", "Vollständigkeit", "Best Practices", "Performance", "Accessibility"]
+            },
+            "tips": ["Nutze alle gelernten Prompting-Techniken", "Iteriere über das Ergebnis", "Lass dir den Code erklären"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "limits-risks",
+      "title": "Grenzen, Risiken & Compliance",
+      "description": "Limitierungen verstehen, Datenschutz beachten, Compliance einhalten",
+      "lessons": [
+        {
+          "id": "llm-limitations",
+          "title": "Limitierungen von LLMs verstehen",
+          "type": "text",
+          "content": {
+            "text": "## Technische Einschränkungen\n\n### Kontextfenster\n- LLMs haben begrenzte Kontextlängen (4K - 200K Tokens)\n- Bei langen Gesprächen geht früher Kontext verloren\n- Große Codebasen müssen aufgeteilt werden\n\n### Wissens-Cutoff\n- Training endet zu einem bestimmten Datum\n- Neue Libraries/APIs sind unbekannt\n- Aktuelle Best Practices fehlen möglicherweise\n\n### Halluzinationen\n- LLMs erfinden manchmal plausibel klingende Fakten\n- APIs, Funktionen oder Libraries können nicht existieren\n- **Immer** generierte Informationen verifizieren!\n\n## Fehlinterpretationen\n\n### Typische Probleme\n- Mehrdeutige Anfragen werden falsch interpretiert\n- Implizite Annahmen stimmen nicht\n- Kontext wird ignoriert oder falsch verstanden\n\n### Bias im Code\n- Bevorzugung bestimmter Patterns/Libraries\n- Überkomplexe Lösungen\n- Copy-Paste aus Training-Daten (Lizenz-Probleme!)"
+          }
+        },
+        {
+          "id": "data-privacy",
+          "title": "Datenschutz & Sicherheitsaspekte",
+          "type": "text",
+          "content": {
+            "text": "## Umgang mit sensiblen Daten\n\n### Was NIEMALS an LLMs senden:\n❌ Echte Passwörter, API-Keys, Secrets\n❌ Personenbezogene Daten (DSGVO!)\n❌ Proprietärer Geschäftscode ohne Genehmigung\n❌ Interne Dokumentation\n❌ Kundendaten\n\n### Best Practices\n\n✅ **Anonymisieren**: Ersetze echte Namen, IDs, etc.\n✅ **Abstrahieren**: Beschreibe das Problem ohne Details\n✅ **Lokale Modelle**: Für sensible Projekte on-premise LLMs nutzen\n✅ **Enterprise-Versionen**: Mit Datenverarbeitungsverträgen\n\n## Unternehmensrichtlinien\n\n### Vor der Nutzung prüfen:\n- Hat das Unternehmen AI-Richtlinien?\n- Welche Tools sind genehmigt?\n- Welche Daten dürfen verarbeitet werden?\n- Wer ist verantwortlich bei Problemen?\n\n### Dokumentation\n- AI-Nutzung im Team transparent machen\n- Generierter Code kennzeichnen\n- Review-Prozesse anpassen"
+          }
+        },
+        {
+          "id": "compliance",
+          "title": "Urheberrecht & Compliance",
+          "type": "text",
+          "content": {
+            "text": "## Rechtliche Rahmenbedingungen\n\n### Urheberrecht an KI-generiertem Code\n\n**Die Rechtslage ist komplex und noch nicht abschließend geklärt!**\n\n| Aspekt | Status |\n|--------|--------|\n| Wer ist Urheber? | Unklar - meist der Nutzer oder niemand |\n| Lizenz-Compliance | Training-Daten enthielten GPL-Code |\n| Haftung bei Bugs | Wahrscheinlich beim Entwickler |\n\n### Praktische Empfehlungen\n\n1. **Code-Review**: AI-Code wie externen Code behandeln\n2. **Keine Blindübernahme**: Verstehen was der Code tut\n3. **Lizenz-Check**: Bei Verdacht auf Copy-Paste prüfen\n4. **Dokumentation**: Herkunft des Codes vermerken\n\n### Compliance-Checkliste\n\n- [ ] AI-Policy des Unternehmens gelesen?\n- [ ] Genehmigung für das Tool vorhanden?\n- [ ] Keine sensiblen Daten gesendet?\n- [ ] Generierter Code reviewed?\n- [ ] Tests für generierten Code geschrieben?\n- [ ] Lizenz-Kompatibilität geprüft?"
+          }
+        },
+        {
+          "id": "risks-quiz",
+          "title": "Quiz: Risiken & Compliance",
+          "type": "quiz",
+          "content": {
+            "questions": [
+              {
+                "question": "Was ist eine 'Halluzination' bei LLMs?",
+                "options": ["Ein visueller Fehler", "Das Erfinden von plausibel klingenden aber falschen Informationen", "Ein Speicherproblem", "Langsame Antworten"],
+                "correct": 1,
+                "explanation": "LLMs generieren manchmal Fakten, APIs oder Code, die nicht existieren, aber überzeugend klingen."
+              },
+              {
+                "question": "Welche Daten solltest du NIEMALS an ein LLM senden?",
+                "options": ["Öffentlichen Open-Source-Code", "Abstrakte Problembeschreibungen", "Echte API-Keys und Passwörter", "Pseudocode"],
+                "correct": 2,
+                "explanation": "Sensible Daten wie Credentials dürfen nie an externe Services gesendet werden."
+              },
+              {
+                "question": "Warum ist Code-Review bei AI-generiertem Code besonders wichtig?",
+                "options": ["AI-Code ist immer fehlerhaft", "Um Lizenz-Probleme und Bugs zu erkennen", "Weil AI-Code nicht kompiliert", "Um die AI zu trainieren"],
+                "correct": 1,
+                "explanation": "AI-Code kann Bugs, Security-Issues oder Lizenz-problematischen Code aus Training-Daten enthalten."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "api-automation",
+      "title": "Automatisierung mit APIs (Fortgeschritten)",
+      "description": "LLMs programmatisch nutzen: OpenAI API, RAG, Fine-tuning, Function Calling",
+      "lessons": [
+        {
+          "id": "openai-api",
+          "title": "LLMs via API nutzen",
+          "type": "text",
+          "content": {
+            "text": "## OpenAI API Grundlagen\n\n### Setup\n```typescript\nimport OpenAI from 'openai';\n\nconst openai = new OpenAI({\n  apiKey: process.env.OPENAI_API_KEY\n});\n```\n\n### Einfacher API-Call\n```typescript\nconst completion = await openai.chat.completions.create({\n  model: 'gpt-4-turbo',\n  messages: [\n    { role: 'system', content: 'Du bist ein hilfreicher Coding-Assistent.' },\n    { role: 'user', content: 'Erkläre async/await in TypeScript.' }\n  ],\n  temperature: 0.7,\n  max_tokens: 1000\n});\n\nconsole.log(completion.choices[0].message.content);\n```\n\n### Wichtige Parameter\n\n| Parameter | Beschreibung | Typischer Wert |\n|-----------|--------------|----------------|\n| model | Modell-Auswahl | gpt-4-turbo, gpt-3.5-turbo |\n| temperature | Kreativität (0-2) | 0.1-0.3 für Code, 0.7-1.0 für Text |\n| max_tokens | Maximale Antwortlänge | 500-4000 |\n| top_p | Alternative zu temperature | 0.9 |\n\n### Alternativen zu OpenAI\n- **Anthropic Claude API**: Ähnliches Interface\n- **Azure OpenAI**: Enterprise-ready\n- **Open-Source**: Ollama, LM Studio für lokale Modelle"
+          }
+        },
+        {
+          "id": "rag-basics",
+          "title": "RAG: Eigene Daten als Wissensquelle",
+          "type": "text",
+          "content": {
+            "text": "## Retrieval-Augmented Generation (RAG)\n\nRAG erweitert LLMs mit eigenem Wissen, ohne das Modell neu zu trainieren.\n\n### Wie funktioniert RAG?\n\n```\n1. Dokumente → Embeddings → Vektor-Datenbank\n2. User-Query → Embedding → Ähnlichkeitssuche\n3. Relevante Chunks + Query → LLM → Antwort\n```\n\n### Einfaches RAG-Beispiel\n\n```typescript\n// 1. Embeddings erstellen\nconst embedding = await openai.embeddings.create({\n  model: 'text-embedding-3-small',\n  input: documentText\n});\n\n// 2. In Vektor-DB speichern (z.B. Pinecone, Chroma)\nawait vectorDB.upsert({\n  id: docId,\n  values: embedding.data[0].embedding,\n  metadata: { text: documentText }\n});\n\n// 3. Bei Query: Ähnliche Dokumente finden\nconst queryEmbedding = await openai.embeddings.create({\n  model: 'text-embedding-3-small',\n  input: userQuery\n});\n\nconst results = await vectorDB.query({\n  vector: queryEmbedding.data[0].embedding,\n  topK: 5\n});\n\n// 4. Kontext zum Prompt hinzufügen\nconst context = results.matches.map(m => m.metadata.text).join('\\n');\nconst prompt = `Kontext:\\n${context}\\n\\nFrage: ${userQuery}`;\n```\n\n### Use-Cases für RAG\n- Interne Dokumentation durchsuchbar machen\n- Codebase-spezifische Fragen beantworten\n- Knowledge Base für Support"
+          }
+        },
+        {
+          "id": "function-calling",
+          "title": "Function Calling: LLMs mit Tools verbinden",
+          "type": "text",
+          "content": {
+            "text": "## Function Calling\n\nErmöglicht dem LLM, definierte Funktionen aufzurufen.\n\n### Beispiel: Wetter-Abfrage\n\n```typescript\nconst tools = [{\n  type: 'function',\n  function: {\n    name: 'getWeather',\n    description: 'Holt aktuelle Wetterdaten für einen Ort',\n    parameters: {\n      type: 'object',\n      properties: {\n        location: {\n          type: 'string',\n          description: 'Stadt, z.B. \"Berlin, DE\"'\n        },\n        unit: {\n          type: 'string',\n          enum: ['celsius', 'fahrenheit']\n        }\n      },\n      required: ['location']\n    }\n  }\n}];\n\nconst response = await openai.chat.completions.create({\n  model: 'gpt-4-turbo',\n  messages: [{ role: 'user', content: 'Wie ist das Wetter in München?' }],\n  tools,\n  tool_choice: 'auto'\n});\n\n// LLM entscheidet, ob Function aufgerufen werden soll\nif (response.choices[0].message.tool_calls) {\n  const call = response.choices[0].message.tool_calls[0];\n  const args = JSON.parse(call.function.arguments);\n  const weatherData = await getWeather(args.location, args.unit);\n  // Ergebnis zurück an LLM für finale Antwort\n}\n```\n\n### Anwendungen\n- Datenbank-Abfragen\n- API-Integrationen\n- Berechnungen\n- Externe Services ansprechen"
+          }
+        },
+        {
+          "id": "finetuning-basics",
+          "title": "Grundlagen des Fine-Tunings",
+          "type": "text",
+          "content": {
+            "text": "## Fine-Tuning: Wann und wie?\n\n### Wann Fine-Tuning sinnvoll ist\n\n✅ Geeignet für:\n- Konsistenten Stil/Format\n- Spezialisiertes Domänenwissen\n- Reduzierung von Prompt-Länge\n- Verbesserung bei spezifischen Tasks\n\n❌ Nicht geeignet für:\n- Einmalige Aufgaben (nutze Prompting)\n- Häufig änderndes Wissen (nutze RAG)\n- Wenn wenige Trainingsdaten (<100)\n\n### Fine-Tuning Workflow\n\n```typescript\n// 1. Trainingsdaten vorbereiten (JSONL)\n// {\"messages\": [{\"role\": \"system\", \"content\": \"...\"}, {\"role\": \"user\", \"content\": \"...\"}, {\"role\": \"assistant\", \"content\": \"...\"}]}\n\n// 2. File hochladen\nconst file = await openai.files.create({\n  file: fs.createReadStream('training.jsonl'),\n  purpose: 'fine-tune'\n});\n\n// 3. Fine-Tuning Job starten\nconst job = await openai.fineTuning.jobs.create({\n  training_file: file.id,\n  model: 'gpt-3.5-turbo'\n});\n\n// 4. Status prüfen\nconst status = await openai.fineTuning.jobs.retrieve(job.id);\n\n// 5. Fertiges Modell nutzen\nconst completion = await openai.chat.completions.create({\n  model: 'ft:gpt-3.5-turbo:my-org::abc123',\n  messages: [...]\n});\n```\n\n### Kosten & Aufwand\n- Training: $0.008/1K tokens (GPT-3.5)\n- Nutzung: 3-5x teurer als Base-Modell\n- Mindestens 10 hochwertige Beispiele, besser 50-100"
+          }
+        },
+        {
+          "id": "api-quiz",
+          "title": "Quiz: APIs & Automatisierung",
+          "type": "quiz",
+          "content": {
+            "questions": [
+              {
+                "question": "Was ist der Hauptvorteil von RAG gegenüber Fine-Tuning?",
+                "options": ["Schnellere Antworten", "Wissen kann ohne Neutraining aktualisiert werden", "Günstigere Kosten", "Bessere Code-Qualität"],
+                "correct": 1,
+                "explanation": "RAG erlaubt es, die Wissensbasis zu aktualisieren, ohne das Modell neu trainieren zu müssen."
+              },
+              {
+                "question": "Wofür wird Function Calling verwendet?",
+                "options": ["Um das LLM schneller zu machen", "Um dem LLM Zugriff auf externe Tools und APIs zu geben", "Um Halluzinationen zu vermeiden", "Um Kosten zu sparen"],
+                "correct": 1,
+                "explanation": "Function Calling ermöglicht dem LLM, strukturiert externe Funktionen aufzurufen."
+              },
+              {
+                "question": "Welcher Temperature-Wert eignet sich am besten für Code-Generierung?",
+                "options": ["0.0-0.3 (niedrig)", "0.5 (mittel)", "0.7-1.0 (hoch)", "1.5-2.0 (sehr hoch)"],
+                "correct": 0,
+                "explanation": "Für Code ist ein niedriger Temperature-Wert besser, da er deterministischere, konsistentere Ergebnisse liefert."
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

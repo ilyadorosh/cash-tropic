@@ -1,0 +1,17 @@
+.card {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 24px;
+  border: var(--border-in-light);
+  box-shadow: var(--card-shadow);
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  cursor: pointer;
+  height: 100%;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+}
