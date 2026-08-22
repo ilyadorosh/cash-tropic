@@ -19,7 +19,7 @@ export const FINE_STRUCTURE: NatureConstant = {
   display: "≈ 1/137.036",
   unit: "dimensionless",
   exact: false,
-  note: "Strength of electromagnetic interaction. \"One of the greatest damn mysteries of physics\" — Feynman. If α were slightly different, atoms wouldn't form.",
+  note: 'Strength of electromagnetic interaction. "One of the greatest damn mysteries of physics" — Feynman. If α were slightly different, atoms wouldn\'t form.',
 };
 
 export const SPEED_OF_LIGHT: NatureConstant = {

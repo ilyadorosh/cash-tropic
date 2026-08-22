@@ -17,7 +17,10 @@ type Props = {
   trendingProfiles: TrendingProfile[];
 };
 
-export default function NetworkPanel({ trendingPages, trendingProfiles }: Props) {
+export default function NetworkPanel({
+  trendingPages,
+  trendingProfiles,
+}: Props) {
   const [feed, setFeed] = useState<FeedEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -181,7 +184,9 @@ export default function NetworkPanel({ trendingPages, trendingProfiles }: Props)
             <div key={`${e.ts}-${i}`} className={styles.feedItem}>
               <span className={styles.feedType}>{e.type}</span>
               <strong>{e.from}</strong> → <strong>{e.to}</strong>
-              {e.preview && <span className={styles.muted}> — {e.preview}</span>}
+              {e.preview && (
+                <span className={styles.muted}> — {e.preview}</span>
+              )}
             </div>
           ))}
         </div>

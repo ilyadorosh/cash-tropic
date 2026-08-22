@@ -31,6 +31,9 @@ export default async function Page() {
   );
 
   return (
-    <FrontPage trendingPages={trendingPages} trendingProfiles={trendingProfiles} />
+    <FrontPage
+      trendingPages={trendingPages}
+      trendingProfiles={trendingProfiles}
+    />
   );
 }

@@ -126,11 +126,7 @@ export default function UsersPanel() {
           value={context}
           onChange={(e) => setContext(e.target.value)}
         />
-        <button
-          className={styles.button}
-          onClick={handleSave}
-          disabled={busy}
-        >
+        <button className={styles.button} onClick={handleSave} disabled={busy}>
           {editing ? "Save" : "+ Add"}
         </button>
         {editing && (
@@ -143,7 +139,9 @@ export default function UsersPanel() {
       {loading ? (
         <p className={styles.muted}>Loading profiles…</p>
       ) : profiles.length === 0 ? (
-        <p className={styles.muted}>No profiles yet — create the first one above.</p>
+        <p className={styles.muted}>
+          No profiles yet — create the first one above.
+        </p>
       ) : (
         <div className={styles.list}>
           {profiles.map((p) => (

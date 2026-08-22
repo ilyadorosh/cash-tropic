@@ -52,9 +52,9 @@ export default function FrontPage({ trendingPages, trendingProfiles }: Props) {
       <header className={styles.hero}>
         <h1 className={styles.title}>Illia Dorosh</h1>
         <p className={styles.subtitle}>
-          Physics Simulation Engineer · AI Systems · Energy Research — &quot;Blessed
-          are the peacemakers.&quot; Building systems that capture more energy for
-          humanity.
+          Physics Simulation Engineer · AI Systems · Energy Research —
+          &quot;Blessed are the peacemakers.&quot; Building systems that capture
+          more energy for humanity.
         </p>
         <nav className={styles.navGrid}>
           {NAV_LINKS.map((l) => (
@@ -96,8 +96,9 @@ export default function FrontPage({ trendingPages, trendingProfiles }: Props) {
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Constants of Nature</h2>
         <p className={styles.sectionNote}>
-          The numbers that run the universe — from my CV&apos;s &quot;Key Equations
-          &amp; Obsessions&quot;. α couples them all: α = e² / (4π ε₀ ħ c) ≈ 1/137.036.
+          The numbers that run the universe — from my CV&apos;s &quot;Key
+          Equations &amp; Obsessions&quot;. α couples them all: α = e² / (4π ε₀
+          ħ c) ≈ 1/137.036.
         </p>
         <div className={styles.constantsGrid}>
           {NATURE_CONSTANTS.map((c) => (
@@ -108,7 +109,8 @@ export default function FrontPage({ trendingPages, trendingProfiles }: Props) {
                 {c.exact && <span className={styles.exactBadge}>SI exact</span>}
               </div>
               <div className={styles.constantValue}>
-                {c.display} <span className={styles.constantUnit}>{c.unit}</span>
+                {c.display}{" "}
+                <span className={styles.constantUnit}>{c.unit}</span>
               </div>
               <div className={styles.constantNote}>{c.note}</div>
             </article>
@@ -117,7 +119,8 @@ export default function FrontPage({ trendingPages, trendingProfiles }: Props) {
 
         <div className={styles.landauer}>
           <label htmlFor="landauer-temp">
-            Szilard / Landauer limit — energy to erase one bit: E = k_B · T · ln 2
+            Szilard / Landauer limit — energy to erase one bit: E = k_B · T · ln
+            2
           </label>
           <input
             id="landauer-temp"
@@ -129,7 +132,8 @@ export default function FrontPage({ trendingPages, trendingProfiles }: Props) {
           />
           <div className={styles.landauerResult}>
             T = {temp} K → E_min = {landauerLimit(temp).toExponential(3)} J
-            {temp === LANDAUER_REFERENCE_TEMP_K && " (brain temperature ≈ 310 K)"}
+            {temp === LANDAUER_REFERENCE_TEMP_K &&
+              " (brain temperature ≈ 310 K)"}
           </div>
         </div>
       </section>
