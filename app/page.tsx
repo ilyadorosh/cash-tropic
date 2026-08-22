@@ -1,9 +1,5 @@
-import {
-  getActivityFeed,
-  getTrendingPages,
-  getTrendingProfiles,
-} from "@/app/lib/redis";
-import LoveUniverse from "@/app/components/love-universe";
+import { getTrendingPages, getTrendingProfiles } from "@/app/lib/redis";
+import FrontPage from "@/app/components/front-page";
 
 function parsePairs(
   raw: (string | number)[],
@@ -16,8 +12,7 @@ function parsePairs(
 }
 
 export default async function Page() {
-  const [feedRaw, pagesRaw, profilesRaw] = await Promise.all([
-    getActivityFeed(30).catch(() => []),
+  const [pagesRaw, profilesRaw] = await Promise.all([
     getTrendingPages(8).catch(() => []),
     getTrendingProfiles(8).catch(() => []),
   ]);
@@ -36,10 +31,6 @@ export default async function Page() {
   );
 
   return (
-    <LoveUniverse
-      initialFeed={feedRaw}
-      trendingPages={trendingPages}
-      trendingProfiles={trendingProfiles}
-    />
+    <FrontPage trendingPages={trendingPages} trendingProfiles={trendingProfiles} />
   );
 }
